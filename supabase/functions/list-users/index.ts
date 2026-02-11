@@ -63,7 +63,8 @@ Deno.serve(async (req) => {
     } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
 
     if (listError) {
-      return new Response(JSON.stringify({ error: listError.message }), {
+      console.error("Failed to list users:", listError);
+      return new Response(JSON.stringify({ error: "Unable to retrieve user list" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -78,7 +79,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error("list-users error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

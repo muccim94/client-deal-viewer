@@ -20,8 +20,8 @@ const COLORS = [
 
 export default function Dashboard() {
   const { records } = useData();
-  const [filterAzienda, setFilterAzienda] = useState("__all__");
-  const [filterAnno, setFilterAnno] = useState("__all__");
+  const [filterAzienda, setFilterAzienda] = useState("FO");
+  const [filterAnno, setFilterAnno] = useState("2026");
   const [filterMese, setFilterMese] = useState("__all__");
 
   const anni = useMemo(() => [...new Set(records.map((r) => r.anno))].sort(), [records]);

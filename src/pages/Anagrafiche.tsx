@@ -123,8 +123,8 @@ export default function Anagrafiche() {
                         {r.nomeCliente}
                       </Link>
                     </TableCell>
-                    <TableCell className="font-medium">{fmt(r.fatt2026)}</TableCell>
-                    <TableCell className="font-medium">{fmt(r.fatt2025)}</TableCell>
+                    <TableCell className="font-medium text-right tabular-nums">{fmt(r.fatt2026)}</TableCell>
+                    <TableCell className="font-medium text-right tabular-nums">{fmt(r.fatt2025)}</TableCell>
                     <TableCell>
                       <Link to={`/anagrafiche/${r.codiceCliente}`}>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />

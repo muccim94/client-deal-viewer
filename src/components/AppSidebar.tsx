@@ -1,4 +1,4 @@
-import { BarChart3, Table2, Upload, Coins, LogOut } from "lucide-react";
+import { BarChart3, Table2, Upload, Coins, LogOut, Users } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -19,6 +19,7 @@ const allItems = [
   { title: "Anagrafiche", url: "/anagrafiche", icon: Table2 },
   { title: "Provvigioni", url: "/provvigioni", icon: Coins },
   { title: "Upload Excel", url: "/upload", icon: Upload, adminOnly: true },
+  { title: "Gestione Utenti", url: "/gestione-utenti", icon: Users, adminOnly: true },
 ];
 
 export function AppSidebar() {

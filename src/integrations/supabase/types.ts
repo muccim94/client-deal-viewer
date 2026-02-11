@@ -65,6 +65,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_agents: {
+        Row: {
+          agente: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          agente: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          agente?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -88,6 +109,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_agents: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

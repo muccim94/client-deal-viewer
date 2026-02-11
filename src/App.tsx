@@ -21,29 +21,29 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <DataProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route
-                element={
-                  <ProtectedRoute>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route
+              element={
+                <ProtectedRoute>
+                  <DataProvider>
                     <AppLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/anagrafiche" element={<Anagrafiche />} />
-                <Route path="/anagrafiche/:codice" element={<ClienteDettaglio />} />
-                <Route path="/provvigioni" element={<Provvigioni />} />
-                <Route path="/upload" element={<UploadExcel />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </DataProvider>
+                  </DataProvider>
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/anagrafiche" element={<Anagrafiche />} />
+              <Route path="/anagrafiche/:codice" element={<ClienteDettaglio />} />
+              <Route path="/provvigioni" element={<Provvigioni />} />
+              <Route path="/upload" element={<UploadExcel />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

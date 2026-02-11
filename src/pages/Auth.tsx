@@ -40,7 +40,7 @@ export default function Auth() {
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
-        toast.success("Registrazione completata! Controlla la tua email per confermare l'account.");
+        toast.success("Registrazione completata! Accesso effettuato.");
       }
     } catch (err: any) {
       toast.error(err.message || "Errore di autenticazione");

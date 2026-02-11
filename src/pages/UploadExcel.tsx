@@ -41,11 +41,25 @@ export default function UploadExcel() {
     if (file) handleFile(file);
   };
 
+  const recordKey = (r: SalesRecord) =>
+    `${r.azienda}|${r.anno}|${r.mese}|${r.codiceCliente}|${r.articolo}|${r.imponibile}`;
 
   const confirm = () => {
     if (!preview) return;
-    setRecords([...records, ...preview]);
-    toast.success(`${preview.length} record aggiunti allo storico (totale: ${records.length + preview.length})`);
+    const existingKeys = new Set(records.map(recordKey));
+    const nuovi = preview.filter((r) => !existingKeys.has(recordKey(r)));
+    const duplicati = preview.length - nuovi.length;
+
+    if (nuovi.length === 0) {
+      toast.warning("Tutti i record sono già presenti nello storico.");
+      return;
+    }
+
+    setRecords([...records, ...nuovi]);
+    const msg = duplicati > 0
+      ? `${nuovi.length} record aggiunti, ${duplicati} duplicati ignorati (totale: ${records.length + nuovi.length})`
+      : `${nuovi.length} record aggiunti allo storico (totale: ${records.length + nuovi.length})`;
+    toast.success(msg);
     setPreview(null);
     setFileName("");
   };

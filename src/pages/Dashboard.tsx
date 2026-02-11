@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { DollarSign, Users, Tag, TrendingUp, BarChart3 } from "lucide-react";
+import { Euro, Users, Tag, TrendingUp, BarChart3 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -75,7 +75,7 @@ export default function Dashboard() {
   }
 
   const kpis = [
-    { label: "Fatturato Totale", value: fmt(stats.totale), icon: DollarSign },
+    { label: "Fatturato Totale", value: fmt(stats.totale), icon: Euro },
     { label: "Clienti Unici", value: stats.clienti, icon: Users },
     { label: "Marchi", value: stats.marchi, icon: Tag },
     { label: "Media per Cliente", value: fmt(stats.mediaCliente), icon: TrendingUp },

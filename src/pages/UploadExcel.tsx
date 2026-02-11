@@ -7,8 +7,13 @@ import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Upload as UploadIcon, FileSpreadsheet, Check, X } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Upload as UploadIcon, FileSpreadsheet, Check, X, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 export default function UploadExcel() {
   const { records, setRecords } = useData();
@@ -69,6 +74,34 @@ export default function UploadExcel() {
     setFileName("");
   };
 
+  const clearAll = () => {
+    setRecords([]);
+    setPreview(null);
+    setFileName("");
+    toast.success("Storico dati cancellato");
+  };
+
+  const downloadBackup = () => {
+    if (!records.length) {
+      toast.warning("Nessun dato da esportare");
+      return;
+    }
+    const rows = records.map((r) => ({
+      Azienda: r.azienda,
+      Anno: r.anno,
+      Mese: r.mese,
+      Cliente: `${r.azienda}_${r.codiceCliente} - ${r.nomeCliente}`,
+      Agente: r.agente,
+      Articolo: `${r.azienda}_${r.articolo}`,
+      Imponibile: r.imponibile,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Dati");
+    XLSX.writeFile(wb, `backup_dati_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success("Backup scaricato");
+  };
+
   const fmt = (n: number) =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
@@ -103,6 +136,40 @@ export default function UploadExcel() {
           </div>
         </CardContent>
       </Card>
+
+      {records.length > 0 && (
+        <Card>
+          <CardContent className="flex items-center justify-between py-4">
+            <p className="text-sm text-muted-foreground">
+              Storico attuale: <span className="font-medium text-foreground">{records.length}</span> record
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={downloadBackup}>
+                <Download className="h-4 w-4 mr-1" /> Scarica backup
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="h-4 w-4 mr-1" /> Cancella storico
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancellare tutti i dati?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Questa azione eliminerà tutti i {records.length} record importati. L'operazione non è reversibile.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annulla</AlertDialogCancel>
+                    <AlertDialogAction onClick={clearAll}>Cancella tutto</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {preview && (
         <Card>

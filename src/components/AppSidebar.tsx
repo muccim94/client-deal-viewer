@@ -1,8 +1,10 @@
-import { BarChart3, Table2, Upload, Coins } from "lucide-react";
+import { BarChart3, Table2, Upload, Coins, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -10,15 +12,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 
-const items = [
+const allItems = [
   { title: "Dashboard", url: "/", icon: BarChart3 },
   { title: "Anagrafiche", url: "/anagrafiche", icon: Table2 },
   { title: "Provvigioni", url: "/provvigioni", icon: Coins },
-  { title: "Upload Excel", url: "/upload", icon: Upload },
+  { title: "Upload Excel", url: "/upload", icon: Upload, adminOnly: true },
 ];
 
 export function AppSidebar() {
+  const { role, signOut } = useAuth();
+  const items = allItems.filter((item) => !item.adminOnly || role === "admin");
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent className="pt-4">
@@ -45,6 +51,17 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-muted-foreground hover:text-foreground"
+          onClick={signOut}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          <span>Esci</span>
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   );
 }

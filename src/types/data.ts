@@ -9,6 +9,7 @@ export interface SalesRecord {
   marchio: string;       // primi 3 char dopo prefisso azienda es. "VIW", "BEG", "CV."
   articolo: string;      // codice articolo completo senza prefisso azienda
   imponibile: number;
+  provvigione: number;  // valore provvigione
 }
 
 const AZIENDA_MAP: Record<string, string> = {

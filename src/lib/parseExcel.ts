@@ -34,6 +34,7 @@ export function parseExcelFile(file: File): Promise<SalesRecord[]> {
           const marchio = articoloSenzaPrefisso.substring(0, 3);
 
           const imponibile = Number(row["Imponibile"] ?? 0);
+          const provvigione = Number(row["Provvigione Valore"] ?? 0);
 
           return {
             azienda,
@@ -46,6 +47,7 @@ export function parseExcelFile(file: File): Promise<SalesRecord[]> {
             marchio,
             articolo: articoloSenzaPrefisso,
             imponibile,
+            provvigione,
           };
         });
 

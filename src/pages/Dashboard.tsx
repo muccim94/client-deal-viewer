@@ -1,7 +1,11 @@
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useData } from "@/contexts/DataContext";
+import { getMeseNome } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, Package, TrendingUp, BarChart3 } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { DollarSign, Users, Tag, TrendingUp, BarChart3 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -16,41 +20,46 @@ const COLORS = [
 
 export default function Dashboard() {
   const { records } = useData();
+  const [filterAzienda, setFilterAzienda] = useState("__all__");
+  const [filterAnno, setFilterAnno] = useState("__all__");
+  const [filterMese, setFilterMese] = useState("__all__");
+
+  const anni = useMemo(() => [...new Set(records.map((r) => r.anno))].sort(), [records]);
+  const mesi = useMemo(() => [...new Set(records.map((r) => r.mese))].sort((a, b) => a - b), [records]);
+
+  const filtered = useMemo(() => {
+    let data = records;
+    if (filterAzienda !== "__all__") data = data.filter((r) => r.azienda === filterAzienda);
+    if (filterAnno !== "__all__") data = data.filter((r) => r.anno === Number(filterAnno));
+    if (filterMese !== "__all__") data = data.filter((r) => r.mese === Number(filterMese));
+    return data;
+  }, [records, filterAzienda, filterAnno, filterMese]);
 
   const stats = useMemo(() => {
-    const totale = records.reduce((s, r) => s + r.importo, 0);
-    const clienti = new Set(records.map((r) => r.cliente)).size;
-    const prodotti = new Set(records.map((r) => r.prodotto)).size;
-    const media = records.length ? totale / records.length : 0;
-    return { totale, clienti, prodotti, media };
-  }, [records]);
+    const totale = filtered.reduce((s, r) => s + r.imponibile, 0);
+    const clienti = new Set(filtered.map((r) => r.codiceCliente)).size;
+    const marchi = new Set(filtered.map((r) => r.marchio)).size;
+    const mediaCliente = clienti ? totale / clienti : 0;
+    return { totale, clienti, marchi, mediaCliente };
+  }, [filtered]);
 
   const topClienti = useMemo(() => {
     const map = new Map<string, number>();
-    records.forEach((r) => map.set(r.cliente, (map.get(r.cliente) ?? 0) + r.importo));
-    return [...map.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([name, value]) => ({ name, value }));
-  }, [records]);
+    filtered.forEach((r) => map.set(r.nomeCliente, (map.get(r.nomeCliente) ?? 0) + r.imponibile));
+    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, value]) => ({ name, value }));
+  }, [filtered]);
 
-  const prodottiPie = useMemo(() => {
+  const marchiPie = useMemo(() => {
     const map = new Map<string, number>();
-    records.forEach((r) => map.set(r.prodotto, (map.get(r.prodotto) ?? 0) + r.importo));
-    return [...map.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([name, value]) => ({ name, value }));
-  }, [records]);
+    filtered.forEach((r) => map.set(r.marchio, (map.get(r.marchio) ?? 0) + r.imponibile));
+    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => ({ name, value }));
+  }, [filtered]);
 
-  const prodottiQty = useMemo(() => {
+  const aziendaBar = useMemo(() => {
     const map = new Map<string, number>();
-    records.forEach((r) => map.set(r.prodotto, (map.get(r.prodotto) ?? 0) + 1));
-    return [...map.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([name, value]) => ({ name, value }));
-  }, [records]);
+    filtered.forEach((r) => map.set(r.aziendaNome, (map.get(r.aziendaNome) ?? 0) + r.imponibile));
+    return [...map.entries()].map(([name, value]) => ({ name, value }));
+  }, [filtered]);
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
@@ -67,13 +76,40 @@ export default function Dashboard() {
 
   const kpis = [
     { label: "Fatturato Totale", value: fmt(stats.totale), icon: DollarSign },
-    { label: "Clienti", value: stats.clienti, icon: Users },
-    { label: "Prodotti", value: stats.prodotti, icon: Package },
-    { label: "Media Ordine", value: fmt(stats.media), icon: TrendingUp },
+    { label: "Clienti Unici", value: stats.clienti, icon: Users },
+    { label: "Marchi", value: stats.marchi, icon: Tag },
+    { label: "Media per Cliente", value: fmt(stats.mediaCliente), icon: TrendingUp },
   ];
 
   return (
     <div className="space-y-6">
+      {/* Filtri */}
+      <div className="flex flex-wrap gap-3">
+        <Select value={filterAzienda} onValueChange={setFilterAzienda}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Tutte le aziende" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Tutte le aziende</SelectItem>
+            <SelectItem value="FO">Fogliani</SelectItem>
+            <SelectItem value="FU">Futurtec</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterAnno} onValueChange={setFilterAnno}>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Tutti gli anni" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Tutti gli anni</SelectItem>
+            {anni.map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterMese} onValueChange={setFilterMese}>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Tutti i mesi" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Tutti i mesi</SelectItem>
+            {mesi.map((m) => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* KPI */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
           <Card key={k.label}>
@@ -81,24 +117,21 @@ export default function Dashboard() {
               <CardTitle className="text-sm font-medium text-muted-foreground">{k.label}</CardTitle>
               <k.icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{k.value}</div>
-            </CardContent>
+            <CardContent><div className="text-2xl font-bold">{k.value}</div></CardContent>
           </Card>
         ))}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* Top 10 Clienti */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top 10 Clienti per Fatturato</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base">Top 10 Clienti per Fatturato</CardTitle></CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topClienti} layout="vertical" margin={{ left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis type="number" tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`} />
-                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v: number) => fmt(v)} />
                 <Bar dataKey="value" fill="hsl(215, 70%, 50%)" radius={[0, 4, 4, 0]} />
               </BarChart>
@@ -106,26 +139,19 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* Distribuzione per Marchio */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Distribuzione Vendite per Prodotto</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base">Distribuzione Vendite per Marchio</CardTitle></CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={prodottiPie}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
+                  data={marchiPie} dataKey="value" nameKey="name"
+                  cx="50%" cy="50%" outerRadius={100}
                   label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                   labelLine={false}
                 >
-                  {prodottiPie.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
+                  {marchiPie.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip formatter={(v: number) => fmt(v)} />
                 <Legend />
@@ -135,17 +161,16 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {/* Fatturato per Azienda */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Prodotti Più Venduti (per quantità)</CardTitle>
-        </CardHeader>
-        <CardContent className="h-72">
+        <CardHeader><CardTitle className="text-base">Fatturato per Azienda</CardTitle></CardHeader>
+        <CardContent className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={prodottiQty} margin={{ bottom: 40 }}>
+            <BarChart data={aziendaBar}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="name" angle={-35} textAnchor="end" tick={{ fontSize: 11 }} />
-              <YAxis />
-              <Tooltip />
+              <XAxis dataKey="name" />
+              <YAxis tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`} />
+              <Tooltip formatter={(v: number) => fmt(v)} />
               <Bar dataKey="value" fill="hsl(160, 60%, 45%)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

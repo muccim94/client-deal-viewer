@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { parseExcelFile } from "@/lib/parseExcel";
 import { SalesRecord } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,10 +17,14 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
 export default function UploadExcel() {
-  const { records, setRecords } = useData();
+  const { records, addRecords, clearRecords } = useData();
+  const { role } = useAuth();
   const [preview, setPreview] = useState<SalesRecord[] | null>(null);
   const [fileNames, setFileNames] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [importing, setImporting] = useState(false);
+
+  const isAdmin = role === "admin";
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     try {
@@ -50,27 +55,26 @@ export default function UploadExcel() {
     if (e.target.files?.length) handleFiles(e.target.files);
   };
 
-  const recordKey = (r: SalesRecord) =>
-    `${r.azienda}|${r.anno}|${r.mese}|${r.codiceCliente}|${r.articolo}|${r.imponibile}`;
-
-  const confirm = () => {
+  const confirm = async () => {
     if (!preview) return;
-    const existingKeys = new Set(records.map(recordKey));
-    const nuovi = preview.filter((r) => !existingKeys.has(recordKey(r)));
-    const duplicati = preview.length - nuovi.length;
-
-    if (nuovi.length === 0) {
-      toast.warning("Tutti i record sono già presenti nello storico.");
-      return;
+    setImporting(true);
+    try {
+      const { added, duplicates } = await addRecords(preview);
+      if (added === 0) {
+        toast.warning("Tutti i record sono già presenti nello storico.");
+      } else {
+        const msg = duplicates > 0
+          ? `${added} record aggiunti, ${duplicates} duplicati ignorati`
+          : `${added} record aggiunti allo storico`;
+        toast.success(msg);
+      }
+      setPreview(null);
+      setFileNames([]);
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante l'importazione");
+    } finally {
+      setImporting(false);
     }
-
-    setRecords([...records, ...nuovi]);
-    const msg = duplicati > 0
-      ? `${nuovi.length} record aggiunti, ${duplicati} duplicati ignorati (totale: ${records.length + nuovi.length})`
-      : `${nuovi.length} record aggiunti allo storico (totale: ${records.length + nuovi.length})`;
-    toast.success(msg);
-    setPreview(null);
-    setFileNames([]);
   };
 
   const cancel = () => {
@@ -78,11 +82,15 @@ export default function UploadExcel() {
     setFileNames([]);
   };
 
-  const clearAll = () => {
-    setRecords([]);
-    setPreview(null);
-    setFileNames([]);
-    toast.success("Storico dati cancellato");
+  const clearAll = async () => {
+    try {
+      await clearRecords();
+      setPreview(null);
+      setFileNames([]);
+      toast.success("Storico dati cancellato");
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante la cancellazione");
+    }
   };
 
   const downloadBackup = () => {
@@ -152,25 +160,27 @@ export default function UploadExcel() {
               <Button variant="outline" size="sm" onClick={downloadBackup}>
                 <Download className="h-4 w-4 mr-1" /> Scarica backup
               </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
-                    <Trash2 className="h-4 w-4 mr-1" /> Cancella storico
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Cancellare tutti i dati?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Questa azione eliminerà tutti i {records.length} record importati. L'operazione non è reversibile.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annulla</AlertDialogCancel>
-                    <AlertDialogAction onClick={clearAll}>Cancella tutto</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              {isAdmin && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4 mr-1" /> Cancella storico
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancellare tutti i dati?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Questa azione eliminerà tutti i {records.length} record importati. L'operazione non è reversibile.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annulla</AlertDialogCancel>
+                      <AlertDialogAction onClick={clearAll}>Cancella tutto</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -189,8 +199,8 @@ export default function UploadExcel() {
               <Button variant="outline" size="sm" onClick={cancel}>
                 <X className="h-4 w-4 mr-1" /> Annulla
               </Button>
-              <Button size="sm" onClick={confirm}>
-                <Check className="h-4 w-4 mr-1" /> Importa dati
+              <Button size="sm" onClick={confirm} disabled={importing}>
+                <Check className="h-4 w-4 mr-1" /> {importing ? "Importazione..." : "Importa dati"}
               </Button>
             </div>
           </CardHeader>

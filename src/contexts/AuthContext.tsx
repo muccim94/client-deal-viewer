@@ -1,0 +1,92 @@
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { User, Session } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+
+type AppRole = "admin" | "user";
+
+interface AuthContextType {
+  user: User | null;
+  role: AppRole | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<AppRole | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadRole = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .single();
+    if (data) {
+      setRole(data.role as AppRole);
+    }
+  };
+
+  const tryPromoteFirstAdmin = async () => {
+    try {
+      const { data } = await supabase.functions.invoke("promote-first-admin");
+      if (data?.promoted) {
+        setRole("admin");
+      }
+    } catch {
+      // ignore - not critical
+    }
+  };
+
+  useEffect(() => {
+    // Set up auth listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session: Session | null) => {
+        if (session?.user) {
+          setUser(session.user);
+          await loadRole(session.user.id);
+          // Try to promote first admin after role is loaded
+          await tryPromoteFirstAdmin();
+          // Reload role in case it was promoted
+          await loadRole(session.user.id);
+        } else {
+          setUser(null);
+          setRole(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    // Then check existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        loadRole(session.user.id).then(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setRole(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, role, loading, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}

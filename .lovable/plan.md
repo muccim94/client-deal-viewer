@@ -1,80 +1,69 @@
-
-
-## Persistenza dati nel cloud con autenticazione e ruoli
+## Implementazione autenticazione e persistenza cloud
 
 ### Panoramica
 
-L'applicazione verra' migrata dal salvataggio locale (localStorage) a un database cloud, con un sistema di autenticazione e ruoli utente. Solo l'amministratore potra' caricare e cancellare dati, mentre gli utenti normali potranno solo visualizzarli.
+Il database e' gia' configurato con la tabella `user_roles`, la funzione `has_role()`, il trigger per assegnare automaticamente il ruolo 'user' ai nuovi utenti e le policy RLS aggiornate. Ora implementeremo il codice dell'applicazione.
 
-### Cosa verra' fatto
+### Passaggi
 
-1. **Creazione tabella ruoli utente** (database)
-   - Tipo enum `app_role` con valori `admin` e `user`
-   - Tabella `user_roles` con relazione all'utente autenticato
-   - Funzione `has_role()` per verificare i ruoli senza ricorsione RLS
-   - Policy RLS sulla tabella `user_roles` (ogni utente puo' leggere solo il proprio ruolo)
-
-2. **Aggiornamento policy sulla tabella `sales_records`**
-   - Le policy esistenti gia' filtrano per `user_id`, ma verranno aggiornate per supportare il modello admin:
-     - **SELECT**: tutti gli utenti autenticati possono leggere tutti i record (i dati sono condivisi)
-     - **INSERT/DELETE**: solo gli utenti con ruolo `admin` possono inserire e cancellare
-
-3. **Pagina di Login** (`src/pages/Auth.tsx`)
-   - Form con email e password per login e registrazione
-   - Conferma automatica dell'email per accesso immediato
-   - Redirect alla dashboard dopo il login
-
-4. **Contesto di autenticazione** (`src/contexts/AuthContext.tsx`)
-   - Gestione della sessione utente con `onAuthStateChange`
-   - Caricamento del ruolo utente dalla tabella `user_roles`
-   - Esposizione di `user`, `role`, `signOut` a tutta l'app
-
-5. **Migrazione DataContext al database** (`src/contexts/DataContext.tsx`)
-   - Sostituzione di `localStorage` con query al database cloud
-   - `loadData`: fetch da `sales_records` tramite SDK
-   - `saveData`: insert batch nella tabella `sales_records`
-   - `clearData`: delete dei record dell'utente
-   - Gestione del caricamento con stato di loading
-
-6. **Protezione delle rotte**
-   - Rotte protette: redirect al login se non autenticato
-   - Pagina Upload visibile solo agli admin (nascosta dal menu per utenti normali)
-
-7. **Aggiornamento UI**
-   - Pulsante di logout nell'header accanto al tema toggle
-   - Indicazione del ruolo utente (es. badge "Admin")
-   - Nascondere i pulsanti "Cancella storico" e "Importa" per utenti non admin
+1. **Abilitare la conferma automatica email**
+  - Configurazione dell'autenticazione per permettere accesso immediato dopo la registrazione, senza dover verificare l'email
+2. **Creare la pagina di Login** (`src/pages/Auth.tsx`)
+  - Form con due modalita': Login e Registrazione
+  - Campi: email e password
+  - Redirect automatico alla dashboard dopo il login
+  - Gestione errori con messaggi toast
+3. **Creare il contesto di autenticazione** (`src/contexts/AuthContext.tsx`)
+  - Listener `onAuthStateChange` per gestire la sessione
+  - Caricamento del ruolo utente dalla tabella `user_roles`
+  - Esposizione di `user`, `role`, `loading`, `signOut`
+  - Il primo utente registrato viene promosso automaticamente ad admin (se la tabella `user_roles` e' vuota)
+4. **Migrare DataContext al database** (`src/contexts/DataContext.tsx`)
+  - `records`: caricati da `sales_records` via SDK (con supporto per piu' di 100000 record tramite paginazione)
+  - `clearRecords`: delete di tutti i record (solo admin)
+  - Stato `loading` per gestire il caricamento iniziale
+  - Mapping bidirezionale tra i nomi camelCase del frontend e snake_case del database
+5. **Aggiornare le rotte e la navigazione**
+  - Aggiungere la rotta `/auth` in `App.tsx`
+  - Creare un componente `ProtectedRoute` che redirige al login se non autenticato
+  - Tutte le rotte esistenti saranno protette
+6. **Aggiornare la sidebar** (`src/components/AppSidebar.tsx`)
+  - Nascondere "Upload Excel" per utenti non admin
+  - Aggiungere pulsante di logout nella parte bassa della sidebar
+7. **Aggiornare l'header** (`src/components/AppLayout.tsx`)
+  - Mostrare badge "Admin" accanto al nome se l'utente e' admin
+  - Rimuovere il pulsante di logout dall'header (spostato nella sidebar come richiesto)
+8. **Aggiornare la pagina Upload** (`src/pages/UploadExcel.tsx`)
+  - Passare `user.id` come `user_id` nei record inseriti nel database
+  - Aggiornare le funzioni `confirm` e `clearAll` per usare il DataContext aggiornato
+9. **Rimuovere il codice localStorage**
+  - Eliminare `src/lib/store.ts`
+  - Rimuovere import e riferimenti dal DataContext
 
 ### Dettagli tecnici
 
-- La tabella `sales_records` esiste gia' nel database con le colonne corrette
-- Le policy RLS esistenti (RESTRICTIVE con `auth.uid() = user_id`) verranno sostituite con policy che permettono a tutti gli utenti autenticati di leggere, e solo agli admin di scrivere/cancellare
-- Il primo utente registrato dovra' essere promosso ad admin manualmente (tramite query SQL) o tramite un meccanismo di setup iniziale
-- I dati attualmente in localStorage andranno reimportati dopo la migrazione
-- Il file `src/lib/store.ts` verra' rimosso in quanto non piu' necessario
+**Mapping dati frontend/database:**
 
-### Flusso utente
+- Il frontend usa `camelCase` (es. `codiceCliente`, `aziendaNome`)
+- Il database usa `snake_case` (es. `codice_cliente`, `azienda_nome`)
+- Il DataContext si occupera' della conversione in entrambe le direzioni
 
-```text
-Utente non autenticato
-    |
-    v
-Pagina Login (email + password)
-    |
-    v
-Utente autenticato
-    |
-    +---> Ruolo "admin": vede tutto, puo' caricare e cancellare dati
-    |
-    +---> Ruolo "user": vede dashboard, anagrafiche, provvigioni (sola lettura)
-```
+**Gestione primo admin:**
 
-### Ordine di implementazione
+- Quando un utente si registra, il trigger assegna il ruolo `user`
+- Nel `AuthContext`, dopo il login, se non esistono altri utenti con ruolo `admin` nella tabella, il primo utente viene promosso ad admin tramite una edge function dedicata (poiche' la tabella `user_roles` non ha policy INSERT per utenti normali)
 
-1. Migrazione database (enum, tabella ruoli, funzione has_role, aggiornamento policy)
-2. Abilitare auto-confirm email
-3. Pagina Auth e contesto autenticazione
-4. Migrazione DataContext da localStorage a database
-5. Protezione rotte e aggiornamento sidebar/header
-6. Rimozione codice localStorage non piu' necessario
+**Alternativa piu' semplice per il primo admin:**
 
+- Poiche' il trigger assegna sempre `user`, il primo utente registrato potra' essere promosso ad admin tramite un UPDATE diretto eseguito manualmente dalla console database. Questo evita complessita' aggiuntiva.
+
+**Paginazione dei dati:**
+
+- La query di default di Supabase restituisce massimo 1000 righe
+- Implementeremo un ciclo di fetch per caricare tutti i record disponibili
+
+**File coinvolti:**
+
+- Nuovi: `src/pages/Auth.tsx`, `src/contexts/AuthContext.tsx`, `src/components/ProtectedRoute.tsx`
+- Modificati: `src/App.tsx`, `src/contexts/DataContext.tsx`, `src/components/AppSidebar.tsx`, `src/components/AppLayout.tsx`, `src/pages/UploadExcel.tsx`
+- Rimossi: `src/lib/store.ts`

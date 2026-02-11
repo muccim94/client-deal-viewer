@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,20 +9,26 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export default function Auth() {
+  const { user, loading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+
+  // If already logged in, redirect to dashboard
+  if (!loading && user) {
+    return <Navigate to="/" replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate("/");
+        // Navigation will happen automatically via the redirect above
+        // when AuthContext updates the user state
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -30,12 +37,10 @@ export default function Auth() {
         });
         if (error) throw error;
         toast.success("Registrazione completata! Accesso in corso...");
-        navigate("/");
       }
     } catch (err: any) {
       toast.error(err.message || "Errore di autenticazione");
-    } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -68,8 +73,8 @@ export default function Auth() {
                 minLength={6}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Caricamento..." : isLogin ? "Accedi" : "Registrati"}
+            <Button type="submit" className="w-full" disabled={submitting || loading}>
+              {submitting ? "Caricamento..." : isLogin ? "Accedi" : "Registrati"}
             </Button>
           </form>
           <p className="text-center text-sm text-muted-foreground mt-4">

@@ -11,7 +11,7 @@ import { Upload as UploadIcon, FileSpreadsheet, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 export default function UploadExcel() {
-  const { setRecords } = useData();
+  const { records, setRecords } = useData();
   const [preview, setPreview] = useState<SalesRecord[] | null>(null);
   const [fileName, setFileName] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -41,10 +41,11 @@ export default function UploadExcel() {
     if (file) handleFile(file);
   };
 
+
   const confirm = () => {
     if (!preview) return;
-    setRecords(preview);
-    toast.success(`${preview.length} record importati con successo!`);
+    setRecords([...records, ...preview]);
+    toast.success(`${preview.length} record aggiunti allo storico (totale: ${records.length + preview.length})`);
     setPreview(null);
     setFileName("");
   };

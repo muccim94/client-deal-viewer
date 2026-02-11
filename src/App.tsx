@@ -12,6 +12,7 @@ import Anagrafiche from "@/pages/Anagrafiche";
 import ClienteDettaglio from "@/pages/ClienteDettaglio";
 import UploadExcel from "@/pages/UploadExcel";
 import Provvigioni from "@/pages/Provvigioni";
+import GestioneUtenti from "@/pages/GestioneUtenti";
 import Auth from "@/pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/anagrafiche/:codice" element={<ClienteDettaglio />} />
               <Route path="/provvigioni" element={<Provvigioni />} />
               <Route path="/upload" element={<UploadExcel />} />
+              <Route path="/gestione-utenti" element={<GestioneUtenti />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

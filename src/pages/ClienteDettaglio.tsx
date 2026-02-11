@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter,
 } from "@/components/ui/table";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, Building2, Euro } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -60,8 +60,6 @@ export default function ClienteDettaglio() {
     corrente: number;
     precedente: number;
     delta: number;
-    progressivoCorrente: number;
-    progressivoPrecedente: number;
   };
 
   const buildMonthTable = (aziendaNome: string): MonthRow[] => {
@@ -73,21 +71,15 @@ export default function ClienteDettaglio() {
       if (r.anno === annoPrecedente) mesePrec.set(r.mese, (mesePrec.get(r.mese) ?? 0) + r.imponibile);
     });
 
-    let progCorr = 0;
-    let progPrec = 0;
     return Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
       const corrente = meseCorr.get(m) ?? 0;
       const precedente = mesePrec.get(m) ?? 0;
-      progCorr += corrente;
-      progPrec += precedente;
       return {
         mese: m,
         meseNome: getMeseNome(m),
         corrente,
         precedente,
         delta: pct(corrente, precedente),
-        progressivoCorrente: progCorr,
-        progressivoPrecedente: progPrec,
       };
     });
   };
@@ -127,23 +119,32 @@ export default function ClienteDettaglio() {
         </div>
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1"><Euro className="h-4 w-4" />Fatturato Totale</CardTitle>
-          </CardHeader>
-          <CardContent><p className="text-2xl font-bold">{fmt(fatturatoTotale)}</p></CardContent>
-        </Card>
-        {perAzienda.map((a) => (
-          <Card key={a.azienda}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground flex items-center gap-1"><Building2 className="h-4 w-4" />{a.azienda}</CardTitle>
-            </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{fmt(a.totale)}</p></CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* KPI cards per anno e azienda */}
+      {(() => {
+        const perAziendaAnno = (azienda: string, anno: number) =>
+          clientRecords.filter((r) => r.aziendaNome === azienda && r.anno === anno).reduce((s, r) => s + r.imponibile, 0);
+        const aziendeNomi = [...new Set(clientRecords.map((r) => r.aziendaNome))].sort();
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {aziendeNomi.map((az) => (
+              <Card key={`${az}-${annoCorrente}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-muted-foreground flex items-center gap-1"><Building2 className="h-4 w-4" />{az} {annoCorrente}</CardTitle>
+                </CardHeader>
+                <CardContent><p className="text-2xl font-bold">{fmt(perAziendaAnno(az, annoCorrente))}</p></CardContent>
+              </Card>
+            ))}
+            {aziendeNomi.map((az) => (
+              <Card key={`${az}-${annoPrecedente}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-muted-foreground flex items-center gap-1"><Building2 className="h-4 w-4" />{az} {annoPrecedente}</CardTitle>
+                </CardHeader>
+                <CardContent><p className="text-2xl font-bold">{fmt(perAziendaAnno(az, annoPrecedente))}</p></CardContent>
+              </Card>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Marchi breakdown */}
       <Card>
@@ -179,8 +180,6 @@ export default function ClienteDettaglio() {
                       <TableHead className="text-right">{annoPrecedente}</TableHead>
                       <TableHead className="text-right">{annoCorrente}</TableHead>
                       <TableHead className="text-right">Δ %</TableHead>
-                      <TableHead className="text-right">Progr. {annoPrecedente}</TableHead>
-                      <TableHead className="text-right">Progr. {annoCorrente}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -195,8 +194,6 @@ export default function ClienteDettaglio() {
                             {r.delta.toFixed(1)}%
                           </span>
                         </TableCell>
-                        <TableCell className="text-right">{fmt(r.progressivoPrecedente)}</TableCell>
-                        <TableCell className="text-right font-medium">{fmt(r.progressivoCorrente)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -209,8 +206,6 @@ export default function ClienteDettaglio() {
                         <DeltaIcon val={pct(totCorr, totPrec)} />{" "}
                         {pct(totCorr, totPrec).toFixed(1)}%
                       </TableCell>
-                      <TableCell />
-                      <TableCell />
                     </TableRow>
                   </TableFooter>
                 </Table>

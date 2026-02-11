@@ -58,7 +58,7 @@ export default function UploadExcel() {
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Carica File Excel</CardTitle>
@@ -112,22 +112,26 @@ export default function UploadExcel() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Prodotto</TableHead>
-                    <TableHead>Importo</TableHead>
+                    <TableHead>Azienda</TableHead>
+                    <TableHead>Codice</TableHead>
+                    <TableHead>Nome Cliente</TableHead>
+                    <TableHead>Marchio</TableHead>
+                    <TableHead>Imponibile</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {preview.slice(0, 50).map((r, i) => (
                     <TableRow key={i}>
-                      <TableCell>{r.cliente}</TableCell>
-                      <TableCell>{r.prodotto}</TableCell>
-                      <TableCell>{fmt(r.importo)}</TableCell>
+                      <TableCell>{r.aziendaNome}</TableCell>
+                      <TableCell>{r.codiceCliente}</TableCell>
+                      <TableCell>{r.nomeCliente}</TableCell>
+                      <TableCell>{r.marchio}</TableCell>
+                      <TableCell>{fmt(r.imponibile)}</TableCell>
                     </TableRow>
                   ))}
                   {preview.length > 50 && (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center text-muted-foreground text-sm">
+                      <TableCell colSpan={5} className="text-center text-muted-foreground text-sm">
                         ...e altri {preview.length - 50} record
                       </TableCell>
                     </TableRow>

@@ -1,1 +1,4 @@
 project_id = "eliropadiywofniisknp"
+
+[functions.promote-first-admin]
+verify_jwt = false

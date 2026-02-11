@@ -14,7 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      sales_records: {
+        Row: {
+          agente: string
+          anno: number
+          articolo: string
+          azienda: string
+          azienda_nome: string
+          codice_cliente: string
+          created_at: string
+          id: string
+          imponibile: number
+          marchio: string
+          mese: number
+          nome_cliente: string
+          provvigione: number
+          user_id: string
+        }
+        Insert: {
+          agente?: string
+          anno: number
+          articolo: string
+          azienda: string
+          azienda_nome: string
+          codice_cliente: string
+          created_at?: string
+          id?: string
+          imponibile?: number
+          marchio?: string
+          mese: number
+          nome_cliente: string
+          provvigione?: number
+          user_id: string
+        }
+        Update: {
+          agente?: string
+          anno?: number
+          articolo?: string
+          azienda?: string
+          azienda_nome?: string
+          codice_cliente?: string
+          created_at?: string
+          id?: string
+          imponibile?: number
+          marchio?: string
+          mese?: number
+          nome_cliente?: string
+          provvigione?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

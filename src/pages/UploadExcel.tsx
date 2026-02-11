@@ -18,16 +18,22 @@ import * as XLSX from "xlsx";
 export default function UploadExcel() {
   const { records, setRecords } = useData();
   const [preview, setPreview] = useState<SalesRecord[] | null>(null);
-  const [fileName, setFileName] = useState("");
+  const [fileNames, setFileNames] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
 
-  const handleFile = useCallback(async (file: File) => {
+  const handleFiles = useCallback(async (files: FileList | File[]) => {
     try {
-      const data = await parseExcelFile(file);
-      setPreview(data);
-      setFileName(file.name);
+      const allData: SalesRecord[] = [];
+      const names: string[] = [];
+      for (const file of Array.from(files)) {
+        const data = await parseExcelFile(file);
+        allData.push(...data);
+        names.push(file.name);
+      }
+      setPreview((prev) => prev ? [...prev, ...allData] : allData);
+      setFileNames((prev) => [...prev, ...names]);
     } catch {
-      toast.error("Errore nel parsing del file Excel");
+      toast.error("Errore nel parsing di uno o più file Excel");
     }
   }, []);
 
@@ -35,15 +41,13 @@ export default function UploadExcel() {
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragging(false);
-      const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
+      if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
     },
-    [handleFile],
+    [handleFiles],
   );
 
   const onFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    if (e.target.files?.length) handleFiles(e.target.files);
   };
 
   const recordKey = (r: SalesRecord) =>
@@ -66,18 +70,18 @@ export default function UploadExcel() {
       : `${nuovi.length} record aggiunti allo storico (totale: ${records.length + nuovi.length})`;
     toast.success(msg);
     setPreview(null);
-    setFileName("");
+    setFileNames([]);
   };
 
   const cancel = () => {
     setPreview(null);
-    setFileName("");
+    setFileNames([]);
   };
 
   const clearAll = () => {
     setRecords([]);
     setPreview(null);
-    setFileName("");
+    setFileNames([]);
     toast.success("Storico dati cancellato");
   };
 
@@ -123,13 +127,14 @@ export default function UploadExcel() {
           >
             <UploadIcon className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">
-              Trascina qui il file Excel oppure clicca per selezionarlo
+              Trascina qui i file Excel oppure clicca per selezionarli
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Formati supportati: .xlsx, .xls</p>
+            <p className="text-xs text-muted-foreground mt-1">Formati supportati: .xlsx, .xls — puoi selezionare più file</p>
             <input
               id="file-input"
               type="file"
               accept=".xlsx,.xls"
+              multiple
               className="hidden"
               onChange={onFileInput}
             />
@@ -177,7 +182,7 @@ export default function UploadExcel() {
             <div className="flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5 text-primary" />
               <CardTitle className="text-base">
-                Anteprima: {fileName} ({preview.length} record)
+                Anteprima: {fileNames.join(", ")} ({preview.length} record)
               </CardTitle>
             </div>
             <div className="flex gap-2">

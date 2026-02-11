@@ -16,10 +16,11 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
 export default function UploadExcel() {
-  const { records, setRecords } = useData();
+  const { records, addRecords, deleteAll } = useData();
   const [preview, setPreview] = useState<SalesRecord[] | null>(null);
   const [fileNames, setFileNames] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     try {
@@ -50,27 +51,23 @@ export default function UploadExcel() {
     if (e.target.files?.length) handleFiles(e.target.files);
   };
 
-  const recordKey = (r: SalesRecord) =>
-    `${r.azienda}|${r.anno}|${r.mese}|${r.codiceCliente}|${r.articolo}|${r.imponibile}`;
-
-  const confirm = () => {
+  const confirm = async () => {
     if (!preview) return;
-    const existingKeys = new Set(records.map(recordKey));
-    const nuovi = preview.filter((r) => !existingKeys.has(recordKey(r)));
-    const duplicati = preview.length - nuovi.length;
-
-    if (nuovi.length === 0) {
-      toast.warning("Tutti i record sono già presenti nello storico.");
-      return;
+    setImporting(true);
+    try {
+      const count = await addRecords(preview);
+      const duplicati = preview.length - count;
+      const msg = duplicati > 0
+        ? `${count} record aggiunti, ${duplicati} duplicati ignorati`
+        : `${count} record aggiunti allo storico`;
+      toast.success(msg);
+      setPreview(null);
+      setFileNames([]);
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante l'importazione");
+    } finally {
+      setImporting(false);
     }
-
-    setRecords([...records, ...nuovi]);
-    const msg = duplicati > 0
-      ? `${nuovi.length} record aggiunti, ${duplicati} duplicati ignorati (totale: ${records.length + nuovi.length})`
-      : `${nuovi.length} record aggiunti allo storico (totale: ${records.length + nuovi.length})`;
-    toast.success(msg);
-    setPreview(null);
-    setFileNames([]);
   };
 
   const cancel = () => {
@@ -78,11 +75,15 @@ export default function UploadExcel() {
     setFileNames([]);
   };
 
-  const clearAll = () => {
-    setRecords([]);
-    setPreview(null);
-    setFileNames([]);
-    toast.success("Storico dati cancellato");
+  const clearAll = async () => {
+    try {
+      await deleteAll();
+      setPreview(null);
+      setFileNames([]);
+      toast.success("Storico dati cancellato");
+    } catch {
+      toast.error("Errore durante la cancellazione");
+    }
   };
 
   const downloadBackup = () => {
@@ -189,8 +190,8 @@ export default function UploadExcel() {
               <Button variant="outline" size="sm" onClick={cancel}>
                 <X className="h-4 w-4 mr-1" /> Annulla
               </Button>
-              <Button size="sm" onClick={confirm}>
-                <Check className="h-4 w-4 mr-1" /> Importa dati
+              <Button size="sm" onClick={confirm} disabled={importing}>
+                <Check className="h-4 w-4 mr-1" /> {importing ? "Importazione..." : "Importa dati"}
               </Button>
             </div>
           </CardHeader>

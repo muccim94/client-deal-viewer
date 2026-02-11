@@ -118,7 +118,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const CHUNK_SIZE = 500;
     for (let i = 0; i < unique.length; i += CHUNK_SIZE) {
       const chunk = unique.slice(i, i + CHUNK_SIZE).map((r) => toDB(r, user.id));
-      const { error } = await supabase.from("sales_records").upsert(chunk, { onConflict: "user_id,azienda,anno,mese,codice_cliente,articolo", ignoreDuplicates: true });
+      const { error } = await supabase.from("sales_records").upsert(chunk, { onConflict: "user_id,azienda,anno,mese,codice_cliente,articolo,imponibile", ignoreDuplicates: true });
       if (error) throw error;
     }
 

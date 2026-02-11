@@ -43,19 +43,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session: Session | null) => {
+      (_event, session: Session | null) => {
         if (session?.user) {
           setUser(session.user);
-          await loadRole(session.user.id);
-          // Try to promote first admin after role is loaded
-          await tryPromoteFirstAdmin();
-          // Reload role in case it was promoted
-          await loadRole(session.user.id);
+          setLoading(false);
+          // Load role and try admin promotion in background
+          setTimeout(async () => {
+            await loadRole(session.user.id);
+            await tryPromoteFirstAdmin();
+            await loadRole(session.user.id);
+          }, 0);
         } else {
           setUser(null);
           setRole(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 

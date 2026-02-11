@@ -7,6 +7,7 @@ import { DataProvider } from "@/contexts/DataContext";
 import AppLayout from "@/components/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import Anagrafiche from "@/pages/Anagrafiche";
+import ClienteDettaglio from "@/pages/ClienteDettaglio";
 import UploadExcel from "@/pages/UploadExcel";
 import NotFound from "./pages/NotFound";
 
@@ -23,6 +24,7 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/anagrafiche" element={<Anagrafiche />} />
+              <Route path="/anagrafiche/:codice" element={<ClienteDettaglio />} />
               <Route path="/upload" element={<UploadExcel />} />
             </Route>
             <Route path="*" element={<NotFound />} />

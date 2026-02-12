@@ -1,55 +1,28 @@
 
 
-## Velocizzare il caricamento dati dopo il login
+## Indicatore di progresso caricamento dati
 
-### Il problema attuale
+### Cosa cambia
 
-Dopo il login, l'app scarica **tutti i 51.000+ record** dal database in blocchi da 1.000 alla volta (circa 50+ richieste sequenziali). L'utente vede "Caricamento..." finche' tutto non e' pronto.
-
-### Strategia proposta: Caricamento progressivo + Selezione colonne
-
-L'approccio combina piu' ottimizzazioni per un miglioramento significativo senza stravolgere l'architettura.
-
----
-
-**1. Selezionare solo le colonne necessarie (riduzione dimensione risposta)**
-
-Attualmente la query usa `select("*")` che scarica tutte le colonne inclusi `id`, `created_at`, `user_id` che non vengono usati nel frontend. Rimuovendoli si riduce la dimensione di ogni risposta di circa il 30%.
-
-**2. Aumentare la dimensione della pagina**
-
-Passare da 1.000 a 5.000 record per pagina riduce drasticamente il numero di richieste HTTP (da ~50 a ~10), eliminando la latenza di rete ripetuta.
-
-**3. Caricare le pagine in parallelo**
-
-Invece di scaricare le pagine una alla volta in sequenza, fare prima una query `count` per sapere quanti record ci sono, poi lanciare tutte le richieste in parallelo.
-
-**4. Mostrare i dati progressivamente**
-
-Mostrare i record man mano che arrivano invece di aspettare che siano tutti pronti. L'utente vedra' la dashboard popolarsi in tempo reale.
-
----
+Dopo il login, durante il caricamento dei record dal database, comparira' una barra di progresso nell'header dell'app che mostra quanti record sono stati caricati rispetto al totale (es. "Caricamento... 15.000 / 51.234"). La barra scompare automaticamente al completamento.
 
 ### Dettagli tecnici
 
 **File: `src/contexts/DataContext.tsx`**
 
-1. Cambiare `select("*")` in `select("azienda,azienda_nome,anno,mese,codice_cliente,nome_cliente,agente,marchio,articolo,imponibile,provvigione,fattura_riga")`
+1. Aggiungere due nuovi stati al context: `totalCount` (numero totale di record) e `loadedCount` (record caricati finora)
+2. Esporre `totalCount` e `loadedCount` nell'interfaccia `DataContextType`
+3. In `fetchAllRecords`, passare il `count` totale come valore di ritorno insieme ai dati, oppure accettare un callback `onCount` per comunicare il totale
+4. In `refreshRecords`:
+   - Settare `totalCount` dopo la query di conteggio
+   - Aggiornare `loadedCount` ad ogni chunk ricevuto
+   - Resettare entrambi a 0 al completamento
 
-2. Aumentare `PAGE_SIZE` da 1.000 a 5.000
+**File: `src/components/AppLayout.tsx`**
 
-3. Riscrivere `fetchAllRecords` con approccio parallelo:
-   - Prima query: `select("*", { count: "exact", head: true })` per ottenere il conteggio totale
-   - Calcolare il numero di pagine necessarie
-   - Lanciare tutte le richieste con `Promise.all()`
-
-4. Aggiornare `refreshRecords` per mostrare i dati progressivamente:
-   - Usare uno stato intermedio che si aggiorna man mano che le pagine arrivano
-   - Togliere `setLoading(true)` se ci sono gia' dati in memoria (refresh silenzioso)
-
-### Impatto stimato
-
-- Da ~50 richieste sequenziali a ~10 richieste parallele
-- Tempo di caricamento ridotto da diversi secondi a circa 1-2 secondi
-- L'utente vede i primi dati quasi subito
+1. Importare `useData` e il componente `Progress` da UI
+2. Sotto l'header, mostrare condizionalmente (quando `loading` e' true e `totalCount > 0`) una barra di progresso con:
+   - Componente `Progress` con valore percentuale `(loadedCount / totalCount) * 100`
+   - Testo "Caricamento... X / Y record" centrato sotto la barra
+3. La barra scompare quando `loading` diventa false
 

@@ -126,7 +126,7 @@ export default function Anagrafiche() {
                   <TableRow key={r.codiceCliente} className="group">
                     <TableCell className="hidden sm:table-cell">{r.codiceCliente}</TableCell>
                     <TableCell>
-                      <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-sm md:text-base">
+                      <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-base md:text-lg">
                         {r.nomeCliente}
                       </Link>
                     </TableCell>

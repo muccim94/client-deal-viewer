@@ -62,10 +62,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Then check existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        setUser(session.user);
-        loadRole(session.user.id).then(() => setLoading(false));
+        // Validate the session is still valid server-side
+        const { data: { user: validUser }, error } = await supabase.auth.getUser();
+        if (error || !validUser) {
+          // Session is stale/expired — sign out cleanly
+          await supabase.auth.signOut();
+          setUser(null);
+          setRole(null);
+          setLoading(false);
+          return;
+        }
+        setUser(validUser);
+        await loadRole(validUser.id);
+        setLoading(false);
       } else {
         setLoading(false);
       }

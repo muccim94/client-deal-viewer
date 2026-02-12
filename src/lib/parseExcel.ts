@@ -35,6 +35,7 @@ export function parseExcelFile(file: File): Promise<SalesRecord[]> {
 
           const imponibile = Number(row["Imponibile"] ?? 0);
           const provvigione = Number(row["ProvvigioneValore"] ?? 0);
+          const fatturaRiga = String(row["Fattura_Riga"] ?? "").trim();
 
           return {
             azienda,
@@ -48,6 +49,7 @@ export function parseExcelFile(file: File): Promise<SalesRecord[]> {
             articolo: articoloSenzaPrefisso,
             imponibile,
             provvigione,
+            fatturaRiga,
           };
         });
 

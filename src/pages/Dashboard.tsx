@@ -6,21 +6,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Euro, Users, Tag, TrendingUp, BarChart3 } from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-} from "recharts";
-import { useIsMobile } from "@/hooks/use-mobile";
-
-const COLORS = [
-  "hsl(215, 70%, 50%)", "hsl(160, 60%, 45%)", "hsl(35, 85%, 55%)",
-  "hsl(0, 65%, 55%)", "hsl(270, 55%, 55%)", "hsl(190, 65%, 45%)",
-  "hsl(330, 60%, 55%)", "hsl(50, 75%, 50%)", "hsl(120, 45%, 50%)",
-  "hsl(200, 70%, 60%)",
-];
+import { Link } from "react-router-dom";
 
 export default function Dashboard() {
-  const isMobile = useIsMobile();
   const { records } = useData();
   const [filterAzienda, setFilterAzienda] = useState("FO");
   const [filterAnno, setFilterAnno] = useState("2026");
@@ -46,21 +34,19 @@ export default function Dashboard() {
   }, [filtered]);
 
   const topClienti = useMemo(() => {
-    const map = new Map<string, number>();
-    filtered.forEach((r) => map.set(r.nomeCliente, (map.get(r.nomeCliente) ?? 0) + r.imponibile));
-    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, value]) => ({ name, value }));
-  }, [filtered]);
-
-  const marchiPie = useMemo(() => {
-    const map = new Map<string, number>();
-    filtered.forEach((r) => map.set(r.marchio, (map.get(r.marchio) ?? 0) + r.imponibile));
-    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => ({ name, value }));
-  }, [filtered]);
-
-  const aziendaBar = useMemo(() => {
-    const map = new Map<string, number>();
-    filtered.forEach((r) => map.set(r.aziendaNome, (map.get(r.aziendaNome) ?? 0) + r.imponibile));
-    return [...map.entries()].map(([name, value]) => ({ name, value }));
+    const map = new Map<string, { codice: string; totale: number }>();
+    filtered.forEach((r) => {
+      const existing = map.get(r.nomeCliente);
+      if (existing) {
+        existing.totale += r.imponibile;
+      } else {
+        map.set(r.nomeCliente, { codice: r.codiceCliente, totale: r.imponibile });
+      }
+    });
+    return [...map.entries()]
+      .sort((a, b) => b[1].totale - a[1].totale)
+      .slice(0, 10)
+      .map(([name, v]) => ({ name, codice: v.codice, value: v.totale }));
   }, [filtered]);
 
   const fmt = (n: number) =>
@@ -124,58 +110,30 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
-        {/* Top 10 Clienti */}
-        <Card>
-          <CardHeader><CardTitle className="text-sm md:text-base">Top 10 Clienti per Fatturato</CardTitle></CardHeader>
-          <CardContent className="h-60 md:h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topClienti} layout="vertical" margin={{ left: isMobile ? 0 : 20 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis type="number" tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`} tick={{ fontSize: isMobile ? 10 : 12 }} />
-                <YAxis type="category" dataKey="name" width={isMobile ? 80 : 120} tick={{ fontSize: isMobile ? 9 : 11 }} />
-                <Tooltip formatter={(v: number) => fmt(v)} />
-                <Bar dataKey="value" fill="hsl(215, 70%, 50%)" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Distribuzione per Marchio */}
-        <Card>
-          <CardHeader><CardTitle className="text-sm md:text-base">Distribuzione Vendite per Marchio</CardTitle></CardHeader>
-          <CardContent className="h-60 md:h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={marchiPie} dataKey="value" nameKey="name"
-                  cx="50%" cy="50%" outerRadius={isMobile ? 70 : 100}
-                  label={isMobile ? false : ({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                  labelLine={false}
-                >
-                  {marchiPie.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip formatter={(v: number) => fmt(v)} />
-                <Legend wrapperStyle={{ fontSize: isMobile ? 11 : 14 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Fatturato per Azienda */}
+      {/* Top 10 Clienti */}
       <Card>
-        <CardHeader><CardTitle className="text-sm md:text-base">Fatturato per Azienda</CardTitle></CardHeader>
-        <CardContent className="h-48 md:h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={aziendaBar}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="name" tick={{ fontSize: isMobile ? 10 : 12 }} />
-              <YAxis tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`} tick={{ fontSize: isMobile ? 10 : 12 }} />
-              <Tooltip formatter={(v: number) => fmt(v)} />
-              <Bar dataKey="value" fill="hsl(160, 60%, 45%)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <CardHeader>
+          <CardTitle className="text-base md:text-lg">Top 10 Clienti per Fatturato</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-border">
+            {topClienti.map((c, i) => (
+              <div key={c.codice} className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                  <span className="text-sm md:text-base font-bold text-muted-foreground w-6 text-right shrink-0">{i + 1}.</span>
+                  <Link
+                    to={`/anagrafiche/${c.codice}`}
+                    className="text-sm md:text-base font-medium text-primary hover:underline truncate"
+                  >
+                    {c.name}
+                  </Link>
+                </div>
+                <span className="text-sm md:text-base font-semibold tabular-nums shrink-0 ml-4">
+                  {fmt(c.value)}
+                </span>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -109,7 +109,7 @@ export default function Anagrafiche() {
                   <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("codiceCliente")}>
                     <span className="flex items-center gap-1">Codice<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 sticky left-0 z-10 bg-background" onClick={() => toggleSort("nomeCliente")}>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("nomeCliente")}>
                     <span className="flex items-center gap-1">Nome Cliente<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fatt2026")}>
@@ -125,7 +125,7 @@ export default function Anagrafiche() {
                 {filtered.map((r) => (
                   <TableRow key={r.codiceCliente} className="group">
                     <TableCell className="hidden sm:table-cell">{r.codiceCliente}</TableCell>
-                    <TableCell className="sticky left-0 z-10 bg-background">
+                    <TableCell>
                       <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-base md:text-lg">
                         {r.nomeCliente}
                       </Link>

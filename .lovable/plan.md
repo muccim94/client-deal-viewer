@@ -1,85 +1,73 @@
+# Ottimizzazione Mobile
 
+Rendere l'applicazione completamente utilizzabile da smartphone, adattando layout, dimensioni di testi/icone e interazioni touch su tutte le pagine.
 
-## Filtro dati per agente e gestione assegnazioni admin
+## Modifiche previste
 
-### Panoramica
-Ogni utente autenticato vedra' solo i record corrispondenti agli agenti che gli sono stati assegnati dall'amministratore. L'admin vedra' tutti i dati e avra' una sezione dedicata per gestire le assegnazioni utente-agente.
+### 1. Header e Layout (`AppLayout.tsx`)
 
-Dal file Excel caricato, il campo "Agente" ha il formato `FO_FO77`. Ogni utente potra' avere uno o piu' agenti assegnati.
+- Ridurre l'altezza dell'header su mobile (h-12 invece di h-14)
+- Ridurre la dimensione del titolo "Trade Off snc" su mobile (text-base invece di text-lg)
+- Ridurre il padding del main content su mobile (p-3 invece di p-6)
 
-### Passaggi
+### 2. Sidebar (`AppSidebar.tsx`)
 
-1. **Creare tabella `user_agents`** (migrazione database)
-   - Colonne: `id` (uuid), `user_id` (uuid, not null), `agente` (text, not null), `created_at`
-   - Vincolo UNIQUE su `(user_id, agente)` per evitare duplicati
-   - RLS abilitata:
-     - SELECT: ogni utente puo' leggere le proprie assegnazioni, admin puo' leggere tutte
-     - INSERT/DELETE: solo admin
+- Nessuna modifica necessaria: la sidebar ShadCN gestisce gia il collapse su mobile come sheet overlay
 
-2. **Creare funzione helper `get_user_agents`**
-   - Funzione `security definer` che restituisce l'array di agenti assegnati a un utente
-   - Utilizzata nelle policy RLS per evitare ricorsione
+### 3. Dashboard (`Dashboard.tsx`)
 
-3. **Aggiornare policy RLS su `sales_records`**
-   - La policy SELECT attuale (`true` per tutti) verra' sostituita con:
-     - Admin: vede tutti i record
-     - Utente normale: vede solo i record il cui campo `agente` corrisponde a uno dei suoi agenti assegnati nella tabella `user_agents`
+- Filtri: rendere i Select a larghezza piena su mobile (w-full su schermi piccoli)
+- KPI cards: grid a 2 colonne su mobile invece di 1 (gia 2 col su md)
+- Grafici: ridurre l'altezza dei container grafici su mobile (h-60 invece di h-80)
+- Pie chart: ridurre outerRadius e nascondere le label lunghe su mobile, mostrare solo la legenda
+- Font dei tooltip e assi ridotti
 
-4. **Creare pagina "Gestione Utenti"** (`src/pages/GestioneUtenti.tsx`)
-   - Accessibile solo dall'admin
-   - Lista degli utenti registrati (dalla tabella `user_roles`)
-   - Per ogni utente: lista degli agenti assegnati con possibilita' di aggiungere/rimuovere
-   - Selezione degli agenti disponibili estratti dai record esistenti nel database
+### 4. Anagrafiche (`Anagrafiche.tsx`)
 
-5. **Aggiornare la sidebar** (`src/components/AppSidebar.tsx`)
-   - Aggiungere voce "Gestione Utenti" visibile solo per admin (icona Users)
+- Header card: impilare titolo e barra di ricerca verticalmente su mobile
+- Barra di ricerca: larghezza piena su mobile
+- Tabella:  riadattare la tabella adattandola al display, ridurre font-size delle celle
+- Nascondere la colonna "Codice"  su mobile per risparmiare spazio, mostrando solo il nome cliente cliccabile
 
-6. **Aggiornare il routing** (`src/App.tsx`)
-   - Aggiungere rotta `/gestione-utenti`
+### 5. Provvigioni (`Provvigioni.tsx`)
 
-7. **Nessuna modifica a DataContext/pagine dati**
-   - Il filtraggio avviene a livello RLS nel database: le query esistenti restituiranno automaticamente solo i dati visibili all'utente
+- Filtri: Select a larghezza piena su mobile, impilati verticalmente
+- Barra di ricerca: larghezza piena su mobile
+- Tabella: nascondere colonna "Azienda" su mobile, scroll orizzontale
 
-### Dettagli tecnici
+### 6. Upload Excel (`UploadExcel.tsx`)
 
-**Tabella `user_agents`:**
-```text
-user_agents
-  id          uuid  PK  default gen_random_uuid()
-  user_id     uuid  NOT NULL
-  agente      text  NOT NULL
-  created_at  timestamptz  default now()
-  UNIQUE(user_id, agente)
-```
+- Ridurre il padding della drop zone (p-8 invece di p-12)
+- Icona upload piu piccola su mobile
+- Pulsanti azioni (backup/cancella): impilati verticalmente su mobile
+- Anteprima tabella: nascondere colonne meno importanti su mobile
 
-**Funzione `get_user_agents`:**
-```text
-get_user_agents(user_id uuid) -> text[]
-  SECURITY DEFINER
-  Restituisce array di codici agente assegnati all'utente
-```
+### 7. Cliente Dettaglio (`ClienteDettaglio.tsx`)
 
-**Policy RLS aggiornata su `sales_records` (SELECT):**
-```text
-SE has_role(auth.uid(), 'admin') -> vede tutto
-ALTRIMENTI -> vede solo record con agente IN get_user_agents(auth.uid())
-```
+- Titolo cliente: text-xl invece di text-2xl su mobile
+- KPI cards: grid a 2 colonne su mobile
+- Badge marchi: testo piu piccolo su mobile
+- Tabella mensile: font ridotto, scroll orizzontale
 
-**Pagina Gestione Utenti:**
-- Recupera lista utenti da `user_roles` (con email da un join o vista)
-- Per accedere alle email degli utenti servira' una vista o edge function (le email sono in `auth.users` che non e' accessibile dal client)
-- Opzione: creare un'edge function `list-users` che restituisce id + email degli utenti registrati (usando service role key)
-- Per ogni utente mostra chip con gli agenti assegnati
-- Pulsante per aggiungere un agente (select/combobox con agenti disponibili nel database)
-- Pulsante per rimuovere un agente
+### 8. Gestione Utenti (`GestioneUtenti.tsx`)
 
-**Edge function `list-users`:**
-- Richiede ruolo admin (verifica tramite JWT)
-- Usa service role per leggere `auth.users` e restituire id + email
-- Necessaria perche' il client non puo' accedere direttamente a `auth.users`
+- Titolo: text-xl su mobile
+- Select agente + bottone: impilati verticalmente su mobile
 
-**File coinvolti:**
-- Nuovi: `src/pages/GestioneUtenti.tsx`, `supabase/functions/list-users/index.ts`
-- Modificati: `src/App.tsx`, `src/components/AppSidebar.tsx`
-- Migrazioni DB: creazione tabella `user_agents`, funzione `get_user_agents`, aggiornamento policy SELECT su `sales_records`, policy su `user_agents`
+### 9. Auth (`Auth.tsx`)
 
+- Gia responsive, nessuna modifica significativa necessaria
+
+---
+
+## Dettagli tecnici
+
+Tutte le modifiche useranno classi Tailwind responsive (prefissi `sm:`, `md:`, `lg:`). Non servono nuovi componenti o dipendenze. L'approccio e mobile-first: si definiscono le dimensioni per mobile come default e si aumentano per schermi piu grandi.
+
+Esempi di pattern ricorrenti:
+
+- `text-base md:text-lg` per testi
+- `p-3 md:p-6` per padding
+- `w-full sm:w-44` per filtri
+- `hidden sm:table-cell` per nascondere colonne su mobile
+- `flex-col sm:flex-row` per impilare elementi

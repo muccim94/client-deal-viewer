@@ -128,12 +128,12 @@ export default function UploadExcel() {
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={onDrop}
-            className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors cursor-pointer ${
+            className={`border-2 border-dashed rounded-lg p-6 md:p-12 text-center transition-colors cursor-pointer ${
               dragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
             }`}
             onClick={() => document.getElementById("file-input")?.click()}
           >
-            <UploadIcon className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+            <UploadIcon className="h-8 w-8 md:h-10 md:w-10 mx-auto mb-3 md:mb-4 text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">
               Trascina qui i file Excel oppure clicca per selezionarli
             </p>
@@ -152,11 +152,11 @@ export default function UploadExcel() {
 
       {records.length > 0 && (
         <Card>
-          <CardContent className="flex items-center justify-between py-4">
+          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
             <p className="text-sm text-muted-foreground">
               Storico attuale: <span className="font-medium text-foreground">{records.length}</span> record
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Button variant="outline" size="sm" onClick={downloadBackup}>
                 <Download className="h-4 w-4 mr-1" /> Scarica backup
               </Button>
@@ -188,7 +188,7 @@ export default function UploadExcel() {
 
       {preview && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5 text-primary" />
               <CardTitle className="text-base">
@@ -209,21 +209,21 @@ export default function UploadExcel() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Azienda</TableHead>
-                    <TableHead>Codice</TableHead>
+                    <TableHead className="hidden sm:table-cell">Azienda</TableHead>
+                    <TableHead className="hidden sm:table-cell">Codice</TableHead>
                     <TableHead>Nome Cliente</TableHead>
-                    <TableHead>Marchio</TableHead>
+                    <TableHead className="hidden sm:table-cell">Marchio</TableHead>
                     <TableHead>Imponibile</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {preview.slice(0, 50).map((r, i) => (
                     <TableRow key={i}>
-                      <TableCell>{r.aziendaNome}</TableCell>
-                      <TableCell>{r.codiceCliente}</TableCell>
-                      <TableCell>{r.nomeCliente}</TableCell>
-                      <TableCell>{r.marchio}</TableCell>
-                      <TableCell>{fmt(r.imponibile)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{r.aziendaNome}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{r.codiceCliente}</TableCell>
+                      <TableCell className="text-sm">{r.nomeCliente}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{r.marchio}</TableCell>
+                      <TableCell className="text-sm">{fmt(r.imponibile)}</TableCell>
                     </TableRow>
                   ))}
                   {preview.length > 50 && (

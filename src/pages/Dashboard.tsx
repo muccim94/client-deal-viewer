@@ -10,6 +10,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const COLORS = [
   "hsl(215, 70%, 50%)", "hsl(160, 60%, 45%)", "hsl(35, 85%, 55%)",
@@ -19,6 +20,7 @@ const COLORS = [
 ];
 
 export default function Dashboard() {
+  const isMobile = useIsMobile();
   const { records } = useData();
   const [filterAzienda, setFilterAzienda] = useState("FO");
   const [filterAnno, setFilterAnno] = useState("2026");
@@ -82,11 +84,11 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Filtri */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3">
         <Select value={filterAzienda} onValueChange={setFilterAzienda}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Tutte le aziende" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Tutte le aziende" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutte le aziende</SelectItem>
             <SelectItem value="FO">Fogliani</SelectItem>
@@ -94,14 +96,14 @@ export default function Dashboard() {
           </SelectContent>
         </Select>
         <Select value={filterAnno} onValueChange={setFilterAnno}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Tutti gli anni" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Tutti gli anni" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti gli anni</SelectItem>
             {anni.map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterMese} onValueChange={setFilterMese}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Tutti i mesi" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Tutti i mesi" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti i mesi</SelectItem>
             {mesi.map((m) => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
@@ -110,28 +112,28 @@ export default function Dashboard() {
       </div>
 
       {/* KPI */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {kpis.map((k) => (
           <Card key={k.label}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{k.label}</CardTitle>
-              <k.icon className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">{k.label}</CardTitle>
+              <k.icon className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{k.value}</div></CardContent>
+            <CardContent><div className="text-lg md:text-2xl font-bold">{k.value}</div></CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
         {/* Top 10 Clienti */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Top 10 Clienti per Fatturato</CardTitle></CardHeader>
-          <CardContent className="h-80">
+          <CardHeader><CardTitle className="text-sm md:text-base">Top 10 Clienti per Fatturato</CardTitle></CardHeader>
+          <CardContent className="h-60 md:h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topClienti} layout="vertical" margin={{ left: 20 }}>
+              <BarChart data={topClienti} layout="vertical" margin={{ left: isMobile ? 0 : 20 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis type="number" tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`} />
-                <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
+                <XAxis type="number" tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`} tick={{ fontSize: isMobile ? 10 : 12 }} />
+                <YAxis type="category" dataKey="name" width={isMobile ? 80 : 120} tick={{ fontSize: isMobile ? 9 : 11 }} />
                 <Tooltip formatter={(v: number) => fmt(v)} />
                 <Bar dataKey="value" fill="hsl(215, 70%, 50%)" radius={[0, 4, 4, 0]} />
               </BarChart>
@@ -141,20 +143,20 @@ export default function Dashboard() {
 
         {/* Distribuzione per Marchio */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Distribuzione Vendite per Marchio</CardTitle></CardHeader>
-          <CardContent className="h-80">
+          <CardHeader><CardTitle className="text-sm md:text-base">Distribuzione Vendite per Marchio</CardTitle></CardHeader>
+          <CardContent className="h-60 md:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={marchiPie} dataKey="value" nameKey="name"
-                  cx="50%" cy="50%" outerRadius={100}
-                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  cx="50%" cy="50%" outerRadius={isMobile ? 70 : 100}
+                  label={isMobile ? false : ({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                   labelLine={false}
                 >
                   {marchiPie.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip formatter={(v: number) => fmt(v)} />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: isMobile ? 11 : 14 }} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -163,13 +165,13 @@ export default function Dashboard() {
 
       {/* Fatturato per Azienda */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Fatturato per Azienda</CardTitle></CardHeader>
-        <CardContent className="h-64">
+        <CardHeader><CardTitle className="text-sm md:text-base">Fatturato per Azienda</CardTitle></CardHeader>
+        <CardContent className="h-48 md:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={aziendaBar}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="name" />
-              <YAxis tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`} />
+              <XAxis dataKey="name" tick={{ fontSize: isMobile ? 10 : 12 }} />
+              <YAxis tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`} tick={{ fontSize: isMobile ? 10 : 12 }} />
               <Tooltip formatter={(v: number) => fmt(v)} />
               <Bar dataKey="value" fill="hsl(160, 60%, 45%)" radius={[4, 4, 0, 0]} />
             </BarChart>

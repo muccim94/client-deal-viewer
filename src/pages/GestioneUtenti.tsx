@@ -101,8 +101,8 @@ export default function GestioneUtenti() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Users className="h-6 w-6" />
-        <h1 className="text-2xl font-bold">Gestione Utenti</h1>
+        <Users className="h-5 w-5 md:h-6 md:w-6" />
+        <h1 className="text-xl md:text-2xl font-bold">Gestione Utenti</h1>
       </div>
 
       <div className="grid gap-4">
@@ -137,12 +137,12 @@ export default function GestioneUtenti() {
 
                 {/* Add agent */}
                 {unassigned.length > 0 && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <Select
                       value={selectedAgent[u.id] || ""}
                       onValueChange={(v) => setSelectedAgent((prev) => ({ ...prev, [u.id]: v }))}
                     >
-                      <SelectTrigger className="w-[200px]">
+                      <SelectTrigger className="w-full sm:w-[200px]">
                         <SelectValue placeholder="Seleziona agente..." />
                       </SelectTrigger>
                       <SelectContent>

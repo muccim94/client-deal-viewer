@@ -93,9 +93,9 @@ export default function Anagrafiche() {
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="text-base">{filtered.length} clienti</CardTitle>
-            <div className="relative w-64">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Cerca cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
             </div>
@@ -106,25 +106,32 @@ export default function Anagrafiche() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {columns.map((col) => (
-                    <TableHead key={col.key} className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort(col.key)}>
-                      <span className="flex items-center gap-1">{col.label}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
-                    </TableHead>
-                  ))}
+                  <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("codiceCliente")}>
+                    <span className="flex items-center gap-1">Codice<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("nomeCliente")}>
+                    <span className="flex items-center gap-1">Nome Cliente<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fatt2026")}>
+                    <span className="flex items-center gap-1">{`Fatt. ${currentYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
+                  <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fatt2025")}>
+                    <span className="flex items-center gap-1">{`Fatt. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
                   <TableHead className="w-8" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((r) => (
                   <TableRow key={r.codiceCliente} className="group">
-                    <TableCell>{r.codiceCliente}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{r.codiceCliente}</TableCell>
                     <TableCell>
-                      <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline">
+                      <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-sm md:text-base">
                         {r.nomeCliente}
                       </Link>
                     </TableCell>
-                    <TableCell className="font-medium text-right tabular-nums">{fmt(r.fatt2026)}</TableCell>
-                    <TableCell className="font-medium text-right tabular-nums">{fmt(r.fatt2025)}</TableCell>
+                    <TableCell className="font-medium text-right tabular-nums text-sm md:text-base">{fmt(r.fatt2026)}</TableCell>
+                    <TableCell className="hidden sm:table-cell font-medium text-right tabular-nums">{fmt(r.fatt2025)}</TableCell>
                     <TableCell>
                       <Link to={`/anagrafiche/${r.codiceCliente}`}>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />

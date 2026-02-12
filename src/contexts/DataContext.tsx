@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 interface DataContextType {
   records: SalesRecord[];
   loading: boolean;
+  totalCount: number;
+  loadedCount: number;
   addRecords: (records: SalesRecord[]) => Promise<{ added: number; duplicates: number }>;
   clearRecords: () => Promise<void>;
   refreshRecords: () => Promise<void>;
@@ -90,6 +92,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [records, setRecords] = useState<SalesRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loadedCount, setLoadedCount] = useState(0);
 
   const refreshRecords = useCallback(async () => {
     if (!user) {
@@ -98,19 +102,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      // Silent refresh if we already have data
       if (records.length === 0) setLoading(true);
+      setLoadedCount(0);
+      setTotalCount(0);
+
+      // Get count first
+      const { count, error: countError } = await supabase
+        .from("sales_records")
+        .select("*", { count: "exact", head: true });
+      if (countError) throw countError;
+      const total = count ?? 0;
+      setTotalCount(total);
+
+      if (total === 0) {
+        setRecords([]);
+        setLoading(false);
+        return;
+      }
+
+      let loaded = 0;
       const data = await fetchAllRecords((chunk) => {
-        // Progressive loading: show data as it arrives
+        loaded += chunk.length;
+        setLoadedCount(loaded);
         setRecords((prev) => [...prev, ...chunk]);
         setLoading(false);
       });
-      // Final set with all data to ensure consistency
       setRecords(data);
+      setTotalCount(0);
+      setLoadedCount(0);
     } catch (err) {
       console.error("Error loading records:", err);
     } finally {
       setLoading(false);
+      setTotalCount(0);
+      setLoadedCount(0);
     }
   }, [user]);
 
@@ -151,7 +176,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <DataContext.Provider value={{ records, loading, addRecords, clearRecords, refreshRecords }}>
+    <DataContext.Provider value={{ records, loading, totalCount, loadedCount, addRecords, clearRecords, refreshRecords }}>
       {children}
     </DataContext.Provider>
   );

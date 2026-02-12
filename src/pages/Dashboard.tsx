@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useData } from "@/contexts/DataContext";
 import { getMeseNome } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,17 +25,20 @@ export default function Dashboard() {
   const [filterAzienda, setFilterAzienda] = useState("FO");
   const [filterAnno, setFilterAnno] = useState("2026");
   const [filterMese, setFilterMese] = useState("__all__");
+  const [filterAgente, setFilterAgente] = useState("__all__");
 
   const anni = useMemo(() => [...new Set(records.map((r) => r.anno))].sort(), [records]);
   const mesi = useMemo(() => [...new Set(records.map((r) => r.mese))].sort((a, b) => a - b), [records]);
+  const agenti = useMemo(() => [...new Set(records.map((r) => r.agente))].sort(), [records]);
 
   const filtered = useMemo(() => {
     let data = records;
     if (filterAzienda !== "__all__") data = data.filter((r) => r.azienda === filterAzienda);
     if (filterAnno !== "__all__") data = data.filter((r) => r.anno === Number(filterAnno));
     if (filterMese !== "__all__") data = data.filter((r) => r.mese === Number(filterMese));
+    if (filterAgente !== "__all__") data = data.filter((r) => r.agente === filterAgente);
     return data;
-  }, [records, filterAzienda, filterAnno, filterMese]);
+  }, [records, filterAzienda, filterAnno, filterMese, filterAgente]);
 
   const stats = useMemo(() => {
     const totale = filtered.reduce((s, r) => s + r.imponibile, 0);
@@ -45,9 +49,13 @@ export default function Dashboard() {
   }, [filtered]);
 
   const topClienti = useMemo(() => {
-    const map = new Map<string, number>();
-    filtered.forEach((r) => map.set(r.nomeCliente, (map.get(r.nomeCliente) ?? 0) + r.imponibile));
-    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, value]) => ({ name, value }));
+    const map = new Map<string, { value: number; codice: string }>();
+    filtered.forEach((r) => {
+      const existing = map.get(r.nomeCliente);
+      if (existing) existing.value += r.imponibile;
+      else map.set(r.nomeCliente, { value: r.imponibile, codice: r.codiceCliente });
+    });
+    return [...map.entries()].sort((a, b) => b[1].value - a[1].value).slice(0, 10).map(([name, { value, codice }]) => ({ name, value, codice }));
   }, [filtered]);
 
   const marchiPie = useMemo(() => {
@@ -108,6 +116,13 @@ export default function Dashboard() {
             {mesi.map((m) => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={filterAgente} onValueChange={setFilterAgente}>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Tutti gli agenti" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Tutti gli agenti</SelectItem>
+            {agenti.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* KPI */}
@@ -132,9 +147,13 @@ export default function Dashboard() {
               {topClienti.map((c, i) => (
                 <li key={c.name} className="flex items-center justify-between gap-2">
                   <span className="text-sm text-muted-foreground shrink-0 w-6">{i + 1}.</span>
-                  <span className="text-sm font-medium flex-1 truncate" title={c.name}>
+                  <Link
+                    to={`/anagrafiche/${c.codice}`}
+                    className="text-sm font-medium flex-1 truncate hover:underline hover:text-primary"
+                    title={c.name}
+                  >
                     {c.name.length > 20 ? c.name.slice(0, 20) + "…" : c.name}
-                  </span>
+                  </Link>
                   <span className="text-sm font-semibold text-right shrink-0">{fmt(c.value)}</span>
                 </li>
               ))}

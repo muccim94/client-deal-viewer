@@ -1,14 +1,22 @@
-## Semplificazione Dashboard
+
+
+## Aggiunta filtro Agente e link Top 10 Clienti
 
 ### Cosa cambia
 
-1. **Top 10 Clienti per Fatturato** -- Il grafico a barre orizzontale viene sostituito con un elenco testuale numerato: nome cliente e fatturato sotto (o a fianco), semplice e leggibile.
-2. **Fatturato per Azienda** -- Il grafico viene rimosso
+1. **Nuovo filtro "Agente"** accanto al filtro mesi -- un dropdown che elenca tutti i codici agente presenti nei dati, permettendo di filtrare la dashboard per un agente specifico.
+
+2. **Top 10 Clienti cliccabili** -- ogni riga della Top 10 diventa un link che porta alla scheda anagrafica del cliente (`/anagrafiche/{codiceCliente}`).
 
 ### Dettagli tecnici
 
-File modificato: `src/pages/Dashboard.tsx`
+File: `src/pages/Dashboard.tsx`
 
-- Rimuovere il `BarChart` (recharts) dalla sezione "Top 10 Clienti per Fatturato" e sostituirlo con una lista ordinata che mostra posizione, nome cliente e importo formattato sotto.
-- Rimuovere il `BarChart` dalla sezione "Fatturato per Azienda" 
-- Gli import inutilizzati di recharts (`BarChart`, `Bar`, `XAxis`, `YAxis`, `CartesianGrid`) verranno rimossi se non piu necessari dopo le modifiche.
+- Aggiungere import di `Link` da `react-router-dom`
+- Aggiungere stato `filterAgente` con valore iniziale `"__all__"`
+- Creare un `useMemo` per estrarre la lista degli agenti unici dai record (ordinati alfabeticamente)
+- Aggiornare il `useMemo` di `filtered` per applicare anche il filtro agente
+- Aggiungere un quarto `Select` nel blocco filtri per selezionare l'agente
+- Modificare `topClienti` per includere anche il `codiceCliente` (necessario per il link): dal `Map` si salveranno sia `value` (fatturato) che `codiceCliente`
+- Wrappare il nome del cliente in un `Link` verso `/anagrafiche/{codiceCliente}` con stile hover (underline, colore primary)
+

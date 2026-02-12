@@ -3,6 +3,9 @@ import { useData } from "@/contexts/DataContext";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,15 +24,23 @@ interface ClientRow {
 export default function Anagrafiche() {
   const { records } = useData();
   const [search, setSearch] = useState("");
+  const [filterAgente, setFilterAgente] = useState("__all__");
   const [sortKey, setSortKey] = useState<SortKey>("nomeCliente");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const currentYear = new Date().getFullYear();
   const prevYear = currentYear - 1;
 
+  const agenti = useMemo(() => {
+    const set = new Set<string>();
+    records.forEach((r) => { if (r.agente) set.add(r.agente); });
+    return [...set].sort();
+  }, [records]);
+
   const clienti = useMemo(() => {
+    const source = filterAgente === "__all__" ? records : records.filter((r) => r.agente === filterAgente);
     const map = new Map<string, { nomeCliente: string; fatt2026: number; fatt2025: number }>();
-    records.forEach((r) => {
+    source.forEach((r) => {
       const existing = map.get(r.codiceCliente);
       if (existing) {
         if (r.anno === currentYear) existing.fatt2026 += r.imponibile;
@@ -48,7 +59,7 @@ export default function Anagrafiche() {
       fatt2026: v.fatt2026,
       fatt2025: v.fatt2025,
     }));
-  }, [records, currentYear, prevYear]);
+  }, [records, filterAgente, currentYear, prevYear]);
 
   const filtered = useMemo(() => {
     let data = clienti;
@@ -95,9 +106,22 @@ export default function Anagrafiche() {
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="text-base">{filtered.length} clienti</CardTitle>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Cerca cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <Select value={filterAgente} onValueChange={setFilterAgente}>
+                <SelectTrigger className="w-full sm:w-44">
+                  <SelectValue placeholder="Tutti gli agenti" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Tutti gli agenti</SelectItem>
+                  {agenti.map((a) => (
+                    <SelectItem key={a} value={a}>{a}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Cerca cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+              </div>
             </div>
           </div>
         </CardHeader>

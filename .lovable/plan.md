@@ -1,18 +1,37 @@
 
 
-## Aggiunta filtro Agente nella pagina Anagrafiche
+## Nuova pagina "Marchi" con analisi fatturato per marchio
 
-### Cosa cambia
+### Cosa viene creato
 
-Un nuovo dropdown "Agente" viene aggiunto accanto alla barra di ricerca nell'header della card, permettendo di filtrare l'elenco clienti per codice agente.
+Una nuova pagina **Marchi** accessibile dalla sidebar, con:
+
+1. **3 card KPI riassuntive** in alto:
+   - **Materiale Elettrico**: somma degli importi di tutti i prodotti ESCLUSI quelli con marchio "CV." e "FV."
+   - **Fotovoltaico**: somma degli importi dei prodotti con marchio "FV."
+   - **Cavo**: somma degli importi dei prodotti con marchio "CV."
+
+2. **Tabella elenco marchi** sotto le card:
+   - Colonne: Nome Marchio, Fatturato anno corrente (2026), Fatturato anno precedente (2025)
+   - Ordinabile per colonna
+   - Barra di ricerca per filtrare i marchi
 
 ### Dettagli tecnici
 
-File: `src/pages/Anagrafiche.tsx`
+**Nuovo file: `src/pages/Marchi.tsx`**
+- Importa `useData` dal DataContext per accedere ai record
+- Calcola i 3 KPI filtrando per `r.marchio`:
+  - "Cavo" = record con `marchio === "CV."`
+  - "Fotovoltaico" = record con `marchio === "FV."`
+  - "Materiale Elettrico" = tutti gli altri record (esclusi CV. e FV.)
+- Aggrega i dati per marchio in una tabella con fatturato suddiviso per anno corrente e precedente (stessa logica di Anagrafiche)
+- Tabella ordinabile e filtrabile con barra di ricerca
 
-- Importare `Select, SelectContent, SelectItem, SelectTrigger, SelectValue` da `@/components/ui/select`
-- Aggiungere stato `filterAgente` con valore iniziale `"__all__"`
-- Creare un `useMemo` per estrarre i codici agente univoci dai `records`
-- Aggiornare il `useMemo` di `clienti` per applicare il filtro agente prima dell'aggregazione (filtrando `records` per `r.agente === filterAgente` quando diverso da `"__all__"`)
-- Inserire il componente `Select` nell'header della card, tra il titolo e la barra di ricerca, con larghezza fissa (`w-44`)
+**File modificato: `src/components/AppSidebar.tsx`**
+- Aggiunta voce "Marchi" nell'array `allItems` con icona `Tag` (da lucide-react), posizionata dopo "Anagrafiche" e prima di "Provvigioni"
+- URL: `/marchi`
+
+**File modificato: `src/App.tsx`**
+- Import del componente `Marchi`
+- Nuova `Route` con path `/marchi` all'interno del layout protetto, dopo la route di `/anagrafiche/:codice`
 

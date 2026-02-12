@@ -50,29 +50,39 @@ function toDB(r: SalesRecord, userId: string) {
   };
 }
 
-// Fetch all records with pagination (Supabase max 1000 per query)
-async function fetchAllRecords(): Promise<SalesRecord[]> {
-  const PAGE_SIZE = 1000;
+const COLUMNS = "azienda,azienda_nome,anno,mese,codice_cliente,nome_cliente,agente,marchio,articolo,imponibile,provvigione,fattura_riga";
+const PAGE_SIZE = 5000;
+
+// Fetch all records in parallel
+async function fetchAllRecords(onChunk?: (records: SalesRecord[]) => void): Promise<SalesRecord[]> {
+  // First get total count
+  const { count, error: countError } = await supabase
+    .from("sales_records")
+    .select("*", { count: "exact", head: true });
+
+  if (countError) throw countError;
+  if (!count || count === 0) return [];
+
+  const totalPages = Math.ceil(count / PAGE_SIZE);
   const all: SalesRecord[] = [];
-  let from = 0;
-  let hasMore = true;
 
-  while (hasMore) {
-    const { data, error } = await supabase
+  // Fetch all pages in parallel
+  const promises = Array.from({ length: totalPages }, (_, i) => {
+    const from = i * PAGE_SIZE;
+    return supabase
       .from("sales_records")
-      .select("*")
+      .select(COLUMNS)
       .range(from, from + PAGE_SIZE - 1)
-      .order("created_at", { ascending: false });
+      .then(({ data, error }) => {
+        if (error) throw error;
+        const mapped = (data ?? []).map(fromDB);
+        if (onChunk) onChunk(mapped);
+        return mapped;
+      });
+  });
 
-    if (error) throw error;
-    if (data) {
-      all.push(...data.map(fromDB));
-      hasMore = data.length === PAGE_SIZE;
-      from += PAGE_SIZE;
-    } else {
-      hasMore = false;
-    }
-  }
+  const results = await Promise.all(promises);
+  for (const chunk of results) all.push(...chunk);
   return all;
 }
 
@@ -88,8 +98,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      setLoading(true);
-      const data = await fetchAllRecords();
+      // Silent refresh if we already have data
+      if (records.length === 0) setLoading(true);
+      const data = await fetchAllRecords((chunk) => {
+        // Progressive loading: show data as it arrives
+        setRecords((prev) => [...prev, ...chunk]);
+        setLoading(false);
+      });
+      // Final set with all data to ensure consistency
       setRecords(data);
     } catch (err) {
       console.error("Error loading records:", err);

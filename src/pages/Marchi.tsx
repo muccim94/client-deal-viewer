@@ -58,11 +58,12 @@ export default function Marchi() {
   // Filtered by agent, year, month
   const filteredRecords = useMemo(() => {
     let data = records;
+    if (filterAzienda) data = data.filter((r) => r.aziendaNome === filterAzienda);
     if (filterAgente !== "__all__") data = data.filter((r) => r.agente === filterAgente);
     if (filterAnno !== "__all__") data = data.filter((r) => r.anno === Number(filterAnno));
     if (filterMese !== "__all__") data = data.filter((r) => r.mese === Number(filterMese));
     return data;
-  }, [records, filterAgente, filterAnno, filterMese]);
+  }, [records, filterAzienda, filterAgente, filterAnno, filterMese]);
 
   // KPI totals
   const kpi = useMemo(() => {

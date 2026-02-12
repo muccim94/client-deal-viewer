@@ -1,0 +1,1 @@
+ALTER TABLE sales_records DROP CONSTRAINT IF EXISTS sales_records_user_id_azienda_anno_mese_codice_cliente_arti_key;

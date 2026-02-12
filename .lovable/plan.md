@@ -1,73 +1,50 @@
-# Ottimizzazione Mobile
 
-Rendere l'applicazione completamente utilizzabile da smartphone, adattando layout, dimensioni di testi/icone e interazioni touch su tutte le pagine.
+# Fix: Importazione dati incompleta (195 record persi)
+
+## Problema
+Su 3027 record nel file Excel, solo 2832 vengono importati. I 195 record mancanti vengono erroneamente scartati come "duplicati" perche la chiave di deduplicazione attuale (`azienda|anno|mese|codiceCliente|articolo|imponibile`) non e sufficientemente specifica: quando lo stesso cliente acquista lo stesso articolo allo stesso prezzo piu volte nello stesso mese (fatture diverse), i record vengono considerati uguali.
+
+## Soluzione
+Aggiungere il campo `Fattura_Riga` dal file Excel come identificatore univoco di ogni riga, e usarlo nella chiave di deduplicazione sia lato client che lato database.
 
 ## Modifiche previste
 
-### 1. Header e Layout (`AppLayout.tsx`)
+### 1. Tipo dati (`src/types/data.ts`)
+- Aggiungere il campo `fatturaRiga: string` all'interfaccia `SalesRecord`
 
-- Ridurre l'altezza dell'header su mobile (h-12 invece di h-14)
-- Ridurre la dimensione del titolo "Trade Off snc" su mobile (text-base invece di text-lg)
-- Ridurre il padding del main content su mobile (p-3 invece di p-6)
+### 2. Parsing Excel (`src/lib/parseExcel.ts`)
+- Estrarre la colonna `Fattura_Riga` dal file Excel (es. `FO_6500017_1`)
+- Mappare il valore nel nuovo campo `fatturaRiga`
 
-### 2. Sidebar (`AppSidebar.tsx`)
+### 3. Migrazione database
+- Aggiungere la colonna `fattura_riga` (tipo `text`) alla tabella `sales_records`
+- Ricreare il vincolo di unicita includendo `fattura_riga` al posto di `imponibile`
+- Il nuovo vincolo sara: `user_id, azienda, anno, mese, codice_cliente, articolo, fattura_riga`
 
-- Nessuna modifica necessaria: la sidebar ShadCN gestisce gia il collapse su mobile come sheet overlay
+### 4. DataContext (`src/contexts/DataContext.tsx`)
+- Aggiornare `fromDB()` e `toDB()` per mappare il campo `fattura_riga`
+- Aggiornare la `recordKey` per usare `fatturaRiga` invece di `imponibile`
+- Aggiornare il parametro `onConflict` nell'upsert con il nuovo vincolo
 
-### 3. Dashboard (`Dashboard.tsx`)
-
-- Filtri: rendere i Select a larghezza piena su mobile (w-full su schermi piccoli)
-- KPI cards: grid a 2 colonne su mobile invece di 1 (gia 2 col su md)
-- Grafici: ridurre l'altezza dei container grafici su mobile (h-60 invece di h-80)
-- Pie chart: ridurre outerRadius e nascondere le label lunghe su mobile, mostrare solo la legenda
-- Font dei tooltip e assi ridotti
-
-### 4. Anagrafiche (`Anagrafiche.tsx`)
-
-- Header card: impilare titolo e barra di ricerca verticalmente su mobile
-- Barra di ricerca: larghezza piena su mobile
-- Tabella:  riadattare la tabella adattandola al display, ridurre font-size delle celle
-- Nascondere la colonna "Codice"  su mobile per risparmiare spazio, mostrando solo il nome cliente cliccabile
-
-### 5. Provvigioni (`Provvigioni.tsx`)
-
-- Filtri: Select a larghezza piena su mobile, impilati verticalmente
-- Barra di ricerca: larghezza piena su mobile
-- Tabella: nascondere colonna "Azienda" su mobile, scroll orizzontale
-
-### 6. Upload Excel (`UploadExcel.tsx`)
-
-- Ridurre il padding della drop zone (p-8 invece di p-12)
-- Icona upload piu piccola su mobile
-- Pulsanti azioni (backup/cancella): impilati verticalmente su mobile
-- Anteprima tabella: nascondere colonne meno importanti su mobile
-
-### 7. Cliente Dettaglio (`ClienteDettaglio.tsx`)
-
-- Titolo cliente: text-xl invece di text-2xl su mobile
-- KPI cards: grid a 2 colonne su mobile
-- Badge marchi: testo piu piccolo su mobile
-- Tabella mensile: font ridotto, scroll orizzontale
-
-### 8. Gestione Utenti (`GestioneUtenti.tsx`)
-
-- Titolo: text-xl su mobile
-- Select agente + bottone: impilati verticalmente su mobile
-
-### 9. Auth (`Auth.tsx`)
-
-- Gia responsive, nessuna modifica significativa necessaria
+### 5. Impatto sulle altre pagine
+- Nessun impatto: le pagine Dashboard, Anagrafiche, Provvigioni e ClienteDettaglio non usano il campo `fatturaRiga` nei calcoli o nella visualizzazione. Il campo serve solo per la deduplicazione.
 
 ---
 
 ## Dettagli tecnici
 
-Tutte le modifiche useranno classi Tailwind responsive (prefissi `sm:`, `md:`, `lg:`). Non servono nuovi componenti o dipendenze. L'approccio e mobile-first: si definiscono le dimensioni per mobile come default e si aumentano per schermi piu grandi.
+**Migrazione SQL:**
+```sql
+ALTER TABLE sales_records ADD COLUMN fattura_riga text;
+ALTER TABLE sales_records DROP CONSTRAINT IF EXISTS sales_records_unique_record;
+ALTER TABLE sales_records ADD CONSTRAINT sales_records_unique_record 
+  UNIQUE (user_id, azienda, anno, mese, codice_cliente, articolo, fattura_riga);
+```
 
-Esempi di pattern ricorrenti:
+**Nuova recordKey:**
+```typescript
+const recordKey = (r: SalesRecord) =>
+  `${r.azienda}|${r.anno}|${r.mese}|${r.codiceCliente}|${r.articolo}|${r.fatturaRiga}`;
+```
 
-- `text-base md:text-lg` per testi
-- `p-3 md:p-6` per padding
-- `w-full sm:w-44` per filtri
-- `hidden sm:table-cell` per nascondere colonne su mobile
-- `flex-col sm:flex-row` per impilare elementi
+**Nota importante:** Dopo l'aggiornamento, sara necessario cancellare lo storico attuale e reimportare il file Excel per avere tutti i 3027 record correttamente salvati.

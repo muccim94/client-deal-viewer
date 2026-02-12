@@ -7,8 +7,7 @@ import {
 } from "@/components/ui/select";
 import { Euro, Users, Tag, TrendingUp, BarChart3 } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -128,16 +127,18 @@ export default function Dashboard() {
         {/* Top 10 Clienti */}
         <Card>
           <CardHeader><CardTitle className="text-sm md:text-base">Top 10 Clienti per Fatturato</CardTitle></CardHeader>
-          <CardContent className="h-60 md:h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topClienti} layout="vertical" margin={{ left: isMobile ? 0 : 20 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis type="number" tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`} tick={{ fontSize: isMobile ? 10 : 12 }} />
-                <YAxis type="category" dataKey="name" width={isMobile ? 80 : 120} tick={{ fontSize: isMobile ? 9 : 11 }} />
-                <Tooltip formatter={(v: number) => fmt(v)} />
-                <Bar dataKey="value" fill="hsl(215, 70%, 50%)" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent>
+            <ol className="space-y-3">
+              {topClienti.map((c, i) => (
+                <li key={c.name} className="flex items-baseline gap-3">
+                  <span className="text-sm font-bold text-muted-foreground w-5 shrink-0">{i + 1}.</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{c.name}</p>
+                    <p className="text-xs text-muted-foreground">{fmt(c.value)}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </CardContent>
         </Card>
 
@@ -163,21 +164,6 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Fatturato per Azienda */}
-      <Card>
-        <CardHeader><CardTitle className="text-sm md:text-base">Fatturato per Azienda</CardTitle></CardHeader>
-        <CardContent className="h-48 md:h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={aziendaBar}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="name" tick={{ fontSize: isMobile ? 10 : 12 }} />
-              <YAxis tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`} tick={{ fontSize: isMobile ? 10 : 12 }} />
-              <Tooltip formatter={(v: number) => fmt(v)} />
-              <Bar dataKey="value" fill="hsl(160, 60%, 45%)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
     </div>
   );
 }

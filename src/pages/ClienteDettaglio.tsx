@@ -114,8 +114,8 @@ export default function ClienteDettaglio() {
           <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">{clientName}</h1>
-          <p className="text-sm text-muted-foreground">Codice: {codice}</p>
+          <h1 className="text-xl md:text-2xl font-bold">{clientName}</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Codice: {codice}</p>
         </div>
       </div>
 
@@ -125,13 +125,13 @@ export default function ClienteDettaglio() {
           clientRecords.filter((r) => r.aziendaNome === azienda && r.anno === anno).reduce((s, r) => s + r.imponibile, 0);
         const aziendeNomi = [...new Set(clientRecords.map((r) => r.aziendaNome))].sort();
         return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {aziendeNomi.map((az) => (
               <Card key={`${az}-${annoCorrente}`}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm text-muted-foreground flex items-center gap-1"><Building2 className="h-4 w-4" />{az} {annoCorrente}</CardTitle>
                 </CardHeader>
-                <CardContent><p className="text-2xl font-bold">{fmt(perAziendaAnno(az, annoCorrente))}</p></CardContent>
+                <CardContent><p className="text-lg md:text-2xl font-bold">{fmt(perAziendaAnno(az, annoCorrente))}</p></CardContent>
               </Card>
             ))}
             {aziendeNomi.map((az) => (
@@ -139,7 +139,7 @@ export default function ClienteDettaglio() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm text-muted-foreground flex items-center gap-1"><Building2 className="h-4 w-4" />{az} {annoPrecedente}</CardTitle>
                 </CardHeader>
-                <CardContent><p className="text-2xl font-bold">{fmt(perAziendaAnno(az, annoPrecedente))}</p></CardContent>
+                <CardContent><p className="text-lg md:text-2xl font-bold">{fmt(perAziendaAnno(az, annoPrecedente))}</p></CardContent>
               </Card>
             ))}
           </div>
@@ -154,7 +154,7 @@ export default function ClienteDettaglio() {
         <CardContent>
           <div className="flex flex-wrap gap-2">
             {perMarchio.map((m) => (
-              <Badge key={m.marchio} variant="secondary" className="text-sm py-1.5 px-3">
+              <Badge key={m.marchio} variant="secondary" className="text-xs md:text-sm py-1 md:py-1.5 px-2 md:px-3">
                 {m.marchio}: {fmt(m.totale)}
               </Badge>
             ))}
@@ -185,10 +185,10 @@ export default function ClienteDettaglio() {
                   <TableBody>
                     {rows.map((r) => (
                       <TableRow key={r.mese}>
-                        <TableCell>{r.meseNome}</TableCell>
-                        <TableCell className="text-right">{fmt(r.precedente)}</TableCell>
-                        <TableCell className="text-right font-medium">{fmt(r.corrente)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-sm">{r.meseNome}</TableCell>
+                        <TableCell className="text-right text-sm">{fmt(r.precedente)}</TableCell>
+                        <TableCell className="text-right font-medium text-sm">{fmt(r.corrente)}</TableCell>
+                        <TableCell className="text-right text-sm">
                           <DeltaIcon val={r.delta} />{" "}
                           <span className={r.delta > 1 ? "text-emerald-600" : r.delta < -1 ? "text-red-600" : "text-muted-foreground"}>
                             {r.delta.toFixed(1)}%

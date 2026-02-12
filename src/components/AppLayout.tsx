@@ -13,17 +13,17 @@ export default function AppLayout() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="h-14 flex items-center justify-between border-b px-4 bg-card">
-            <div className="flex items-center gap-2">
+          <header className="h-12 md:h-14 flex items-center justify-between border-b px-3 md:px-4 bg-card">
+            <div className="flex items-center gap-1.5 md:gap-2">
               <SidebarTrigger />
-              <h1 className="ml-1 text-lg font-semibold text-foreground">Trade Off snc</h1>
+              <h1 className="ml-1 text-base md:text-lg font-semibold text-foreground truncate">Trade Off snc</h1>
               {role === "admin" && (
                 <Badge variant="secondary" className="text-xs">Admin</Badge>
               )}
             </div>
             <ThemeToggle />
           </header>
-          <main className="flex-1 p-6 bg-muted/30">
+          <main className="flex-1 p-3 md:p-6 bg-muted/30">
             <Outlet />
           </main>
         </div>

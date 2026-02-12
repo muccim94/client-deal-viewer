@@ -73,9 +73,9 @@ export default function Provvigioni() {
   return (
     <div className="space-y-6">
       {/* Filtri */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3">
         <Select value={filterAzienda} onValueChange={setFilterAzienda}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Tutte le aziende" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Tutte le aziende" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutte le aziende</SelectItem>
             <SelectItem value="FO">Fogliani</SelectItem>
@@ -83,14 +83,14 @@ export default function Provvigioni() {
           </SelectContent>
         </Select>
         <Select value={filterAnno} onValueChange={setFilterAnno}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Tutti gli anni" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Tutti gli anni" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti gli anni</SelectItem>
             {anni.map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterMese} onValueChange={setFilterMese}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Tutti i mesi" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Tutti i mesi" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti i mesi</SelectItem>
             {mesi.map((m) => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
@@ -104,11 +104,11 @@ export default function Provvigioni() {
           <CardTitle className="text-sm font-medium text-muted-foreground">Totale Provvigioni</CardTitle>
           <Coins className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent><div className="text-2xl font-bold">{fmt(totaleProvvigioni)}</div></CardContent>
+        <CardContent><div className="text-xl md:text-2xl font-bold">{fmt(totaleProvvigioni)}</div></CardContent>
       </Card>
 
       {/* Ricerca */}
-      <div className="relative max-w-sm">
+      <div className="relative w-full sm:max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Cerca cliente..."
@@ -121,34 +121,36 @@ export default function Provvigioni() {
       {/* Tabella */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Codice</TableHead>
-                <TableHead>Nome Cliente</TableHead>
-                <TableHead>Azienda</TableHead>
-                <TableHead className="text-right">Provvigione</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {results.length === 0 ? (
+          <div className="overflow-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    Nessun risultato trovato
-                  </TableCell>
+                  <TableHead>Codice</TableHead>
+                  <TableHead>Nome Cliente</TableHead>
+                  <TableHead className="hidden sm:table-cell">Azienda</TableHead>
+                  <TableHead className="text-right">Provvigione</TableHead>
                 </TableRow>
-              ) : (
-                results.map((r) => (
-                  <TableRow key={`${r.azienda}_${r.codice}`}>
-                    <TableCell className="font-mono">{r.codice}</TableCell>
-                    <TableCell>{r.nome}</TableCell>
-                    <TableCell>{r.aziendaNome}</TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">{fmt(r.totale)}</TableCell>
+              </TableHeader>
+              <TableBody>
+                {results.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      Nessun risultato trovato
+                    </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  results.map((r) => (
+                    <TableRow key={`${r.azienda}_${r.codice}`}>
+                      <TableCell className="font-mono text-sm">{r.codice}</TableCell>
+                      <TableCell className="text-sm">{r.nome}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{r.aziendaNome}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium text-sm">{fmt(r.totale)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

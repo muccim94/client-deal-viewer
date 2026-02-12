@@ -149,8 +149,24 @@ export default function Marchi() {
 
   return (
     <div className="space-y-4">
-      {/* Agent filter */}
-      <div className="flex flex-wrap justify-end gap-2">
+      {/* Filters row */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-lg border bg-muted p-1 mr-auto">
+          {["Fogliani", "Futurtec"].map((az) => (
+            <button
+              key={az}
+              onClick={() => setFilterAzienda(az)}
+              className={cn(
+                "px-4 py-2 rounded-md text-sm font-semibold transition-all",
+                filterAzienda === az
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {az}
+            </button>
+          ))}
+        </div>
         <Select value={filterAnno} onValueChange={setFilterAnno}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Anno" />
@@ -226,25 +242,7 @@ export default function Marchi() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-4">
-              <div className="inline-flex rounded-lg border bg-muted p-1">
-                {["Fogliani", "Futurtec"].map((az) => (
-                  <button
-                    key={az}
-                    onClick={() => setFilterAzienda(az)}
-                    className={cn(
-                      "px-4 py-2 rounded-md text-sm font-semibold transition-all",
-                      filterAzienda === az
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {az}
-                  </button>
-                ))}
-              </div>
-              <CardTitle className="text-base">{filtered.length} marchi</CardTitle>
-            </div>
+            <CardTitle className="text-base">{filtered.length} marchi</CardTitle>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Cerca marchio..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />

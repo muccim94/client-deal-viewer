@@ -5,15 +5,20 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpDown, Search, Tag, Zap, Sun, Cable } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { ArrowUpDown, Search, Tag, Zap, Sun, Cable, Wrench } from "lucide-react";
 
-type SortKey = "marchio" | "fatt2026" | "fatt2025";
+type SortKey = "marchio" | "fatt2026" | "fatt2025" | "var";
 type SortDir = "asc" | "desc";
 
 interface BrandRow {
   marchio: string;
   fatt2026: number;
   fatt2025: number;
+  var: number | null;
 }
 
 export default function Marchi() {
@@ -21,27 +26,43 @@ export default function Marchi() {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("fatt2026");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [filterAgente, setFilterAgente] = useState("__all__");
 
   const currentYear = new Date().getFullYear();
   const prevYear = currentYear - 1;
+
+  // Unique agents
+  const agenti = useMemo(() => {
+    const set = new Set<string>();
+    records.forEach((r) => set.add(r.agente));
+    return [...set].sort();
+  }, [records]);
+
+  // Filtered by agent
+  const filteredRecords = useMemo(
+    () => filterAgente === "__all__" ? records : records.filter((r) => r.agente === filterAgente),
+    [records, filterAgente],
+  );
 
   // KPI totals
   const kpi = useMemo(() => {
     let matElettrico = 0;
     let fotovoltaico = 0;
     let cavo = 0;
-    records.forEach((r) => {
+    let ricambi = 0;
+    filteredRecords.forEach((r) => {
       if (r.marchio === "FV.") fotovoltaico += r.imponibile;
       else if (r.marchio === "CV.") cavo += r.imponibile;
+      else if (r.marchio === "RI.") ricambi += r.imponibile;
       else matElettrico += r.imponibile;
     });
-    return { matElettrico, fotovoltaico, cavo };
-  }, [records]);
+    return { matElettrico, fotovoltaico, cavo, ricambi };
+  }, [filteredRecords]);
 
   // Brand table
   const brands = useMemo(() => {
     const map = new Map<string, { fatt2026: number; fatt2025: number }>();
-    records.forEach((r) => {
+    filteredRecords.forEach((r) => {
       const existing = map.get(r.marchio);
       if (existing) {
         if (r.anno === currentYear) existing.fatt2026 += r.imponibile;
@@ -57,8 +78,9 @@ export default function Marchi() {
       marchio,
       fatt2026: v.fatt2026,
       fatt2025: v.fatt2025,
+      var: v.fatt2025 > 0 ? ((v.fatt2026 - v.fatt2025) / v.fatt2025) * 100 : null,
     }));
-  }, [records, currentYear, prevYear]);
+  }, [filteredRecords, currentYear, prevYear]);
 
   const filtered = useMemo(() => {
     let data = brands;
@@ -69,6 +91,9 @@ export default function Marchi() {
     return [...data].sort((a, b) => {
       const av = a[sortKey];
       const bv = b[sortKey];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
       const cmp = typeof av === "number" ? av - (bv as number) : String(av).localeCompare(String(bv));
       return sortDir === "asc" ? cmp : -cmp;
     });
@@ -82,6 +107,11 @@ export default function Marchi() {
   const fmt = (n: number) =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
+  const fmtPct = (n: number | null) => {
+    if (n == null) return null;
+    return `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
+  };
+
   if (!records.length) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -94,40 +124,54 @@ export default function Marchi() {
 
   return (
     <div className="space-y-4">
+      {/* Agent filter */}
+      <div className="flex justify-end">
+        <Select value={filterAgente} onValueChange={setFilterAgente}>
+          <SelectTrigger className="w-56">
+            <SelectValue placeholder="Tutti gli agenti" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Tutti gli agenti</SelectItem>
+            {agenti.map((a) => (
+              <SelectItem key={a} value={a}>{a}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              Materiale Elettrico
+              <Zap className="h-4 w-4" /> Materiale Elettrico
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{fmt(kpi.matElettrico)}</p>
-          </CardContent>
+          <CardContent><p className="text-2xl font-bold">{fmt(kpi.matElettrico)}</p></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Sun className="h-4 w-4" />
-              Fotovoltaico
+              <Sun className="h-4 w-4" /> Fotovoltaico
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{fmt(kpi.fotovoltaico)}</p>
-          </CardContent>
+          <CardContent><p className="text-2xl font-bold">{fmt(kpi.fotovoltaico)}</p></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Cable className="h-4 w-4" />
-              Cavo
+              <Cable className="h-4 w-4" /> Cavo
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{fmt(kpi.cavo)}</p>
-          </CardContent>
+          <CardContent><p className="text-2xl font-bold">{fmt(kpi.cavo)}</p></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Wrench className="h-4 w-4" /> Risorsa spesa
+            </CardTitle>
+          </CardHeader>
+          <CardContent><p className="text-2xl font-bold">{fmt(kpi.ricambi)}</p></CardContent>
         </Card>
       </div>
 
@@ -156,16 +200,31 @@ export default function Marchi() {
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fatt2025")}>
                     <span className="flex items-center gap-1">{`Fatt. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("var")}>
+                    <span className="flex items-center gap-1">Var. %<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r) => (
-                  <TableRow key={r.marchio}>
-                    <TableCell className="font-medium">{r.marchio}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmt(r.fatt2026)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmt(r.fatt2025)}</TableCell>
-                  </TableRow>
-                ))}
+                {filtered.map((r) => {
+                  const pct = fmtPct(r.var);
+                  return (
+                    <TableRow key={r.marchio}>
+                      <TableCell className="font-medium">{r.marchio}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmt(r.fatt2026)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmt(r.fatt2025)}</TableCell>
+                      <TableCell className="text-right">
+                        {pct != null ? (
+                          <Badge variant={r.var! >= 0 ? "default" : "destructive"} className={r.var! >= 0 ? "bg-green-600 hover:bg-green-700" : ""}>
+                            {pct}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">N/A</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

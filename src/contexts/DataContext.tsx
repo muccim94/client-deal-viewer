@@ -53,7 +53,7 @@ function toDB(r: SalesRecord, userId: string) {
 }
 
 const COLUMNS = "azienda,azienda_nome,anno,mese,codice_cliente,nome_cliente,agente,marchio,articolo,imponibile,provvigione,fattura_riga";
-const PAGE_SIZE = 1000;
+const PAGE_SIZE = 5000;
 
 // Fetch all records in parallel
 async function fetchAllRecords(onChunk?: (records: SalesRecord[]) => void): Promise<SalesRecord[]> {

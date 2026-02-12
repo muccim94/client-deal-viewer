@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
 import { getMeseNome } from "@/types/data";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ export default function Marchi() {
   const [filterAgente, setFilterAgente] = useState("__all__");
   const [filterAnno, setFilterAnno] = useState<string>(String(new Date().getFullYear()));
   const [filterMese, setFilterMese] = useState("__all__");
+  const [filterAzienda, setFilterAzienda] = useState("Fogliani");
 
   const currentYear = new Date().getFullYear();
   const prevYear = currentYear - 1;
@@ -77,10 +79,15 @@ export default function Marchi() {
     return { matElettrico, fotovoltaico, cavo, ricambi };
   }, [filteredRecords]);
 
+  // Records filtered only by azienda (for table, independent of KPI filters)
+  const tableRecords = useMemo(() => {
+    return records.filter((r) => r.aziendaNome === filterAzienda);
+  }, [records, filterAzienda]);
+
   // Brand table
   const brands = useMemo(() => {
     const map = new Map<string, { fatt2026: number; fatt2025: number }>();
-    filteredRecords.forEach((r) => {
+    tableRecords.forEach((r) => {
       const existing = map.get(r.marchio);
       if (existing) {
         if (r.anno === currentYear) existing.fatt2026 += r.imponibile;
@@ -98,7 +105,7 @@ export default function Marchi() {
       fatt2025: v.fatt2025,
       var: v.fatt2025 > 0 ? ((v.fatt2026 - v.fatt2025) / v.fatt2025) * 100 : null,
     }));
-  }, [filteredRecords, currentYear, prevYear]);
+  }, [tableRecords, currentYear, prevYear]);
 
   const filtered = useMemo(() => {
     let data = brands;
@@ -218,8 +225,26 @@ export default function Marchi() {
       {/* Brand Table */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <CardTitle className="text-base">{filtered.length} marchi</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-4">
+              <div className="inline-flex rounded-lg border bg-muted p-1">
+                {["Fogliani", "Futurtec"].map((az) => (
+                  <button
+                    key={az}
+                    onClick={() => setFilterAzienda(az)}
+                    className={cn(
+                      "px-4 py-2 rounded-md text-sm font-semibold transition-all",
+                      filterAzienda === az
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {az}
+                  </button>
+                ))}
+              </div>
+              <CardTitle className="text-base">{filtered.length} marchi</CardTitle>
+            </div>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Cerca marchio..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />

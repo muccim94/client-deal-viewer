@@ -1,22 +1,27 @@
-## Miglioramenti pagina Marchi
+## Aggiunta filtri Anno e Mese alla pagina Marchi
 
 ### Cosa cambia
 
-1. **Filtro Agente** sopra le card KPI -- un dropdown per filtrare tutti i dati della pagina (KPI e tabella) per un agente specifico.
-2. **Colonna Variazione %** nella tabella -- una nuova colonna che mostra la variazione percentuale tra fatturato anno corrente e anno precedente, con colore verde (positivo) o rosso (negativo).
-3. **Nuova card KPI "Risorsa spesa"** -- quarta card che somma gli importi dei prodotti con precodice `"RI."`, affiancata alle altre tre (griglia da 3 a 4 colonne).
+Nella barra filtri in alto (dove attualmente c'e' solo il filtro Agente), verranno aggiunti due nuovi dropdown:
+
+- **Anno**: permette di filtrare i dati per un anno specifico o mostrare tutti gli anni, default visualizzato deve essere l'anno attuale 
+- **Mese**: permette di filtrare i dati per un mese specifico o mostrare tutti i mesi (i nomi dei mesi saranno in italiano: Gennaio, Febbraio, ecc.) di default deve visualizzare tutti i mesi 
+
+I tre filtri (Anno, Mese, Agente) saranno disposti nella stessa riga, allineati a destra, con gap tra loro.
+
+Tutti i calcoli (KPI e tabella marchi) useranno i record filtrati per anno, mese e agente.
 
 ### Dettagli tecnici
 
-**File modificato: `src/pages/Marchi.tsx**`
+**File: `src/pages/Marchi.tsx**`
 
-- Importare `Select, SelectContent, SelectItem, SelectTrigger, SelectValue` da `@/components/ui/select` e icona `Wrench` da lucide-react
-- Aggiungere stato `filterAgente` con valore iniziale `"__all__"`
-- Creare `useMemo` per estrarre agenti univoci dai record
-- Creare `useMemo` `filteredRecords` che filtra i `records` per agente selezionato; tutti i calcoli successivi (KPI, brands) useranno `filteredRecords` invece di `records`
-- Aggiornare il calcolo KPI per includere `ricambi` (somma di `r.marchio === "RI."`) e escludere `"RI."` dal totale "Materiale Elettrico"
-- Aggiungere `var` (variazione %) al tipo `BrandRow` e calcolarlo: `fatt2025 > 0 ? ((fatt2026 - fatt2025) / fatt2025) * 100 : null`
-- Aggiungere `"var"` come chiave di ordinamento
-- Griglia KPI: da `sm:grid-cols-3` a `sm:grid-cols-4`, con quarta card "Ricambi" (icona `Wrench`)
-- Tabella: nuova colonna "Var. %" con badge colorato (verde se positivo, rosso se negativo, grigio se non calcolabile)
-- Il dropdown agente viene posizionato sopra le card KPI, allineato a destra
+1. **Nuovi stati**: aggiungere `filterAnno` e `filterMese` (valori iniziali `"__all__"`)
+2. **Nuovi `useMemo**` per estrarre anni e mesi univoci dai record e ordinarli
+3. **Aggiornare `filteredRecords**`: applicare i tre filtri (agente, anno, mese) in cascata
+4. **UI filtri** (riga 128): la `div` attuale con solo il Select agente viene estesa con tre Select affiancati:
+  - Select Anno (w-40)
+  - Select Mese (w-48) -- usa `getMeseNome` da `@/types/data` per i nomi italiani
+  - Select Agente (w-56, gia' presente)
+5. Importare `getMeseNome` da `@/types/data`
+
+Nessun altro file viene modificato.

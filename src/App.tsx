@@ -11,6 +11,7 @@ import Dashboard from "@/pages/Dashboard";
 import Anagrafiche from "@/pages/Anagrafiche";
 import ClienteDettaglio from "@/pages/ClienteDettaglio";
 import UploadExcel from "@/pages/UploadExcel";
+import Marchi from "@/pages/Marchi";
 import Provvigioni from "@/pages/Provvigioni";
 import GestioneUtenti from "@/pages/GestioneUtenti";
 import Auth from "@/pages/Auth";
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/anagrafiche" element={<Anagrafiche />} />
               <Route path="/anagrafiche/:codice" element={<ClienteDettaglio />} />
+              <Route path="/marchi" element={<Marchi />} />
               <Route path="/provvigioni" element={<Provvigioni />} />
               <Route path="/upload" element={<UploadExcel />} />
               <Route path="/gestione-utenti" element={<GestioneUtenti />} />

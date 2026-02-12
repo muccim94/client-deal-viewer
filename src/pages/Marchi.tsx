@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useData } from "@/contexts/DataContext";
+import { getMeseNome } from "@/types/data";
 import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -27,6 +28,8 @@ export default function Marchi() {
   const [sortKey, setSortKey] = useState<SortKey>("fatt2026");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filterAgente, setFilterAgente] = useState("__all__");
+  const [filterAnno, setFilterAnno] = useState<string>(String(new Date().getFullYear()));
+  const [filterMese, setFilterMese] = useState("__all__");
 
   const currentYear = new Date().getFullYear();
   const prevYear = currentYear - 1;
@@ -38,11 +41,26 @@ export default function Marchi() {
     return [...set].sort();
   }, [records]);
 
-  // Filtered by agent
-  const filteredRecords = useMemo(
-    () => filterAgente === "__all__" ? records : records.filter((r) => r.agente === filterAgente),
-    [records, filterAgente],
-  );
+  const anni = useMemo(() => {
+    const set = new Set<number>();
+    records.forEach((r) => set.add(r.anno));
+    return [...set].sort((a, b) => b - a);
+  }, [records]);
+
+  const mesi = useMemo(() => {
+    const set = new Set<number>();
+    records.forEach((r) => set.add(r.mese));
+    return [...set].sort((a, b) => a - b);
+  }, [records]);
+
+  // Filtered by agent, year, month
+  const filteredRecords = useMemo(() => {
+    let data = records;
+    if (filterAgente !== "__all__") data = data.filter((r) => r.agente === filterAgente);
+    if (filterAnno !== "__all__") data = data.filter((r) => r.anno === Number(filterAnno));
+    if (filterMese !== "__all__") data = data.filter((r) => r.mese === Number(filterMese));
+    return data;
+  }, [records, filterAgente, filterAnno, filterMese]);
 
   // KPI totals
   const kpi = useMemo(() => {
@@ -125,7 +143,29 @@ export default function Marchi() {
   return (
     <div className="space-y-4">
       {/* Agent filter */}
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Select value={filterAnno} onValueChange={setFilterAnno}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Anno" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Tutti gli anni</SelectItem>
+            {anni.map((a) => (
+              <SelectItem key={a} value={String(a)}>{a}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterMese} onValueChange={setFilterMese}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Mese" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Tutti i mesi</SelectItem>
+            {mesi.map((m) => (
+              <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={filterAgente} onValueChange={setFilterAgente}>
           <SelectTrigger className="w-56">
             <SelectValue placeholder="Tutti gli agenti" />

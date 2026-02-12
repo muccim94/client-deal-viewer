@@ -53,7 +53,7 @@ export default function Marchi() {
     filteredRecords.forEach((r) => {
       if (r.marchio === "FV.") fotovoltaico += r.imponibile;
       else if (r.marchio === "CV.") cavo += r.imponibile;
-      else if (r.marchio === "RI.") ricambi += r.imponibile;
+      else if (r.marchio.startsWith("*RI")) ricambi += r.imponibile;
       else matElettrico += r.imponibile;
     });
     return { matElettrico, fotovoltaico, cavo, ricambi };

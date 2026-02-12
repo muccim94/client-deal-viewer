@@ -128,14 +128,14 @@ export default function Dashboard() {
         <Card>
           <CardHeader><CardTitle className="text-sm md:text-base">Top 10 Clienti per Fatturato</CardTitle></CardHeader>
           <CardContent>
-            <ol className="space-y-3">
+            <ol className="space-y-2">
               {topClienti.map((c, i) => (
-                <li key={c.name} className="flex items-baseline gap-3">
-                  <span className="text-sm font-bold text-muted-foreground w-5 shrink-0">{i + 1}.</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">{fmt(c.value)}</p>
-                  </div>
+                <li key={c.name} className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-muted-foreground shrink-0 w-6">{i + 1}.</span>
+                  <span className="text-sm font-medium flex-1 truncate" title={c.name}>
+                    {c.name.length > 20 ? c.name.slice(0, 20) + "…" : c.name}
+                  </span>
+                  <span className="text-sm font-semibold text-right shrink-0">{fmt(c.value)}</span>
                 </li>
               ))}
             </ol>

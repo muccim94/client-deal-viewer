@@ -10,6 +10,7 @@ export interface SalesRecord {
   articolo: string;      // codice articolo completo senza prefisso azienda
   imponibile: number;
   provvigione: number;  // valore provvigione
+  fatturaRiga: string;  // identificativo fattura_riga per deduplicazione
 }
 
 const AZIENDA_MAP: Record<string, string> = {

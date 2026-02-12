@@ -27,6 +27,7 @@ function fromDB(row: any): SalesRecord {
     articolo: row.articolo,
     imponibile: Number(row.imponibile),
     provvigione: Number(row.provvigione),
+    fatturaRiga: row.fattura_riga ?? "",
   };
 }
 
@@ -45,6 +46,7 @@ function toDB(r: SalesRecord, userId: string) {
     articolo: r.articolo,
     imponibile: r.imponibile,
     provvigione: r.provvigione,
+    fattura_riga: r.fatturaRiga,
   };
 }
 
@@ -105,7 +107,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     // Deduplicate against existing records
     const recordKey = (r: SalesRecord) =>
-      `${r.azienda}|${r.anno}|${r.mese}|${r.codiceCliente}|${r.articolo}|${r.imponibile}`;
+      `${r.azienda}|${r.anno}|${r.mese}|${r.codiceCliente}|${r.articolo}|${r.fatturaRiga}`;
     const existingKeys = new Set(records.map(recordKey));
     const unique = newRecords.filter((r) => !existingKeys.has(recordKey(r)));
     const duplicates = newRecords.length - unique.length;
@@ -118,7 +120,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const CHUNK_SIZE = 500;
     for (let i = 0; i < unique.length; i += CHUNK_SIZE) {
       const chunk = unique.slice(i, i + CHUNK_SIZE).map((r) => toDB(r, user.id));
-      const { error } = await supabase.from("sales_records").upsert(chunk, { onConflict: "user_id,azienda,anno,mese,codice_cliente,articolo,imponibile", ignoreDuplicates: true });
+      const { error } = await supabase.from("sales_records").upsert(chunk, { onConflict: "user_id,azienda,anno,mese,codice_cliente,articolo,fattura_riga", ignoreDuplicates: true });
       if (error) throw error;
     }
 

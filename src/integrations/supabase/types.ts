@@ -23,6 +23,7 @@ export type Database = {
           azienda_nome: string
           codice_cliente: string
           created_at: string
+          fattura_riga: string | null
           id: string
           imponibile: number
           marchio: string
@@ -39,6 +40,7 @@ export type Database = {
           azienda_nome: string
           codice_cliente: string
           created_at?: string
+          fattura_riga?: string | null
           id?: string
           imponibile?: number
           marchio?: string
@@ -55,6 +57,7 @@ export type Database = {
           azienda_nome?: string
           codice_cliente?: string
           created_at?: string
+          fattura_riga?: string | null
           id?: string
           imponibile?: number
           marchio?: string

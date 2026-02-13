@@ -55,7 +55,9 @@ function toDB(r: SalesRecord, userId: string) {
 const COLUMNS = "azienda,azienda_nome,anno,mese,codice_cliente,nome_cliente,agente,marchio,articolo,imponibile,provvigione,fattura_riga";
 const PAGE_SIZE = 1000;
 
-// Fetch all records in parallel
+// Fetch all records with controlled concurrency
+const CONCURRENCY = 5;
+
 async function fetchAllRecords(onChunk?: (records: SalesRecord[]) => void): Promise<SalesRecord[]> {
   // First get total count
   const { count, error: countError } = await supabase
@@ -68,23 +70,28 @@ async function fetchAllRecords(onChunk?: (records: SalesRecord[]) => void): Prom
   const totalPages = Math.ceil(count / PAGE_SIZE);
   const all: SalesRecord[] = [];
 
-  // Fetch all pages in parallel
-  const promises = Array.from({ length: totalPages }, (_, i) => {
-    const from = i * PAGE_SIZE;
-    return supabase
-      .from("sales_records")
-      .select(COLUMNS)
-      .range(from, from + PAGE_SIZE - 1)
-      .then(({ data, error }) => {
-        if (error) throw error;
-        const mapped = (data ?? []).map(fromDB);
-        if (onChunk) onChunk(mapped);
-        return mapped;
-      });
-  });
+  // Fetch pages in batches of CONCURRENCY to avoid DB timeout
+  for (let batch = 0; batch < totalPages; batch += CONCURRENCY) {
+    const batchEnd = Math.min(batch + CONCURRENCY, totalPages);
+    const promises = Array.from({ length: batchEnd - batch }, (_, j) => {
+      const i = batch + j;
+      const from = i * PAGE_SIZE;
+      return supabase
+        .from("sales_records")
+        .select(COLUMNS)
+        .range(from, from + PAGE_SIZE - 1)
+        .then(({ data, error }) => {
+          if (error) throw error;
+          const mapped = (data ?? []).map(fromDB);
+          if (onChunk) onChunk(mapped);
+          return mapped;
+        });
+    });
 
-  const results = await Promise.all(promises);
-  for (const chunk of results) all.push(...chunk);
+    const results = await Promise.all(promises);
+    for (const chunk of results) all.push(...chunk);
+  }
+
   return all;
 }
 

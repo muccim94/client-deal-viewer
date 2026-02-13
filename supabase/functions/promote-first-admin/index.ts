@@ -33,13 +33,15 @@ Deno.serve(async (req) => {
     const anonClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error: userError } = await anonClient.auth.getUser();
-    if (userError || !user) {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const userId = claimsData.claims.sub as string;
 
     // Use service role to check and promote
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
@@ -61,7 +63,7 @@ Deno.serve(async (req) => {
     const { error: updateError } = await adminClient
       .from("user_roles")
       .update({ role: "admin" })
-      .eq("user_id", user.id);
+      .eq("user_id", userId);
 
     if (updateError) {
       console.error("Failed to promote admin:", updateError);

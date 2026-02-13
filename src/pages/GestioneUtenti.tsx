@@ -32,37 +32,26 @@ export default function GestioneUtenti() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Fetch users via edge function
-      const { data: usersData, error: usersError } = await supabase.functions.invoke("list-users");
+      // Fetch users + distinct agents via edge function
+      const { data, error: usersError } = await supabase.functions.invoke("list-users");
       if (usersError) throw usersError;
+      const usersData = data?.users || [];
+      const agentsFromEdge: string[] = data?.agents || [];
+
       // Sort: admins first, then by email
-      const sorted = (usersData || []).sort((a: UserInfo, b: UserInfo) => {
+      const sorted = usersData.sort((a: UserInfo, b: UserInfo) => {
         if (a.role === "admin" && b.role !== "admin") return -1;
         if (a.role !== "admin" && b.role === "admin") return 1;
         return (a.email || "").localeCompare(b.email || "");
       });
       setUsers(sorted);
+      setAvailableAgents(agentsFromEdge);
 
       // Fetch all user_agents
       const { data: agentsData } = await supabase
         .from("user_agents")
         .select("*");
       setUserAgents(agentsData || []);
-
-      // Fetch distinct agents from user_agents + sales_records
-      const { data: agentsFromTable } = await supabase
-        .from("user_agents")
-        .select("agente");
-      const { data: agentsFromSales } = await supabase
-        .from("sales_records")
-        .select("agente");
-
-      const allAgentValues = [
-        ...(agentsFromTable || []).map((r) => r.agente),
-        ...(agentsFromSales || []).map((r) => r.agente),
-      ];
-      const unique = [...new Set(allAgentValues)].filter(Boolean).sort();
-      setAvailableAgents(unique);
     } catch (err: any) {
       toast({ title: "Errore", description: err.message, variant: "destructive" });
     } finally {

@@ -70,9 +70,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Fetch roles for all users
+    const { data: rolesData } = await adminClient
+      .from("user_roles")
+      .select("user_id, role");
+
+    const rolesMap: Record<string, string> = {};
+    if (rolesData) {
+      for (const r of rolesData) {
+        rolesMap[r.user_id] = r.role;
+      }
+    }
+
     const result = users.map((u) => ({
       id: u.id,
       email: u.email,
+      role: rolesMap[u.id] || "user",
     }));
 
     return new Response(JSON.stringify(result), {

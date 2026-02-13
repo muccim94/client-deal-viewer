@@ -11,6 +11,7 @@ import { X, Plus, Users, Loader2 } from "lucide-react";
 interface UserInfo {
   id: string;
   email: string;
+  role: string;
 }
 
 interface UserAgent {
@@ -34,7 +35,13 @@ export default function GestioneUtenti() {
       // Fetch users via edge function
       const { data: usersData, error: usersError } = await supabase.functions.invoke("list-users");
       if (usersError) throw usersError;
-      setUsers(usersData || []);
+      // Sort: admins first, then by email
+      const sorted = (usersData || []).sort((a: UserInfo, b: UserInfo) => {
+        if (a.role === "admin" && b.role !== "admin") return -1;
+        if (a.role !== "admin" && b.role === "admin") return 1;
+        return (a.email || "").localeCompare(b.email || "");
+      });
+      setUsers(sorted);
 
       // Fetch all user_agents
       const { data: agentsData } = await supabase
@@ -42,16 +49,20 @@ export default function GestioneUtenti() {
         .select("*");
       setUserAgents(agentsData || []);
 
-      // Fetch distinct agents from sales_records
-      const { data: distinctAgents } = await supabase
+      // Fetch distinct agents from user_agents + sales_records
+      const { data: agentsFromTable } = await supabase
+        .from("user_agents")
+        .select("agente");
+      const { data: agentsFromSales } = await supabase
         .from("sales_records")
-        .select("agente")
-        .order("agente");
+        .select("agente");
 
-      if (distinctAgents) {
-        const unique = [...new Set(distinctAgents.map((r) => r.agente))].filter(Boolean);
-        setAvailableAgents(unique);
-      }
+      const allAgentValues = [
+        ...(agentsFromTable || []).map((r) => r.agente),
+        ...(agentsFromSales || []).map((r) => r.agente),
+      ];
+      const unique = [...new Set(allAgentValues)].filter(Boolean).sort();
+      setAvailableAgents(unique);
     } catch (err: any) {
       toast({ title: "Errore", description: err.message, variant: "destructive" });
     } finally {
@@ -114,7 +125,12 @@ export default function GestioneUtenti() {
           return (
             <Card key={u.id}>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-medium">{u.email}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base font-medium">{u.email}</CardTitle>
+                  <Badge variant={u.role === "admin" ? "default" : "secondary"}>
+                    {u.role === "admin" ? "Admin" : "User"}
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {/* Assigned agents */}

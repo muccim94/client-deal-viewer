@@ -1,61 +1,30 @@
 
 
-## Gestione Utenti - Miglioramenti
+## Fix: Barra di caricamento che scompare prematuramente
 
-### Problemi identificati
+### Causa del problema
 
-1. **Dropdown agenti incompleto**: Nel database esistono 2 agenti (`FO_FO75` e `FO_FO77`), ma il selettore ne mostra solo uno. Il problema potrebbe essere legato alla query che recupera gli agenti distinti dalla tabella `sales_records` -- verificheremo e correggeremo il fetch.
+In `DataContext.tsx` riga 135, `setLoading(false)` viene chiamato dentro il callback `onChunk`, cioe dopo il primo blocco di 1000 record. Poiche la condizione di visibilita della barra e `loading && totalCount > 0`, la barra scompare immediatamente dopo il primo batch.
 
-2. **Badge ruolo mancante**: Attualmente la card utente mostra solo l'email. Serve un badge che indichi se l'utente e "Admin" o "User".
+Inoltre, alla riga 138-139, `setTotalCount(0)` e `setLoadedCount(0)` vengono resettati subito dopo il completamento di `fetchAllRecords`, e poi di nuovo nel blocco `finally` (righe 144-145), rendendo impossibile mostrare il progresso fino alla fine.
 
-3. **Ordinamento utenti**: Gli admin devono apparire per primi nella lista.
+### Soluzione
 
----
+Modificare `src/contexts/DataContext.tsx`:
 
-### Piano di implementazione
+1. **Rimuovere `setLoading(false)` dal callback `onChunk`** (riga 135) -- il caricamento e "in corso" finche tutti i record non sono arrivati.
+2. **Spostare il reset di `totalCount` e `loadedCount`** solo nel blocco `finally`, dopo che `setLoading(false)` e stato chiamato e il rendering della barra al 100% ha avuto tempo di essere mostrato.
+3. **Svuotare `records` prima di iniziare** il fetch per evitare duplicati causati dal callback `onChunk` che fa `setRecords(prev => [...prev, ...chunk])` seguito poi da `setRecords(data)` che sovrascrive tutto.
 
-#### 1. Aggiungere il ruolo utente ai dati caricati
-
-- Modificare `GestioneUtenti.tsx` per fare un fetch anche dalla tabella `user_roles` (gia accessibile tramite RLS).
-- Associare ogni utente al suo ruolo (`admin` / `user`).
-
-#### 2. Badge ruolo accanto all'email
-
-- Nella `CardHeader` di ogni utente, aggiungere un `Badge` colorato:
-  - **Admin**: badge con variante `default` (colore primario)
-  - **User**: badge con variante `secondary`
-
-#### 3. Ordinamento: admin per primi
-
-- Dopo aver caricato utenti e ruoli, ordinare la lista mettendo gli admin in cima, poi gli utenti normali (ordinati per email).
-
-#### 4. Verifica dropdown agenti
-
-- Controllare che la query `SELECT agente FROM sales_records ORDER BY agente` restituisca tutti i valori distinti. Se il problema e nel codice che applica `new Set()`, correggerlo per assicurare che entrambi `FO_FO75` e `FO_FO77` vengano mostrati.
-
----
-
-### Dettagli tecnici
-
-**File modificato**: `src/pages/GestioneUtenti.tsx`
-
-Modifiche principali:
+### Dettaglio tecnico
 
 ```text
-Interfacce:
-  - UserInfo: aggiungere campo "role: string"
-
-loadData():
-  - Fetch user_roles dalla tabella per ottenere il ruolo di ogni utente
-  - Merge ruoli con la lista utenti dal edge function
-  - Ordinare: admin prima, poi user, poi per email
-
-Rendering:
-  - CardHeader: aggiungere Badge con il ruolo accanto all'email
-  - Verificare che il dropdown agenti mostri correttamente tutti i valori
+refreshRecords():
+  - Riga 112: aggiungere setRecords([]) all'inizio per pulire i dati precedenti
+  - Riga 135: RIMUOVERE setLoading(false) dal callback onChunk
+  - Righe 137-139: rimuovere setRecords(data), setTotalCount(0), setLoadedCount(0)
+  - Blocco finally: mantenere setLoading(false), aggiungere un breve delay
+    prima di resettare totalCount/loadedCount cosi l'utente vede il 100%
 ```
 
-**Edge function `list-users`**: Alternativa -- includere il ruolo direttamente nella risposta dell'edge function (ha gia accesso admin al DB). Questo semplifica il frontend evitando una query aggiuntiva.
-
-Approccio scelto: **modificare l'edge function** per restituire anche il ruolo, poi ordinare e visualizzare nel frontend.
-
+La barra di progresso restera visibile per tutta la durata del caricamento, mostrando il conteggio aggiornato fino al completamento.

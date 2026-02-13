@@ -1,28 +1,61 @@
 
 
-## Indicatore di progresso caricamento dati
+## Gestione Utenti - Miglioramenti
 
-### Cosa cambia
+### Problemi identificati
 
-Dopo il login, durante il caricamento dei record dal database, comparira' una barra di progresso nell'header dell'app che mostra quanti record sono stati caricati rispetto al totale (es. "Caricamento... 15.000 / 51.234"). La barra scompare automaticamente al completamento.
+1. **Dropdown agenti incompleto**: Nel database esistono 2 agenti (`FO_FO75` e `FO_FO77`), ma il selettore ne mostra solo uno. Il problema potrebbe essere legato alla query che recupera gli agenti distinti dalla tabella `sales_records` -- verificheremo e correggeremo il fetch.
+
+2. **Badge ruolo mancante**: Attualmente la card utente mostra solo l'email. Serve un badge che indichi se l'utente e "Admin" o "User".
+
+3. **Ordinamento utenti**: Gli admin devono apparire per primi nella lista.
+
+---
+
+### Piano di implementazione
+
+#### 1. Aggiungere il ruolo utente ai dati caricati
+
+- Modificare `GestioneUtenti.tsx` per fare un fetch anche dalla tabella `user_roles` (gia accessibile tramite RLS).
+- Associare ogni utente al suo ruolo (`admin` / `user`).
+
+#### 2. Badge ruolo accanto all'email
+
+- Nella `CardHeader` di ogni utente, aggiungere un `Badge` colorato:
+  - **Admin**: badge con variante `default` (colore primario)
+  - **User**: badge con variante `secondary`
+
+#### 3. Ordinamento: admin per primi
+
+- Dopo aver caricato utenti e ruoli, ordinare la lista mettendo gli admin in cima, poi gli utenti normali (ordinati per email).
+
+#### 4. Verifica dropdown agenti
+
+- Controllare che la query `SELECT agente FROM sales_records ORDER BY agente` restituisca tutti i valori distinti. Se il problema e nel codice che applica `new Set()`, correggerlo per assicurare che entrambi `FO_FO75` e `FO_FO77` vengano mostrati.
+
+---
 
 ### Dettagli tecnici
 
-**File: `src/contexts/DataContext.tsx`**
+**File modificato**: `src/pages/GestioneUtenti.tsx`
 
-1. Aggiungere due nuovi stati al context: `totalCount` (numero totale di record) e `loadedCount` (record caricati finora)
-2. Esporre `totalCount` e `loadedCount` nell'interfaccia `DataContextType`
-3. In `fetchAllRecords`, passare il `count` totale come valore di ritorno insieme ai dati, oppure accettare un callback `onCount` per comunicare il totale
-4. In `refreshRecords`:
-   - Settare `totalCount` dopo la query di conteggio
-   - Aggiornare `loadedCount` ad ogni chunk ricevuto
-   - Resettare entrambi a 0 al completamento
+Modifiche principali:
 
-**File: `src/components/AppLayout.tsx`**
+```text
+Interfacce:
+  - UserInfo: aggiungere campo "role: string"
 
-1. Importare `useData` e il componente `Progress` da UI
-2. Sotto l'header, mostrare condizionalmente (quando `loading` e' true e `totalCount > 0`) una barra di progresso con:
-   - Componente `Progress` con valore percentuale `(loadedCount / totalCount) * 100`
-   - Testo "Caricamento... X / Y record" centrato sotto la barra
-3. La barra scompare quando `loading` diventa false
+loadData():
+  - Fetch user_roles dalla tabella per ottenere il ruolo di ogni utente
+  - Merge ruoli con la lista utenti dal edge function
+  - Ordinare: admin prima, poi user, poi per email
+
+Rendering:
+  - CardHeader: aggiungere Badge con il ruolo accanto all'email
+  - Verificare che il dropdown agenti mostri correttamente tutti i valori
+```
+
+**Edge function `list-users`**: Alternativa -- includere il ruolo direttamente nella risposta dell'edge function (ha gia accesso admin al DB). Questo semplifica il frontend evitando una query aggiuntiva.
+
+Approccio scelto: **modificare l'edge function** per restituire anche il ruolo, poi ordinare e visualizzare nel frontend.
 

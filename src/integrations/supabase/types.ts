@@ -112,8 +112,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_cliente_detail: { Args: { p_codice_cliente: string }; Returns: Json }
+      get_clienti_list: { Args: { p_agente?: string }; Returns: Json }
+      get_dashboard_stats: {
+        Args: {
+          p_agente?: string
+          p_anno?: number
+          p_azienda?: string
+          p_mese?: number
+        }
+        Returns: Json
+      }
       get_distinct_agents: { Args: never; Returns: string[] }
+      get_filter_options: { Args: never; Returns: Json }
+      get_marchi_stats: {
+        Args: {
+          p_agente?: string
+          p_anno?: number
+          p_azienda_nome?: string
+          p_mese?: number
+        }
+        Returns: Json
+      }
+      get_provvigioni_grouped: {
+        Args: { p_anno?: number; p_azienda?: string; p_mese?: number }
+        Returns: Json
+      }
+      get_record_count: { Args: never; Returns: number }
       get_user_agents: { Args: { _user_id: string }; Returns: string[] }
+      get_visible_agents: { Args: never; Returns: string[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

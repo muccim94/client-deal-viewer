@@ -88,7 +88,25 @@ Deno.serve(async (req) => {
       role: rolesMap[u.id] || "user",
     }));
 
-    return new Response(JSON.stringify(result), {
+    // Fetch distinct agents from sales_records (service role bypasses RLS & row limits)
+    const allAgents: string[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: batch } = await adminClient
+        .from("sales_records")
+        .select("agente")
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      if (!batch || batch.length === 0) break;
+      for (const r of batch) {
+        if (r.agente) allAgents.push(r.agente);
+      }
+      if (batch.length < pageSize) break;
+      page++;
+    }
+    const distinctAgents = [...new Set(allAgents)].sort();
+
+    return new Response(JSON.stringify({ users: result, agents: distinctAgents }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {

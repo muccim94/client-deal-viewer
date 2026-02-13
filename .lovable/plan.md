@@ -1,30 +1,51 @@
 
 
-## Fix: Barra di caricamento che scompare prematuramente
+## Velocizzare il caricamento dei dati
 
-### Causa del problema
+### Problema attuale
 
-In `DataContext.tsx` riga 135, `setLoading(false)` viene chiamato dentro il callback `onChunk`, cioe dopo il primo blocco di 1000 record. Poiche la condizione di visibilita della barra e `loading && totalCount > 0`, la barra scompare immediatamente dopo il primo batch.
+Ogni volta che accedi all'app, vengono scaricati **tutti i 51.000+ record** dal database al browser, con circa 52 richieste HTTP sequenziali. Questo richiede diversi secondi e consuma banda e memoria.
 
-Inoltre, alla riga 138-139, `setTotalCount(0)` e `setLoadedCount(0)` vengono resettati subito dopo il completamento di `fetchAllRecords`, e poi di nuovo nel blocco `finally` (righe 144-145), rendendo impossibile mostrare il progresso fino alla fine.
+### Strategia proposta: Aggregazione lato server
 
-### Soluzione
+Invece di scaricare ogni singolo record e poi fare i calcoli nel browser, creiamo delle **funzioni database (RPC)** che calcolano direttamente i dati aggregati sul server e restituiscono solo i risultati. In questo modo il browser riceve poche centinaia di righe invece di 51.000+.
 
-Modificare `src/contexts/DataContext.tsx`:
+### Cosa cambia per ogni pagina
 
-1. **Rimuovere `setLoading(false)` dal callback `onChunk`** (riga 135) -- il caricamento e "in corso" finche tutti i record non sono arrivati.
-2. **Spostare il reset di `totalCount` e `loadedCount`** solo nel blocco `finally`, dopo che `setLoading(false)` e stato chiamato e il rendering della barra al 100% ha avuto tempo di essere mostrato.
-3. **Svuotare `records` prima di iniziare** il fetch per evitare duplicati causati dal callback `onChunk` che fa `setRecords(prev => [...prev, ...chunk])` seguito poi da `setRecords(data)` che sovrascrive tutto.
+| Pagina | Oggi | Dopo |
+|--------|------|------|
+| **Dashboard** | 51k record scaricati, aggregati nel browser | 1 chiamata RPC che restituisce KPI + top clienti + distribuzione marchi |
+| **Anagrafiche** | 51k record filtrati nel browser | 1 chiamata RPC che restituisce la lista clienti gia aggregata con fatturato per anno |
+| **Provvigioni** | 51k record filtrati nel browser | 1 chiamata RPC che restituisce le provvigioni raggruppate per cliente |
+| **Marchi** | 51k record filtrati nel browser | 1 chiamata RPC che restituisce i dati raggruppati per marchio |
+| **Upload** | Conta dei record esistenti | Resta uguale (solo count) |
+| **Dettaglio Cliente** | Filtra dai 51k in memoria | 1 chiamata RPC filtrata per codice cliente |
 
-### Dettaglio tecnico
+### Piano tecnico
 
-```text
-refreshRecords():
-  - Riga 112: aggiungere setRecords([]) all'inizio per pulire i dati precedenti
-  - Riga 135: RIMUOVERE setLoading(false) dal callback onChunk
-  - Righe 137-139: rimuovere setRecords(data), setTotalCount(0), setLoadedCount(0)
-  - Blocco finally: mantenere setLoading(false), aggiungere un breve delay
-    prima di resettare totalCount/loadedCount cosi l'utente vede il 100%
-```
+**1. Creare 4 funzioni database RPC:**
 
-La barra di progresso restera visibile per tutta la durata del caricamento, mostrando il conteggio aggiornato fino al completamento.
+- `get_dashboard_stats(p_azienda, p_anno, p_mese, p_agente)` -- restituisce fatturato totale, clienti unici, marchi, top 10 clienti, distribuzione marchi
+- `get_clienti_list(p_agente)` -- restituisce lista clienti con fatturato anno corrente e precedente
+- `get_provvigioni_grouped(p_azienda, p_anno, p_mese)` -- restituisce provvigioni raggruppate per cliente
+- `get_cliente_detail(p_codice_cliente)` -- restituisce i record di un singolo cliente
+
+**2. Modificare il DataContext:**
+
+- Rimuovere il caricamento massivo di tutti i record all'avvio
+- Mantenere solo `addRecords`, `clearRecords` e un semplice `recordCount` per la pagina Upload
+- Ogni pagina chiamera direttamente la propria RPC con i filtri selezionati
+
+**3. Aggiornare le pagine:**
+
+- Ogni pagina usera `useQuery` (TanStack React Query, gia installato) per chiamare la propria RPC
+- I dati vengono cachati automaticamente da React Query, evitando richieste duplicate
+- Il caricamento avviene solo quando l'utente naviga su quella pagina
+
+### Risultato atteso
+
+- **Tempo di caricamento iniziale**: da 10-15 secondi a meno di 1 secondo
+- **Navigazione tra pagine**: istantanea grazie alla cache di React Query
+- **Memoria browser**: ridotta drasticamente (poche centinaia di righe invece di 51.000+)
+- La barra di progresso non sara piu necessaria perche i dati arriveranno quasi istantaneamente
+

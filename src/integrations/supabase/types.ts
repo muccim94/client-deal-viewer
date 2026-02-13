@@ -112,6 +112,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_distinct_agents: { Args: never; Returns: string[] }
       get_user_agents: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {

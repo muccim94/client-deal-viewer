@@ -109,7 +109,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      if (records.length === 0) setLoading(true);
+      setLoading(true);
+      setRecords([]);
       setLoadedCount(0);
       setTotalCount(0);
 
@@ -122,27 +123,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setTotalCount(total);
 
       if (total === 0) {
-        setRecords([]);
-        setLoading(false);
         return;
       }
 
       let loaded = 0;
-      const data = await fetchAllRecords((chunk) => {
+      await fetchAllRecords((chunk) => {
         loaded += chunk.length;
         setLoadedCount(loaded);
         setRecords((prev) => [...prev, ...chunk]);
-        setLoading(false);
       });
-      setRecords(data);
-      setTotalCount(0);
-      setLoadedCount(0);
     } catch (err) {
       console.error("Error loading records:", err);
     } finally {
       setLoading(false);
-      setTotalCount(0);
-      setLoadedCount(0);
+      // Brief delay so user sees 100% before hiding
+      setTimeout(() => {
+        setTotalCount(0);
+        setLoadedCount(0);
+      }, 500);
     }
   }, [user]);
 

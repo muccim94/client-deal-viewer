@@ -1,12 +1,14 @@
 import { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useData } from "@/contexts/DataContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { getMeseNome } from "@/types/data";
+import { SalesRecord } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter,
 } from "@/components/ui/table";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, Building2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Building2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -20,19 +22,24 @@ const pct = (curr: number, prev: number) => {
 
 export default function ClienteDettaglio() {
   const { codice } = useParams<{ codice: string }>();
-  const { records } = useData();
 
-  const clientRecords = useMemo(
-    () => records.filter((r) => r.codiceCliente === codice),
-    [records, codice]
-  );
+  const { data: clientRecords = [], isLoading } = useQuery({
+    queryKey: ["cliente-detail", codice],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_cliente_detail", {
+        p_codice_cliente: codice!,
+      });
+      if (error) throw error;
+      return (data as unknown as SalesRecord[]) ?? [];
+    },
+    enabled: !!codice,
+  });
 
   const clientName = clientRecords[0]?.nomeCliente ?? "Cliente";
   const anni = useMemo(() => [...new Set(clientRecords.map((r) => r.anno))].sort((a, b) => b - a), [clientRecords]);
   const annoCorrente = anni[0] ?? new Date().getFullYear();
   const annoPrecedente = annoCorrente - 1;
 
-  // Fatturato totale per marchio
   const perMarchio = useMemo(() => {
     const map = new Map<string, number>();
     clientRecords.forEach((r) => {
@@ -41,52 +48,23 @@ export default function ClienteDettaglio() {
     return [...map.entries()].sort((a, b) => b[1] - a[1]).map(([marchio, totale]) => ({ marchio, totale }));
   }, [clientRecords]);
 
-  const fatturatoTotale = perMarchio.reduce((s, m) => s + m.totale, 0);
-
-  // Per azienda breakdown
-  const perAzienda = useMemo(() => {
-    const map = new Map<string, number>();
-    clientRecords.forEach((r) => {
-      const key = r.aziendaNome;
-      map.set(key, (map.get(key) ?? 0) + r.imponibile);
-    });
-    return [...map.entries()].map(([azienda, totale]) => ({ azienda, totale }));
-  }, [clientRecords]);
-
-  // Build month-by-month table per azienda
-  type MonthRow = {
-    mese: number;
-    meseNome: string;
-    corrente: number;
-    precedente: number;
-    delta: number;
-  };
-
-  const buildMonthTable = (aziendaNome: string): MonthRow[] => {
-    const azRecords = clientRecords.filter((r) => r.aziendaNome === aziendaNome);
-    const meseCorr = new Map<number, number>();
-    const mesePrec = new Map<number, number>();
-    azRecords.forEach((r) => {
-      if (r.anno === annoCorrente) meseCorr.set(r.mese, (meseCorr.get(r.mese) ?? 0) + r.imponibile);
-      if (r.anno === annoPrecedente) mesePrec.set(r.mese, (mesePrec.get(r.mese) ?? 0) + r.imponibile);
-    });
-
-    return Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
-      const corrente = meseCorr.get(m) ?? 0;
-      const precedente = mesePrec.get(m) ?? 0;
-      return {
-        mese: m,
-        meseNome: getMeseNome(m),
-        corrente,
-        precedente,
-        delta: pct(corrente, precedente),
-      };
-    });
-  };
-
   const aziende = useMemo(() => {
     const names = [...new Set(clientRecords.map((r) => r.aziendaNome))].sort();
-    return names.map((name) => ({ name, rows: buildMonthTable(name) }));
+    return names.map((name) => {
+      const azRecords = clientRecords.filter((r) => r.aziendaNome === name);
+      const meseCorr = new Map<number, number>();
+      const mesePrec = new Map<number, number>();
+      azRecords.forEach((r) => {
+        if (r.anno === annoCorrente) meseCorr.set(r.mese, (meseCorr.get(r.mese) ?? 0) + r.imponibile);
+        if (r.anno === annoPrecedente) mesePrec.set(r.mese, (mesePrec.get(r.mese) ?? 0) + r.imponibile);
+      });
+      const rows = Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
+        const corrente = meseCorr.get(m) ?? 0;
+        const precedente = mesePrec.get(m) ?? 0;
+        return { mese: m, meseNome: getMeseNome(m), corrente, precedente, delta: pct(corrente, precedente) };
+      });
+      return { name, rows };
+    });
   }, [clientRecords, annoCorrente, annoPrecedente]);
 
   const DeltaIcon = ({ val }: { val: number }) => {
@@ -94,6 +72,14 @@ export default function ClienteDettaglio() {
     if (val < -1) return <TrendingDown className="h-3.5 w-3.5 text-red-500 inline" />;
     return <Minus className="h-3.5 w-3.5 text-muted-foreground inline" />;
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!clientRecords.length) {
     return (
@@ -108,7 +94,6 @@ export default function ClienteDettaglio() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <Link to="/anagrafiche">
           <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
@@ -119,7 +104,6 @@ export default function ClienteDettaglio() {
         </div>
       </div>
 
-      {/* KPI cards per anno e azienda */}
       {(() => {
         const perAziendaAnno = (azienda: string, anno: number) =>
           clientRecords.filter((r) => r.aziendaNome === azienda && r.anno === anno).reduce((s, r) => s + r.imponibile, 0);
@@ -146,7 +130,6 @@ export default function ClienteDettaglio() {
         );
       })()}
 
-      {/* Marchi breakdown */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Fatturato per Marchio</CardTitle>
@@ -162,7 +145,6 @@ export default function ClienteDettaglio() {
         </CardContent>
       </Card>
 
-      {/* Monthly tables per azienda */}
       {aziende.map(({ name, rows }) => {
         const totCorr = rows.reduce((s, r) => s + r.corrente, 0);
         const totPrec = rows.reduce((s, r) => s + r.precedente, 0);

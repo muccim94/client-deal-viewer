@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useData } from "@/contexts/DataContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { getMeseNome } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Euro, Users, Tag, TrendingUp, BarChart3 } from "lucide-react";
+import { Euro, Users, Tag, TrendingUp, BarChart3, Loader2 } from "lucide-react";
 import {
   PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -21,59 +22,56 @@ const COLORS = [
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
-  const { records } = useData();
   const [filterAzienda, setFilterAzienda] = useState("FO");
   const [filterAnno, setFilterAnno] = useState("2026");
   const [filterMese, setFilterMese] = useState("__all__");
   const [filterAgente, setFilterAgente] = useState("__all__");
 
-  const anni = useMemo(() => [...new Set(records.map((r) => r.anno))].sort(), [records]);
-  const mesi = useMemo(() => [...new Set(records.map((r) => r.mese))].sort((a, b) => a - b), [records]);
-  const agenti = useMemo(() => [...new Set(records.map((r) => r.agente))].sort(), [records]);
+  const { data: filterOptions } = useQuery({
+    queryKey: ["filter-options"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_filter_options");
+      if (error) throw error;
+      return data as unknown as { anni: number[]; mesi: number[]; agenti: string[] };
+    },
+  });
 
-  const filtered = useMemo(() => {
-    let data = records;
-    if (filterAzienda !== "__all__") data = data.filter((r) => r.azienda === filterAzienda);
-    if (filterAnno !== "__all__") data = data.filter((r) => r.anno === Number(filterAnno));
-    if (filterMese !== "__all__") data = data.filter((r) => r.mese === Number(filterMese));
-    if (filterAgente !== "__all__") data = data.filter((r) => r.agente === filterAgente);
-    return data;
-  }, [records, filterAzienda, filterAnno, filterMese, filterAgente]);
+  const anni = filterOptions?.anni ?? [];
+  const mesi = filterOptions?.mesi ?? [];
+  const agenti = filterOptions?.agenti ?? [];
 
-  const stats = useMemo(() => {
-    const totale = filtered.reduce((s, r) => s + r.imponibile, 0);
-    const clienti = new Set(filtered.map((r) => r.codiceCliente)).size;
-    const marchi = new Set(filtered.map((r) => r.marchio)).size;
-    const mediaCliente = clienti ? totale / clienti : 0;
-    return { totale, clienti, marchi, mediaCliente };
-  }, [filtered]);
-
-  const topClienti = useMemo(() => {
-    const map = new Map<string, { value: number; codice: string }>();
-    filtered.forEach((r) => {
-      const existing = map.get(r.nomeCliente);
-      if (existing) existing.value += r.imponibile;
-      else map.set(r.nomeCliente, { value: r.imponibile, codice: r.codiceCliente });
-    });
-    return [...map.entries()].sort((a, b) => b[1].value - a[1].value).slice(0, 10).map(([name, { value, codice }]) => ({ name, value, codice }));
-  }, [filtered]);
-
-  const marchiPie = useMemo(() => {
-    const map = new Map<string, number>();
-    filtered.forEach((r) => map.set(r.marchio, (map.get(r.marchio) ?? 0) + r.imponibile));
-    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => ({ name, value }));
-  }, [filtered]);
-
-  const aziendaBar = useMemo(() => {
-    const map = new Map<string, number>();
-    filtered.forEach((r) => map.set(r.aziendaNome, (map.get(r.aziendaNome) ?? 0) + r.imponibile));
-    return [...map.entries()].map(([name, value]) => ({ name, value }));
-  }, [filtered]);
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["dashboard-stats", filterAzienda, filterAnno, filterMese, filterAgente],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_dashboard_stats", {
+        p_azienda: filterAzienda === "__all__" ? null : filterAzienda,
+        p_anno: filterAnno === "__all__" ? null : Number(filterAnno),
+        p_mese: filterMese === "__all__" ? null : Number(filterMese),
+        p_agente: filterAgente === "__all__" ? null : filterAgente,
+      });
+      if (error) throw error;
+      return data as unknown as {
+        totale: number;
+        clienti: number;
+        marchi: number;
+        topClienti: { name: string; codice: string; value: number }[];
+        marchiPie: { name: string; value: number }[];
+      };
+    },
+  });
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
-  if (!records.length) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!stats || (stats.totale === 0 && stats.clienti === 0)) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
         <BarChart3 className="h-16 w-16 mb-4 opacity-40" />
@@ -83,11 +81,13 @@ export default function Dashboard() {
     );
   }
 
+  const mediaCliente = stats.clienti ? stats.totale / stats.clienti : 0;
+
   const kpis = [
     { label: "Fatturato Totale", value: fmt(stats.totale), icon: Euro },
     { label: "Clienti Unici", value: stats.clienti, icon: Users },
     { label: "Marchi", value: stats.marchi, icon: Tag },
-    { label: "Media per Cliente", value: fmt(stats.mediaCliente), icon: TrendingUp },
+    { label: "Media per Cliente", value: fmt(mediaCliente), icon: TrendingUp },
   ];
 
   return (
@@ -144,8 +144,8 @@ export default function Dashboard() {
           <CardHeader><CardTitle className="text-sm md:text-base">Top 10 Clienti per Fatturato</CardTitle></CardHeader>
           <CardContent>
             <ol className="space-y-2">
-              {topClienti.map((c, i) => (
-                <li key={c.name} className="flex items-center justify-between gap-2">
+              {stats.topClienti.map((c, i) => (
+                <li key={c.codice} className="flex items-center justify-between gap-2">
                   <span className="text-sm text-muted-foreground shrink-0 w-6">{i + 1}.</span>
                   <Link
                     to={`/anagrafiche/${c.codice}`}
@@ -168,12 +168,12 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={marchiPie} dataKey="value" nameKey="name"
+                  data={stats.marchiPie} dataKey="value" nameKey="name"
                   cx="50%" cy="50%" outerRadius={isMobile ? 70 : 100}
                   label={isMobile ? false : ({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                   labelLine={false}
                 >
-                  {marchiPie.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  {stats.marchiPie.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip formatter={(v: number) => fmt(v)} />
                 <Legend wrapperStyle={{ fontSize: isMobile ? 11 : 14 }} />
@@ -182,7 +182,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
     </div>
   );
 }

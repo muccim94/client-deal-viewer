@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { useData } from "@/contexts/DataContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { getMeseNome } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -9,45 +10,46 @@ import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Coins, Search } from "lucide-react";
+import { Coins, Search, Loader2 } from "lucide-react";
+
+interface ProvvigioneRow {
+  codice: string;
+  nome: string;
+  azienda: string;
+  aziendaNome: string;
+  totale: number;
+}
 
 export default function Provvigioni() {
-  const { records } = useData();
   const [filterAzienda, setFilterAzienda] = useState("FO");
   const [filterAnno, setFilterAnno] = useState("2026");
   const [filterMese, setFilterMese] = useState("__all__");
   const [search, setSearch] = useState("");
 
-  const anni = useMemo(() => [...new Set(records.map((r) => r.anno))].sort(), [records]);
-  const mesi = useMemo(() => [...new Set(records.map((r) => r.mese))].sort((a, b) => a - b), [records]);
+  const { data: filterOptions } = useQuery({
+    queryKey: ["filter-options"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_filter_options");
+      if (error) throw error;
+      return data as unknown as { anni: number[]; mesi: number[]; agenti: string[] };
+    },
+  });
 
-  const filtered = useMemo(() => {
-    let data = records;
-    if (filterAzienda !== "__all__") data = data.filter((r) => r.azienda === filterAzienda);
-    if (filterAnno !== "__all__") data = data.filter((r) => r.anno === Number(filterAnno));
-    if (filterMese !== "__all__") data = data.filter((r) => r.mese === Number(filterMese));
-    return data;
-  }, [records, filterAzienda, filterAnno, filterMese]);
+  const anni = filterOptions?.anni ?? [];
+  const mesi = filterOptions?.mesi ?? [];
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, { codice: string; nome: string; azienda: string; aziendaNome: string; totale: number }>();
-    filtered.forEach((r) => {
-      const key = `${r.azienda}_${r.codiceCliente}`;
-      const existing = map.get(key);
-      if (existing) {
-        existing.totale += (r.provvigione ?? 0);
-      } else {
-        map.set(key, {
-          codice: r.codiceCliente,
-          nome: r.nomeCliente,
-          azienda: r.azienda,
-          aziendaNome: r.aziendaNome,
-          totale: r.provvigione ?? 0,
-        });
-      }
-    });
-    return [...map.values()].sort((a, b) => b.totale - a.totale);
-  }, [filtered]);
+  const { data: grouped = [], isLoading } = useQuery({
+    queryKey: ["provvigioni", filterAzienda, filterAnno, filterMese],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_provvigioni_grouped", {
+        p_azienda: filterAzienda === "__all__" ? null : filterAzienda,
+        p_anno: filterAnno === "__all__" ? null : Number(filterAnno),
+        p_mese: filterMese === "__all__" ? null : Number(filterMese),
+      });
+      if (error) throw error;
+      return (data as unknown as ProvvigioneRow[]) ?? [];
+    },
+  });
 
   const results = useMemo(() => {
     if (!search.trim()) return grouped;
@@ -60,7 +62,15 @@ export default function Provvigioni() {
   const fmt = (n: number) =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
-  if (!records.length) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!grouped.length && !isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
         <Coins className="h-16 w-16 mb-4 opacity-40" />
@@ -72,7 +82,6 @@ export default function Provvigioni() {
 
   return (
     <div className="space-y-6">
-      {/* Filtri */}
       <div className="flex flex-col sm:flex-row flex-wrap gap-3">
         <Select value={filterAzienda} onValueChange={setFilterAzienda}>
           <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Tutte le aziende" /></SelectTrigger>
@@ -98,7 +107,6 @@ export default function Provvigioni() {
         </Select>
       </div>
 
-      {/* KPI */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Totale Provvigioni</CardTitle>
@@ -107,18 +115,11 @@ export default function Provvigioni() {
         <CardContent><div className="text-xl md:text-2xl font-bold">{fmt(totaleProvvigioni)}</div></CardContent>
       </Card>
 
-      {/* Ricerca */}
       <div className="relative w-full sm:max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Cerca cliente..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+        <Input placeholder="Cerca cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
       </div>
 
-      {/* Tabella */}
       <Card>
         <CardContent className="p-0">
           <div className="overflow-auto">

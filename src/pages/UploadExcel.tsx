@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { parseExcelFile } from "@/lib/parseExcel";
@@ -15,16 +15,22 @@ import {
 import { Upload as UploadIcon, FileSpreadsheet, Check, X, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function UploadExcel() {
-  const { records, addRecords, clearRecords } = useData();
+  const { addRecords, clearRecords, recordCount, refreshRecordCount } = useData();
   const { role } = useAuth();
+  const queryClient = useQueryClient();
   const [preview, setPreview] = useState<SalesRecord[] | null>(null);
   const [fileNames, setFileNames] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const [importing, setImporting] = useState(false);
 
   const isAdmin = role === "admin";
+
+  useEffect(() => {
+    refreshRecordCount();
+  }, [refreshRecordCount]);
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     try {
@@ -70,6 +76,8 @@ export default function UploadExcel() {
       }
       setPreview(null);
       setFileNames([]);
+      // Invalidate all queries so pages re-fetch aggregated data
+      queryClient.invalidateQueries();
     } catch (err: any) {
       toast.error(err.message || "Errore durante l'importazione");
     } finally {
@@ -87,31 +95,11 @@ export default function UploadExcel() {
       await clearRecords();
       setPreview(null);
       setFileNames([]);
+      queryClient.invalidateQueries();
       toast.success("Storico dati cancellato");
     } catch (err: any) {
       toast.error(err.message || "Errore durante la cancellazione");
     }
-  };
-
-  const downloadBackup = () => {
-    if (!records.length) {
-      toast.warning("Nessun dato da esportare");
-      return;
-    }
-    const rows = records.map((r) => ({
-      Azienda: r.azienda,
-      Anno: r.anno,
-      Mese: r.mese,
-      Cliente: `${r.azienda}_${r.codiceCliente} - ${r.nomeCliente}`,
-      Agente: r.agente,
-      Articolo: `${r.azienda}_${r.articolo}`,
-      Imponibile: r.imponibile,
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Dati");
-    XLSX.writeFile(wb, `backup_dati_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success("Backup scaricato");
   };
 
   const fmt = (n: number) =>
@@ -150,16 +138,13 @@ export default function UploadExcel() {
         </CardContent>
       </Card>
 
-      {records.length > 0 && (
+      {recordCount != null && recordCount > 0 && (
         <Card>
           <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
             <p className="text-sm text-muted-foreground">
-              Storico attuale: <span className="font-medium text-foreground">{records.length}</span> record
+              Storico attuale: <span className="font-medium text-foreground">{recordCount.toLocaleString("it-IT")}</span> record
             </p>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <Button variant="outline" size="sm" onClick={downloadBackup}>
-                <Download className="h-4 w-4 mr-1" /> Scarica backup
-              </Button>
               {isAdmin && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -171,7 +156,7 @@ export default function UploadExcel() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Cancellare tutti i dati?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Questa azione eliminerà tutti i {records.length} record importati. L'operazione non è reversibile.
+                        Questa azione eliminerà tutti i {recordCount.toLocaleString("it-IT")} record importati. L'operazione non è reversibile.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

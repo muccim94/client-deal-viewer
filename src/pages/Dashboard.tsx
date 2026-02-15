@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { Euro, Users, Tag, TrendingUp, TrendingDown, BarChart3, Loader2 } from "lucide-react";
+import { Euro, Users, Tag, TrendingUp, TrendingDown, BarChart3, Loader2, Search } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -16,6 +16,10 @@ import {
   PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const COLORS = [
   "hsl(215, 70%, 50%)", "hsl(160, 60%, 45%)", "hsl(35, 85%, 55%)",
@@ -31,6 +35,8 @@ export default function Dashboard() {
   const [filterAnno, setFilterAnno] = useState("2026");
   const [filterMese, setFilterMese] = useState("__all__");
   const [filterAgente, setFilterAgente] = useState("__all__");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: filterOptions } = useQuery({
     queryKey: ["filter-options"],
@@ -64,6 +70,22 @@ export default function Dashboard() {
       };
     },
   });
+
+  const { data: clientiList } = useQuery({
+    queryKey: ["clienti-search"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_clienti_list");
+      if (error) throw error;
+      return data as unknown as { codiceCliente: string; nomeCliente: string }[];
+    },
+    enabled: searchOpen,
+  });
+
+  const filteredClienti = useMemo(() => {
+    if (!clientiList || !searchQuery.trim()) return clientiList?.slice(0, 20) ?? [];
+    const q = searchQuery.toLowerCase();
+    return clientiList.filter((c) => c.nomeCliente.toLowerCase().includes(q)).slice(0, 20);
+  }, [clientiList, searchQuery]);
 
   const topClientiWithPrev = stats?.topClienti ?? [];
 
@@ -220,6 +242,49 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Mobile FAB + Search Dialog */}
+      {isMobile && (
+        <>
+          <Button
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-full w-12 h-12 shadow-lg"
+            size="icon"
+            onClick={() => { setSearchOpen(true); setSearchQuery(""); }}
+          >
+            <Search className="h-5 w-5" />
+          </Button>
+
+          <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Cerca cliente</DialogTitle>
+              </DialogHeader>
+              <Input
+                placeholder="Digita nome cliente..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              <ScrollArea className="max-h-64">
+                <div className="space-y-1">
+                  {filteredClienti.map((c) => (
+                    <button
+                      key={c.codiceCliente}
+                      className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                      onClick={() => {
+                        setSearchOpen(false);
+                        navigate(`/anagrafiche/${c.codiceCliente}`);
+                      }}
+                    >
+                      {c.nomeCliente}
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   );
 }

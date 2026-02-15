@@ -1,75 +1,81 @@
+&nbsp;
 
-## Ricerca Rapida Cliente nella Dashboard (solo mobile)
+## Ottimizzazione Mobile Completa
 
-### Obiettivo
-Aggiungere un pulsante rotondo con icona lente di ingrandimento, visibile solo su mobile, posizionato centralmente in basso nella Dashboard. Premendolo si apre un pannello di ricerca dove digitare il nome di un cliente; selezionando un risultato si viene portati direttamente alla pagina anagrafica del cliente.
+Verifica e correzioni per rendere tutte le pagine responsive su mobile, incluso il menu sidebar.
 
-### Comportamento
-- Il pulsante e visibile solo su mobile (hidden su desktop tramite `md:hidden`)
-- Posizionato in basso al centro con `fixed bottom-6 left-1/2 -translate-x-1/2`
-- Stile: cerchio con sfondo primary, icona `Search` bianca, ombra elevata
-- Al click apre un Dialog/Sheet dal basso con un campo di ricerca
-- Digitando il nome, viene eseguita una query sulla lista clienti (riutilizzando l'RPC `get_clienti_list` gia esistente) filtrando per nome
-- I risultati appaiono come lista cliccabile sotto il campo di ricerca
-- Selezionando un cliente si naviga a `/anagrafiche/{codiceCliente}`
+### Pagine analizzate e problemi trovati
 
-### Layout visivo
 
-```text
-+----------------------------------+
-|         Dashboard                |
-|  [Filtri]                        |
-|  [KPI cards]                     |
-|  [Top 10 / Pie chart]           |
-|                                  |
-|                                  |
-|           ( 🔍 )   <-- FAB      |
-+----------------------------------+
-```
+| Pagina                 | Stato attuale   | Problemi                                                                                                                             |
+| ---------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Dashboard**          | Buono           | Gia ottimizzata con griglia 2 colonne, FAB ricerca                                                                                   |
+| **Anagrafiche**        | Buono           | Gia nasconde colonne non essenziali su mobile                                                                                        |
+| **ClienteDettaglio**   | Buono           | Pie chart mobile gia implementato                                                                                                    |
+| **ClienteMarchi**      | Problema        | Titolo troppo lungo su mobile, tabella con testo piccolo ma accettabile                                                              |
+| **FatturatoRiepilogo** | Problema        | Header con filtro agente su una riga sola, il SelectTrigger ha larghezza fissa `w-44` che puo traboccare su schermi piccoli          |
+| **Marchi**             | Problema        | Filtri con larghezze fisse (`w-40`, `w-48`, `w-56`) non si adattano a mobile; KPI cards con testo `text-2xl` troppo grande su mobile |
+| **Provvigioni**        | Buono           | Filtri gia `w-full sm:w-*`, tabella nasconde colonna Azienda su mobile                                                               |
+| **UploadExcel**        | Buono           | Layout gia responsive                                                                                                                |
+| **GestioneUtenti**     | Buono           | Gia responsive                                                                                                                       |
+| **Auth**               | Buono           | Centrato con `max-w-sm`                                                                                                              |
+| **AppSidebar**         | Problema        | Il testo del menu non e ottimizzato per mobile; su mobile la sidebar si apre come Sheet ma i testi non sono adattati                 |
+| **AppLayout**          | Problema minore | Il titolo "Trade Off snc" potrebbe essere abbreviato su mobile per dare piu spazio                                                   |
 
-Al click del FAB:
 
-```text
-+----------------------------------+
-|  Cerca cliente          [X]      |
-|  [🔍 Digita nome cliente... ]   |
-|                                  |
-|  A.I.M.E. SRL                   |
-|  A.P.S. DUE SRL                 |
-|  ALFA COSTRUZIONI SRL           |
-|  ...                             |
-+----------------------------------+
-```
+### Modifiche previste
+
+**1. `src/pages/Marchi.tsx**`
+
+- Rendere i filtri `w-full` su mobile (aggiungere `w-full sm:w-40` ecc.)
+- Ridurre KPI da `text-2xl` a `text-lg md:text-2xl` su mobile
+- Nascondere colonna "Fatt. anno precedente" su mobile nella tabella (`hidden sm:table-cell`)
+
+**2. `src/pages/FatturatoRiepilogo.tsx**`
+
+- Rendere l'header responsive: su mobile, titolo e filtro su righe separate (`flex-col sm:flex-row`)
+- SelectTrigger da `w-44` a `w-full sm:w-44`
+
+**3. `src/pages/ClienteMarchi.tsx**`
+
+- Titolo su mobile: ridurre font e troncare il nome cliente se troppo lungo
+- Aggiungere `text-base md:text-xl` al titolo
+
+**4. `src/components/AppLayout.tsx**`
+
+- Abbreviare il titolo header su mobile: mostrare "Trade Off" invece di "Trade Off snc" oppure ridurre ulteriormente il font
+
+**5. `src/components/AppSidebar.tsx**`
+
+- Aggiungere tooltip gia presenti (verificato: ci sono). Il menu su mobile si apre come Sheet tramite il componente Sidebar -- il comportamento e gia corretto. Verificare che il testo sia leggibile e i padding adeguati per touch target.
+- Aumentare leggermente i padding delle voci del menu per facilitare il touch su mobile (min 44px height)
 
 ### Dettagli tecnici
 
-**File da modificare:** `src/pages/Dashboard.tsx`
+`**src/pages/Marchi.tsx**` -- Filtri responsive:
 
-**Componenti utilizzati:**
-- `Dialog` (da `@/components/ui/dialog`) per il pannello di ricerca
-- `Input` per il campo di ricerca
-- `Search`, `X` da `lucide-react` per le icone
-- `useIsMobile` (gia importato) per condizionare la visibilita
-- `useNavigate` (gia importato) per la navigazione
+- Cambiare i SelectTrigger da larghezze fisse a `w-full sm:w-40`, `w-full sm:w-48`, `w-full sm:w-56`
+- Cambiare il wrapper dei filtri da `flex flex-wrap` a `flex flex-col sm:flex-row flex-wrap`
+- KPI: `text-lg md:text-2xl` invece di `text-2xl`
+- Tabella: aggiungere `hidden sm:table-cell` alla colonna "Fatt. anno precedente"
 
-**Stato nuovo:**
-- `searchOpen`: `useState<boolean>(false)` per aprire/chiudere il dialog
-- `searchQuery`: `useState<string>("")` per il testo di ricerca
+`**src/pages/FatturatoRiepilogo.tsx**` -- Header responsive:
 
-**Query clienti per la ricerca:**
-- Nuova `useQuery` che chiama `get_clienti_list` senza filtro agente (passa `null`)
-- Filtro lato client sul `nomeCliente` in base a `searchQuery`
-- La query viene caricata solo quando il dialog e aperto (`enabled: searchOpen`)
+- Cambiare `flex items-center justify-between` a `flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2`
+- SelectTrigger: `w-full sm:w-44`
 
-**FAB (Floating Action Button):**
-- Visibile solo su mobile: `className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden"`
-- Cerchio: `rounded-full w-12 h-12 bg-primary text-primary-foreground shadow-lg`
-- Icona `Search` centrata
+`**src/pages/ClienteMarchi.tsx**` -- Titolo adattivo:
 
-**Dialog di ricerca:**
-- Si apre dal FAB
-- Contiene un `Input` con placeholder "Cerca cliente..."
-- Lista risultati filtrati (max 20) con nome cliente cliccabile
-- Al click su un risultato: `navigate(/anagrafiche/${codice})` e chiusura del dialog
+- Titolo h1: `text-base md:text-xl` e aggiungere `truncate` o `line-clamp-1`
+- Barra ricerca: `max-w-xs` diventa `w-full sm:max-w-xs`
 
-**Nessuna migrazione SQL necessaria** -- riutilizza l'RPC `get_clienti_list` esistente.
+`**src/components/AppLayout.tsx**` -- Header compatto mobile:
+
+- Ridurre font titolo: `text-sm md:text-lg`
+
+`**src/components/AppSidebar.tsx**` -- Touch target:
+
+- Aggiungere `min-h-[44px]` alle voci del menu per rispettare le linee guida touch (gia gestito dal SidebarMenuButton, ma verificare che il padding sia sufficiente)
+- Il pulsante "Esci" nel footer: aggiungere `min-h-[44px]`
+
+**Nessuna migrazione SQL necessaria.**

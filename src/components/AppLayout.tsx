@@ -3,7 +3,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { Outlet } from "react-router-dom";
+import { Outlet, Link } from "react-router-dom";
 
 export default function AppLayout() {
   const { role } = useAuth();
@@ -16,7 +16,7 @@ export default function AppLayout() {
           <header className="h-12 md:h-14 flex items-center justify-between border-b px-3 md:px-4 bg-card">
             <div className="flex items-center gap-1.5 md:gap-2">
               <SidebarTrigger />
-              <h1 className="ml-1 text-base md:text-lg font-semibold text-foreground truncate">Trade Off snc</h1>
+              <Link to="/" className="ml-1 text-base md:text-lg font-semibold text-foreground truncate hover:text-primary transition-colors">Trade Off snc</Link>
               {role === "admin" && (
                 <Badge variant="secondary" className="text-xs">Admin</Badge>
               )}

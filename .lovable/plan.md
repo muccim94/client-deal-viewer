@@ -1,48 +1,49 @@
 
 
-## Riprogettazione Top 10 Clienti per Fatturato
+## Modifiche richieste
 
-### Obiettivo
-Trasformare la lista Top 10 in una tabella accattivante ispirata all'immagine di riferimento, con:
-- Icona freccia verde (su) o rossa (giu) al posto del numero progressivo
-- Fatturato anno corrente (evidenziato, colorato)
-- Fatturato anno precedente (secondario, grigio)
-- Confronto visivo immediato tra i due anni
+### 1. Top 10 Clienti con fatturato progressivo reale (YTD)
 
-### 1. Migrazione SQL -- aggiornare `get_dashboard_stats`
+Attualmente i valori "Anno Prec." sono simulati con numeri casuali. Verranno sostituiti con dati reali calcolando il fatturato progressivo (YTD - Year To Date):
 
-Modificare la CTE `top_clienti` per includere anche il fatturato dell'anno precedente. La funzione calcolera l'anno corrente e il precedente internamente, e per ogni cliente nella Top 10 restituira sia `value` (anno corrente/selezionato) che `valuePrev` (anno precedente).
+- Se oggi siamo a febbraio 2026, il fatturato corrente include solo gennaio e febbraio 2026
+- Il fatturato precedente include solo gennaio e febbraio 2025
+- In questo modo il confronto e sempre equo e proporzionato al periodo trascorso
 
-La logica:
-- Se l'utente filtra per un anno specifico, `value` = fatturato di quell'anno, `valuePrev` = fatturato anno-1
-- La Top 10 resta ordinata per `value` (anno selezionato)
+**Migrazione SQL:** Aggiornamento della funzione `get_dashboard_stats` per modificare la CTE `top_clienti`. Verra calcolato l'anno corrente e il mese corrente automaticamente. Per ogni cliente nella Top 10:
+- `value` = somma imponibile per i mesi da 1 a mese_corrente dell'anno filtrato (o anno corrente se non filtrato)
+- `valuePrev` = somma imponibile per gli stessi mesi dell'anno precedente
 
-### 2. Aggiornamento UI -- `src/pages/Dashboard.tsx`
+La Top 10 resta ordinata per `value`.
 
-Sostituire la lista `<ol>` con una tabella strutturata:
+**Frontend (`src/pages/Dashboard.tsx`):** Rimozione della simulazione `useMemo` con `Math.random()`. I dati `valuePrev` arriveranno direttamente dalla funzione RPC, quindi la tabella li utilizzera senza manipolazioni.
 
-- **Header**: "Cliente" | "Fatturato" | colonna anno precedente (importo grigio)
-- **Per ogni riga**:
-  - A sinistra: icona `TrendingUp` verde se `value >= valuePrev`, `TrendingDown` rossa se `value < valuePrev`
-  - Nome cliente (troncato, cliccabile)
-  - Importo anno corrente in grassetto, colorato (verde se in crescita, rosso se in calo)
-  - Importo anno precedente in grigio piu piccolo
-- Righe con sfondo alternato per leggibilita
-- Bordo sinistro colorato (verde/rosso) come accento visivo
+### 2. Titolo "Trade Off snc" cliccabile
+
+**File da modificare:** `src/components/AppLayout.tsx`
+
+Il titolo "Trade Off snc" nell'header verra avvolto in un `Link` di react-router-dom che punta a `/`. Funzionera da qualsiasi pagina dell'applicazione per tornare alla dashboard.
 
 ### Dettagli tecnici
 
-**Nuova migrazione SQL:**
-Aggiornamento della funzione `get_dashboard_stats` per aggiungere `valuePrev` ai dati `topClienti`. La CTE verra modificata per calcolare separatamente il fatturato dell'anno filtrato e dell'anno precedente, mantenendo il ranking sul fatturato corrente.
-
-**File da modificare:**
-- `src/pages/Dashboard.tsx` -- nuova sezione Top 10 con layout tabellare, icone trend, doppia colonna importi
-
-**Tipo dati aggiornato:**
+**SQL -- nuova CTE `top_clienti`:**
 ```text
-topClienti: { name, codice, value, valuePrev }[]
+v_current_month = EXTRACT(MONTH FROM current_date)
+
+top_clienti:
+  - Filtra i record con mese <= v_current_month
+  - value = SUM(imponibile) WHERE anno = anno_filtrato AND mese <= v_current_month
+  - valuePrev = SUM(imponibile) WHERE anno = anno_filtrato - 1 AND mese <= v_current_month
+  - ORDER BY value DESC, LIMIT 10
 ```
 
-**Componenti Lucide utilizzati:**
-- `TrendingUp` (freccia verde per crescita)
-- `TrendingDown` (freccia rossa per calo)
+**Risultato JSON aggiornato:**
+```text
+topClienti: [{ name, codice, value, valuePrev }, ...]
+```
+
+**File modificati:**
+- Migrazione SQL per `get_dashboard_stats`
+- `src/pages/Dashboard.tsx` -- rimozione simulazione, uso dati reali
+- `src/components/AppLayout.tsx` -- Link sul titolo
+

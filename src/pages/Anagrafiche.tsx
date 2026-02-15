@@ -61,7 +61,7 @@ export default function Anagrafiche() {
     }
     // Apply quick filter
     if (activeFilter === "perdita") {
-      data = data.filter((r) => r.fattCurrentYear < r.fattPrevYearYTD);
+      data = data.filter((r) => r.fattCurrentYear <= r.fattPrevYearYTD);
     } else if (activeFilter === "sotto5k") {
       data = data.filter((r) => r.fattCurrentYear < 5000);
     } else if (activeFilter === "top10") {

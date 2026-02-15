@@ -1,60 +1,75 @@
 
-
-## Filtri Rapidi Scorrevoli per la Tabella Anagrafiche
+## Ricerca Rapida Cliente nella Dashboard (solo mobile)
 
 ### Obiettivo
-Aggiungere una barra di filtri rapidi cliccabili, con bordi arrotondati e scorrimento orizzontale (slider), posizionata tra l'intestazione della Card (con la barra di ricerca) e la tabella. Ogni filtro, quando attivo, filtra automaticamente i clienti in base a criteri specifici.
-
-### Filtri previsti
-
-| Filtro | Logica |
-|---|---|
-| **Clienti in perdita** | Mostra solo i clienti dove `fattCurrentYear < fattPrevYearYTD` (YTD corrente inferiore al YTD anno precedente) |
-| **Sotto i 5k** | Mostra solo i clienti con `fattCurrentYear < 5000` nel 2026 |
-| **Top 10 clienti** | Mostra i 10 clienti con il `fattCurrentYear` piu alto nel 2026 |
+Aggiungere un pulsante rotondo con icona lente di ingrandimento, visibile solo su mobile, posizionato centralmente in basso nella Dashboard. Premendolo si apre un pannello di ricerca dove digitare il nome di un cliente; selezionando un risultato si viene portati direttamente alla pagina anagrafica del cliente.
 
 ### Comportamento
-- I filtri sono pulsanti con bordi arrotondati (pill/chip) disposti in una riga scorrevole orizzontalmente
-- Cliccando un filtro si attiva; cliccando di nuovo si disattiva (toggle)
-- Un solo filtro attivo alla volta (o nessuno)
-- Il filtro attivo avra uno stile evidenziato (sfondo primary, testo bianco)
-- Il contatore in alto ("X clienti") si aggiornera in base al filtro attivo
-- I filtri si combinano con la ricerca testuale e il filtro agente gia esistenti
+- Il pulsante e visibile solo su mobile (hidden su desktop tramite `md:hidden`)
+- Posizionato in basso al centro con `fixed bottom-6 left-1/2 -translate-x-1/2`
+- Stile: cerchio con sfondo primary, icona `Search` bianca, ombra elevata
+- Al click apre un Dialog/Sheet dal basso con un campo di ricerca
+- Digitando il nome, viene eseguita una query sulla lista clienti (riutilizzando l'RPC `get_clienti_list` gia esistente) filtrando per nome
+- I risultati appaiono come lista cliccabile sotto il campo di ricerca
+- Selezionando un cliente si naviga a `/anagrafiche/{codiceCliente}`
 
-### Posizionamento visivo
+### Layout visivo
 
 ```text
-+--------------------------------------------------+
-| 42 clienti          [Agente ▼]  [🔍 Cerca...]    |  <-- CardHeader
-+--------------------------------------------------+
-| ◀ [Clienti in perdita] [Sotto i 5k] [Top 10] ▶  |  <-- Slider filtri (nuovo)
-+--------------------------------------------------+
-| Codice | Trend | Nome | Fatt.2026 | ... | >      |  <-- Tabella
-+--------------------------------------------------+
++----------------------------------+
+|         Dashboard                |
+|  [Filtri]                        |
+|  [KPI cards]                     |
+|  [Top 10 / Pie chart]           |
+|                                  |
+|                                  |
+|           ( 🔍 )   <-- FAB      |
++----------------------------------+
+```
+
+Al click del FAB:
+
+```text
++----------------------------------+
+|  Cerca cliente          [X]      |
+|  [🔍 Digita nome cliente... ]   |
+|                                  |
+|  A.I.M.E. SRL                   |
+|  A.P.S. DUE SRL                 |
+|  ALFA COSTRUZIONI SRL           |
+|  ...                             |
++----------------------------------+
 ```
 
 ### Dettagli tecnici
 
-**File da modificare:** `src/pages/Anagrafiche.tsx`
+**File da modificare:** `src/pages/Dashboard.tsx`
+
+**Componenti utilizzati:**
+- `Dialog` (da `@/components/ui/dialog`) per il pannello di ricerca
+- `Input` per il campo di ricerca
+- `Search`, `X` da `lucide-react` per le icone
+- `useIsMobile` (gia importato) per condizionare la visibilita
+- `useNavigate` (gia importato) per la navigazione
 
 **Stato nuovo:**
-- `activeFilter`: stato `useState<string | null>(null)` per tracciare il filtro attivo ("perdita" | "sotto5k" | "top10" | null)
+- `searchOpen`: `useState<boolean>(false)` per aprire/chiudere il dialog
+- `searchQuery`: `useState<string>("")` per il testo di ricerca
 
-**Slider orizzontale:**
-- Un `div` con `overflow-x-auto` e `scrollbar-hide` (CSS) per lo scorrimento touch/mouse
-- Stile `flex gap-2 whitespace-nowrap` per i pulsanti in riga
-- Pulsanti con classi Tailwind: `rounded-full px-4 py-1.5 text-sm border transition-colors`
-- Stile attivo: `bg-primary text-primary-foreground border-primary`
-- Stile inattivo: `bg-background text-foreground border-input hover:bg-accent`
+**Query clienti per la ricerca:**
+- Nuova `useQuery` che chiama `get_clienti_list` senza filtro agente (passa `null`)
+- Filtro lato client sul `nomeCliente` in base a `searchQuery`
+- La query viene caricata solo quando il dialog e aperto (`enabled: searchOpen`)
 
-**Logica di filtraggio nel `useMemo`:**
-- Dopo il filtro di ricerca testuale, applicare il filtro rapido attivo:
-  - `"perdita"`: `data.filter(r => r.fattCurrentYear < r.fattPrevYearYTD)`
-  - `"sotto5k"`: `data.filter(r => r.fattCurrentYear < 5000)`
-  - `"top10"`: ordinare per `fattCurrentYear` DESC, prendere i primi 10
+**FAB (Floating Action Button):**
+- Visibile solo su mobile: `className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden"`
+- Cerchio: `rounded-full w-12 h-12 bg-primary text-primary-foreground shadow-lg`
+- Icona `Search` centrata
 
-**CSS per nascondere la scrollbar:**
-- Aggiungere una classe utility in `src/index.css` (`.scrollbar-hide`) oppure usare `[&::-webkit-scrollbar]:hidden` inline
+**Dialog di ricerca:**
+- Si apre dal FAB
+- Contiene un `Input` con placeholder "Cerca cliente..."
+- Lista risultati filtrati (max 20) con nome cliente cliccabile
+- Al click su un risultato: `navigate(/anagrafiche/${codice})` e chiusura del dialog
 
-**Nessuna migrazione SQL necessaria** -- tutti i filtri sono applicati lato frontend sui dati gia disponibili.
-
+**Nessuna migrazione SQL necessaria** -- riutilizza l'RPC `get_clienti_list` esistente.

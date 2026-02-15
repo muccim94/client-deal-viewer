@@ -1,59 +1,60 @@
-## Modifica Tabella Anagrafiche con Fatturato Progressivo e Icone Trend
+
+
+## Filtri Rapidi Scorrevoli per la Tabella Anagrafiche
 
 ### Obiettivo
+Aggiungere una barra di filtri rapidi cliccabili, con bordi arrotondati e scorrimento orizzontale (slider), posizionata tra l'intestazione della Card (con la barra di ricerca) e la tabella. Ogni filtro, quando attivo, filtra automaticamente i clienti in base a criteri specifici.
 
-Aggiungere alla tabella anagrafiche:
+### Filtri previsti
 
-1. Una colonna "Fatt. 2025 YTD" con il fatturato progressivo dell'anno precedente (calcolato fino al mese corrente) che andra inserita tra il fatturato 2026 e la colonna fatturato 2025 per un totale di 3 valori 
-2. Un'icona freccia verde (crescita) o rossa (calo) tra il codice cliente e il nome, basata sul confronto YTD 2026 vs YTD 2025 
-3. togliere dalle cifre della tabella i numeri dopo "," esempio 3.358,57 sarà arrotondato a 3.358
+| Filtro | Logica |
+|---|---|
+| **Clienti in perdita** | Mostra solo i clienti dove `fattCurrentYear < fattPrevYearYTD` (YTD corrente inferiore al YTD anno precedente) |
+| **Sotto i 5k** | Mostra solo i clienti con `fattCurrentYear < 5000` nel 2026 |
+| **Top 10 clienti** | Mostra i 10 clienti con il `fattCurrentYear` piu alto nel 2026 |
 
-### Layout tabella risultante (ispirato all'immagine di riferimento)
+### Comportamento
+- I filtri sono pulsanti con bordi arrotondati (pill/chip) disposti in una riga scorrevole orizzontalmente
+- Cliccando un filtro si attiva; cliccando di nuovo si disattiva (toggle)
+- Un solo filtro attivo alla volta (o nessuno)
+- Il filtro attivo avra uno stile evidenziato (sfondo primary, testo bianco)
+- Il contatore in alto ("X clienti") si aggiornera in base al filtro attivo
+- I filtri si combinano con la ricerca testuale e il filtro agente gia esistenti
+
+### Posizionamento visivo
 
 ```text
-Codice | Trend | Nome Cliente | Fatt. 2026 | Fatt. 2025 (YTD) | Fatt. 2025 |  >
-035826   ↗       A.I.M.E. SRL   0,00 EUR         3.358 EUR       3.358 EUR    >
-029831   ↘       A.P.S. DUE SRL 33.582 EUR      38.995 EUR      38.995 EUR    >
++--------------------------------------------------+
+| 42 clienti          [Agente ▼]  [🔍 Cerca...]    |  <-- CardHeader
++--------------------------------------------------+
+| ◀ [Clienti in perdita] [Sotto i 5k] [Top 10] ▶  |  <-- Slider filtri (nuovo)
++--------------------------------------------------+
+| Codice | Trend | Nome | Fatt.2026 | ... | >      |  <-- Tabella
++--------------------------------------------------+
 ```
-
-### 1. Migrazione SQL -- aggiornare `get_clienti_list`
-
-La funzione attualmente restituisce `fattCurrentYear` (totale anno corrente) e `fattPrevYear` (totale anno precedente), entrambi sull'intero anno. Verra modificata per:
-
-- Calcolare `v_current_month` dal mese corrente
-- `fattCurrentYear` = somma imponibile anno corrente per mesi 1..mese_corrente (YTD corrente)
-- `fattPrevYear` = somma imponibile anno precedente per mesi 1..mese_corrente (YTD precedente)
-
-In questo modo entrambi i valori saranno progressivi e confrontabili (es. gen-feb 2026 vs gen-feb 2025), oltre ad avere un paragone su tutto il 2025
-
-### 2. Aggiornamento UI -- `src/pages/Anagrafiche.tsx`
-
-- Aggiungere import di `TrendingUp` e `TrendingDown` da lucide-react
-- Inserire una nuova colonna tra "Codice" e "Nome Cliente" con l'icona trend:
-  - `TrendingUp` verde se `fattCurrentYear >= fattPrevYear`
-  - `TrendingDown` rossa se `fattCurrentYear < fattPrevYear`
-- Le colonne "Fatt. 2026" e "Fatt. 2025" mostreranno i dati YTD progressivi
-- Aggiornare le intestazioni per indicare che sono dati progressivi
 
 ### Dettagli tecnici
 
-**SQL -- CTE aggiornata:**
+**File da modificare:** `src/pages/Anagrafiche.tsx`
 
-```text
-v_current_month := EXTRACT(MONTH FROM current_date)::integer;
+**Stato nuovo:**
+- `activeFilter`: stato `useState<string | null>(null)` per tracciare il filtro attivo ("perdita" | "sotto5k" | "top10" | null)
 
-grouped AS (
-  SELECT
-    codice_cliente,
-    MAX(nome_cliente) as nome_cliente,
-    SUM(CASE WHEN anno = v_current_year AND mese <= v_current_month THEN imponibile ELSE 0 END) as fatt_current,
-    SUM(CASE WHEN anno = v_prev_year AND mese <= v_current_month THEN imponibile ELSE 0 END) as fatt_prev
-  FROM filtered
-  GROUP BY codice_cliente
-)
-```
+**Slider orizzontale:**
+- Un `div` con `overflow-x-auto` e `scrollbar-hide` (CSS) per lo scorrimento touch/mouse
+- Stile `flex gap-2 whitespace-nowrap` per i pulsanti in riga
+- Pulsanti con classi Tailwind: `rounded-full px-4 py-1.5 text-sm border transition-colors`
+- Stile attivo: `bg-primary text-primary-foreground border-primary`
+- Stile inattivo: `bg-background text-foreground border-input hover:bg-accent`
 
-**File modificati:**
+**Logica di filtraggio nel `useMemo`:**
+- Dopo il filtro di ricerca testuale, applicare il filtro rapido attivo:
+  - `"perdita"`: `data.filter(r => r.fattCurrentYear < r.fattPrevYearYTD)`
+  - `"sotto5k"`: `data.filter(r => r.fattCurrentYear < 5000)`
+  - `"top10"`: ordinare per `fattCurrentYear` DESC, prendere i primi 10
 
-- Migrazione SQL per `get_clienti_list`
-- `src/pages/Anagrafiche.tsx` -- aggiunta colonna icona trend, dati YTD
+**CSS per nascondere la scrollbar:**
+- Aggiungere una classe utility in `src/index.css` (`.scrollbar-hide`) oppure usare `[&::-webkit-scrollbar]:hidden` inline
+
+**Nessuna migrazione SQL necessaria** -- tutti i filtri sono applicati lato frontend sui dati gia disponibili.
+

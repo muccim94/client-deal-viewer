@@ -7,7 +7,8 @@ import { SalesRecord } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, Building2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
@@ -26,7 +27,7 @@ const COLORS = [
 export default function ClienteDettaglio() {
   const { codice } = useParams<{ codice: string }>();
   const navigate = useNavigate();
-
+  const isMobile = useIsMobile();
   const { data: clientRecords = [], isLoading } = useQuery({
     queryKey: ["cliente-detail", codice],
     queryFn: async () => {
@@ -44,17 +45,32 @@ export default function ClienteDettaglio() {
   const annoCorrente = anni[0] ?? new Date().getFullYear();
   const annoPrecedente = annoCorrente - 1;
 
-  const pieData = useMemo(() => {
-    const map = new Map<string, number>();
+  const { pieData, barData } = useMemo(() => {
+    const mapCorr = new Map<string, number>();
+    const mapPrec = new Map<string, number>();
+    const mapTotal = new Map<string, number>();
     clientRecords.forEach((r) => {
-      map.set(r.marchio, (map.get(r.marchio) ?? 0) + r.imponibile);
+      mapTotal.set(r.marchio, (mapTotal.get(r.marchio) ?? 0) + r.imponibile);
+      if (r.anno === annoCorrente) mapCorr.set(r.marchio, (mapCorr.get(r.marchio) ?? 0) + r.imponibile);
+      if (r.anno === annoPrecedente) mapPrec.set(r.marchio, (mapPrec.get(r.marchio) ?? 0) + r.imponibile);
     });
-    const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
-    const top = sorted.slice(0, 8).map(([name, value]) => ({ name, value }));
+    const sorted = [...mapTotal.entries()].sort((a, b) => b[1] - a[1]);
+    const topNames = sorted.slice(0, 8).map(([name]) => name);
+    const pieTop = topNames.map((name) => ({ name, value: mapTotal.get(name)! }));
     const altriVal = sorted.slice(8).reduce((s, [, v]) => s + v, 0);
-    if (altriVal > 0) top.push({ name: "Altri", value: altriVal });
-    return top;
-  }, [clientRecords]);
+    if (altriVal > 0) pieTop.push({ name: "Altri", value: altriVal });
+
+    const barTop = topNames.map((name) => ({
+      name,
+      corrente: mapCorr.get(name) ?? 0,
+      precedente: mapPrec.get(name) ?? 0,
+    }));
+    const altriCorr = sorted.slice(8).reduce((s, [n]) => s + (mapCorr.get(n) ?? 0), 0);
+    const altriPrec = sorted.slice(8).reduce((s, [n]) => s + (mapPrec.get(n) ?? 0), 0);
+    if (altriCorr > 0 || altriPrec > 0) barTop.push({ name: "Altri", corrente: altriCorr, precedente: altriPrec });
+
+    return { pieData: pieTop, barData: barTop };
+  }, [clientRecords, annoCorrente, annoPrecedente]);
 
   const aziende = useMemo(() => {
     const names = [...new Set(clientRecords.map((r) => r.aziendaNome))].sort();
@@ -148,31 +164,43 @@ export default function ClienteDettaglio() {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                innerRadius={45}
-                paddingAngle={2}
-                stroke="none"
-              >
-                {pieData.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value: number) => fmt(value)}
-                contentStyle={{ fontSize: 12, borderRadius: 8 }}
-              />
-              <Legend
-                wrapperStyle={{ fontSize: 11 }}
-                formatter={(value: string) => <span className="text-foreground">{value}</span>}
-              />
-            </PieChart>
+            {isMobile ? (
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  innerRadius={45}
+                  paddingAngle={2}
+                  stroke="none"
+                >
+                  {pieData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number) => fmt(value)}
+                  contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: 11 }}
+                  formatter={(value: string) => <span className="text-foreground">{value}</span>}
+                />
+              </PieChart>
+            ) : (
+              <BarChart data={barData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={60} />
+                <YAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(value: number) => fmt(value)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="corrente" name={`${annoCorrente}`} fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="precedente" name={`${annoPrecedente}`} fill="hsl(210, 40%, 70%)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            )}
           </ResponsiveContainer>
         </CardContent>
       </Card>
@@ -185,7 +213,7 @@ export default function ClienteDettaglio() {
         return (
           <Card key={name}>
             <CardHeader className="pb-2 px-3 pt-3">
-              <CardTitle className="text-sm font-semibold">{name} — {annoPrecedente} vs {annoCorrente}</CardTitle>
+              <CardTitle className="text-sm font-semibold">{name} — {annoCorrente} vs {annoPrecedente}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-auto">
@@ -193,8 +221,8 @@ export default function ClienteDettaglio() {
                   <thead>
                     <tr className="border-b bg-muted/40">
                       <th className="text-left py-1.5 px-3 font-medium">Mese</th>
-                      <th className="text-right py-1.5 px-3 font-medium">{annoPrecedente}</th>
                       <th className="text-right py-1.5 px-3 font-medium">{annoCorrente}</th>
+                      <th className="text-right py-1.5 px-3 font-medium">{annoPrecedente}</th>
                       <th className="text-right py-1.5 px-3 font-medium">Δ %</th>
                     </tr>
                   </thead>
@@ -202,8 +230,8 @@ export default function ClienteDettaglio() {
                     {rows.map((r, i) => (
                       <tr key={r.mese} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
                         <td className="py-1 px-3">{r.meseNome}</td>
-                        <td className="py-1 px-3 text-right">{fmt(r.precedente)}</td>
                         <td className="py-1 px-3 text-right font-medium">{fmt(r.corrente)}</td>
+                        <td className="py-1 px-3 text-right">{fmt(r.precedente)}</td>
                         <td className="py-1 px-3 text-right">
                           <DeltaIcon val={r.delta} />{" "}
                           <span className={r.delta > 1 ? "text-emerald-600" : r.delta < -1 ? "text-red-600" : "text-muted-foreground"}>
@@ -216,8 +244,8 @@ export default function ClienteDettaglio() {
                   <tfoot>
                     <tr className="border-t bg-muted/50 font-semibold text-xs">
                       <td className="py-2 px-3">Totale</td>
-                      <td className="py-2 px-3 text-right">{fmt(totPrec)}</td>
                       <td className="py-2 px-3 text-right">{fmt(totCorr)}</td>
+                      <td className="py-2 px-3 text-right">{fmt(totPrec)}</td>
                       <td className="py-2 px-3 text-right">
                         <DeltaIcon val={totDelta} />{" "}
                         <span className={totDelta > 1 ? "text-emerald-600" : totDelta < -1 ? "text-red-600" : "text-muted-foreground"}>

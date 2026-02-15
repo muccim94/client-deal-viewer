@@ -124,6 +124,7 @@ export type Database = {
         Returns: Json
       }
       get_distinct_agents: { Args: never; Returns: string[] }
+      get_fatturato_riepilogo: { Args: { p_agente?: string }; Returns: Json }
       get_filter_options: { Args: never; Returns: Json }
       get_marchi_stats: {
         Args: {

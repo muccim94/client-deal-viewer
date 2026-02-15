@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
 import { Euro, Users, Tag, TrendingUp, BarChart3, Loader2 } from "lucide-react";
 import {
   PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer,
@@ -21,6 +22,7 @@ const COLORS = [
 ];
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [filterAzienda, setFilterAzienda] = useState("FO");
   const [filterAnno, setFilterAnno] = useState("2026");
@@ -84,10 +86,10 @@ export default function Dashboard() {
   const mediaCliente = stats.clienti ? stats.totale / stats.clienti : 0;
 
   const kpis = [
-    { label: "Fatturato Totale", value: fmt(stats.totale), icon: Euro },
-    { label: "Clienti Unici", value: stats.clienti, icon: Users },
-    { label: "Marchi", value: stats.marchi, icon: Tag },
-    { label: "Media per Cliente", value: fmt(mediaCliente), icon: TrendingUp },
+    { label: "Fatturato Totale", value: fmt(stats.totale), icon: Euro, to: "/fatturato" },
+    { label: "Clienti Unici", value: stats.clienti, icon: Users, to: "/anagrafiche" },
+    { label: "Marchi", value: stats.marchi, icon: Tag, to: "/marchi" },
+    { label: "Media per Cliente", value: fmt(mediaCliente), icon: TrendingUp, to: null },
   ];
 
   return (
@@ -128,7 +130,11 @@ export default function Dashboard() {
       {/* KPI */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {kpis.map((k) => (
-          <Card key={k.label}>
+          <Card
+            key={k.label}
+            className={k.to ? "cursor-pointer transition-shadow hover:shadow-lg" : ""}
+            onClick={k.to ? () => navigate(k.to) : undefined}
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2">
               <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">{k.label}</CardTitle>
               <k.icon className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />

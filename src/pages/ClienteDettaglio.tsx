@@ -1,16 +1,13 @@
-import { useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useMemo, useCallback } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getMeseNome } from "@/types/data";
 import { SalesRecord } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter,
-} from "@/components/ui/table";
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, Building2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
@@ -20,8 +17,15 @@ const pct = (curr: number, prev: number) => {
   return ((curr - prev) / Math.abs(prev)) * 100;
 };
 
+const COLORS = [
+  "hsl(221, 83%, 53%)", "hsl(142, 71%, 45%)", "hsl(38, 92%, 50%)",
+  "hsl(0, 72%, 51%)", "hsl(262, 83%, 58%)", "hsl(187, 85%, 43%)",
+  "hsl(330, 81%, 60%)", "hsl(24, 95%, 53%)", "hsl(210, 40%, 60%)",
+];
+
 export default function ClienteDettaglio() {
   const { codice } = useParams<{ codice: string }>();
+  const navigate = useNavigate();
 
   const { data: clientRecords = [], isLoading } = useQuery({
     queryKey: ["cliente-detail", codice],
@@ -40,12 +44,16 @@ export default function ClienteDettaglio() {
   const annoCorrente = anni[0] ?? new Date().getFullYear();
   const annoPrecedente = annoCorrente - 1;
 
-  const perMarchio = useMemo(() => {
+  const pieData = useMemo(() => {
     const map = new Map<string, number>();
     clientRecords.forEach((r) => {
       map.set(r.marchio, (map.get(r.marchio) ?? 0) + r.imponibile);
     });
-    return [...map.entries()].sort((a, b) => b[1] - a[1]).map(([marchio, totale]) => ({ marchio, totale }));
+    const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
+    const top = sorted.slice(0, 8).map(([name, value]) => ({ name, value }));
+    const altriVal = sorted.slice(8).reduce((s, [, v]) => s + v, 0);
+    if (altriVal > 0) top.push({ name: "Altri", value: altriVal });
+    return top;
   }, [clientRecords]);
 
   const aziende = useMemo(() => {
@@ -67,18 +75,16 @@ export default function ClienteDettaglio() {
     });
   }, [clientRecords, annoCorrente, annoPrecedente]);
 
+  const goToMarchi = useCallback(() => navigate(`/anagrafiche/${codice}/marchi`), [navigate, codice]);
+
   const DeltaIcon = ({ val }: { val: number }) => {
-    if (val > 1) return <TrendingUp className="h-3.5 w-3.5 text-emerald-500 inline" />;
-    if (val < -1) return <TrendingDown className="h-3.5 w-3.5 text-red-500 inline" />;
-    return <Minus className="h-3.5 w-3.5 text-muted-foreground inline" />;
+    if (val > 1) return <TrendingUp className="h-3 w-3 text-emerald-500 inline" />;
+    if (val < -1) return <TrendingDown className="h-3 w-3 text-red-500 inline" />;
+    return <Minus className="h-3 w-3 text-muted-foreground inline" />;
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
   }
 
   if (!clientRecords.length) {
@@ -94,6 +100,7 @@ export default function ClienteDettaglio() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-3">
         <Link to="/anagrafiche">
           <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
@@ -104,6 +111,7 @@ export default function ClienteDettaglio() {
         </div>
       </div>
 
+      {/* KPI Cards */}
       {(() => {
         const perAziendaAnno = (azienda: string, anno: number) =>
           clientRecords.filter((r) => r.aziendaNome === azienda && r.anno === anno).reduce((s, r) => s + r.imponibile, 0);
@@ -130,67 +138,95 @@ export default function ClienteDettaglio() {
         );
       })()}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Fatturato per Marchio</CardTitle>
+      {/* Pie Chart - Fatturato per Marchio */}
+      <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={goToMarchi}>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center justify-between">
+            Fatturato per Marchio
+            <span className="text-xs font-normal text-muted-foreground">Clicca per dettaglio →</span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {perMarchio.map((m) => (
-              <Badge key={m.marchio} variant="secondary" className="text-xs md:text-sm py-1 md:py-1.5 px-2 md:px-3">
-                {m.marchio}: {fmt(m.totale)}
-              </Badge>
-            ))}
-          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                innerRadius={45}
+                paddingAngle={2}
+                stroke="none"
+              >
+                {pieData.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(value: number) => fmt(value)}
+                contentStyle={{ fontSize: 12, borderRadius: 8 }}
+              />
+              <Legend
+                wrapperStyle={{ fontSize: 11 }}
+                formatter={(value: string) => <span className="text-foreground">{value}</span>}
+              />
+            </PieChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 
+      {/* Compact monthly tables */}
       {aziende.map(({ name, rows }) => {
         const totCorr = rows.reduce((s, r) => s + r.corrente, 0);
         const totPrec = rows.reduce((s, r) => s + r.precedente, 0);
+        const totDelta = pct(totCorr, totPrec);
         return (
           <Card key={name}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{name} — Confronto {annoPrecedente} vs {annoCorrente}</CardTitle>
+            <CardHeader className="pb-2 px-3 pt-3">
+              <CardTitle className="text-sm font-semibold">{name} — {annoPrecedente} vs {annoCorrente}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Mese</TableHead>
-                      <TableHead className="text-right">{annoPrecedente}</TableHead>
-                      <TableHead className="text-right">{annoCorrente}</TableHead>
-                      <TableHead className="text-right">Δ %</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rows.map((r) => (
-                      <TableRow key={r.mese}>
-                        <TableCell className="text-sm">{r.meseNome}</TableCell>
-                        <TableCell className="text-right text-sm">{fmt(r.precedente)}</TableCell>
-                        <TableCell className="text-right font-medium text-sm">{fmt(r.corrente)}</TableCell>
-                        <TableCell className="text-right text-sm">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b bg-muted/40">
+                      <th className="text-left py-1.5 px-3 font-medium">Mese</th>
+                      <th className="text-right py-1.5 px-3 font-medium">{annoPrecedente}</th>
+                      <th className="text-right py-1.5 px-3 font-medium">{annoCorrente}</th>
+                      <th className="text-right py-1.5 px-3 font-medium">Δ %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, i) => (
+                      <tr key={r.mese} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
+                        <td className="py-1 px-3">{r.meseNome}</td>
+                        <td className="py-1 px-3 text-right">{fmt(r.precedente)}</td>
+                        <td className="py-1 px-3 text-right font-medium">{fmt(r.corrente)}</td>
+                        <td className="py-1 px-3 text-right">
                           <DeltaIcon val={r.delta} />{" "}
                           <span className={r.delta > 1 ? "text-emerald-600" : r.delta < -1 ? "text-red-600" : "text-muted-foreground"}>
                             {r.delta.toFixed(1)}%
                           </span>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ))}
-                  </TableBody>
-                  <TableFooter>
-                    <TableRow>
-                      <TableCell className="font-semibold">Totale</TableCell>
-                      <TableCell className="text-right font-semibold">{fmt(totPrec)}</TableCell>
-                      <TableCell className="text-right font-semibold">{fmt(totCorr)}</TableCell>
-                      <TableCell className="text-right font-semibold">
-                        <DeltaIcon val={pct(totCorr, totPrec)} />{" "}
-                        {pct(totCorr, totPrec).toFixed(1)}%
-                      </TableCell>
-                    </TableRow>
-                  </TableFooter>
-                </Table>
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t bg-muted/50 font-semibold text-xs">
+                      <td className="py-2 px-3">Totale</td>
+                      <td className="py-2 px-3 text-right">{fmt(totPrec)}</td>
+                      <td className="py-2 px-3 text-right">{fmt(totCorr)}</td>
+                      <td className="py-2 px-3 text-right">
+                        <DeltaIcon val={totDelta} />{" "}
+                        <span className={totDelta > 1 ? "text-emerald-600" : totDelta < -1 ? "text-red-600" : "text-muted-foreground"}>
+                          {totDelta.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             </CardContent>
           </Card>

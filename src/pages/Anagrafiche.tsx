@@ -28,6 +28,7 @@ export default function Anagrafiche() {
   const [filterAgente, setFilterAgente] = useState("__all__");
   const [sortKey, setSortKey] = useState<SortKey>("nomeCliente");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const currentYear = new Date().getFullYear();
   const prevYear = currentYear - 1;
@@ -58,13 +59,21 @@ export default function Anagrafiche() {
       const q = search.toLowerCase();
       data = data.filter((r) => r.nomeCliente.toLowerCase().includes(q) || r.codiceCliente.includes(q));
     }
+    // Apply quick filter
+    if (activeFilter === "perdita") {
+      data = data.filter((r) => r.fattCurrentYear < r.fattPrevYearYTD);
+    } else if (activeFilter === "sotto5k") {
+      data = data.filter((r) => r.fattCurrentYear < 5000);
+    } else if (activeFilter === "top10") {
+      data = [...data].sort((a, b) => b.fattCurrentYear - a.fattCurrentYear).slice(0, 10);
+    }
     return [...data].sort((a, b) => {
       const av = a[sortKey];
       const bv = b[sortKey];
       const cmp = typeof av === "number" ? av - (bv as number) : String(av).localeCompare(String(bv));
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [clienti, search, sortKey, sortDir]);
+  }, [clienti, search, sortKey, sortDir, activeFilter]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -117,6 +126,25 @@ export default function Anagrafiche() {
             </div>
           </div>
         </CardHeader>
+        <div className="flex gap-2 px-6 py-3 overflow-x-auto border-b [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {[
+            { key: "perdita", label: "Clienti in perdita" },
+            { key: "sotto5k", label: "Sotto i 5k" },
+            { key: "top10", label: "Top 10 clienti" },
+          ].map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setActiveFilter((prev) => (prev === f.key ? null : f.key))}
+              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm border transition-colors ${
+                activeFilter === f.key
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-foreground border-input hover:bg-accent"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
         <CardContent className="p-0">
           <div className="max-h-[600px] overflow-auto">
             <Table>

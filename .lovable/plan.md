@@ -1,31 +1,39 @@
 
 
-## Modifiche al Dettaglio Cliente
+## KPI cliccabili nella Dashboard + nuova pagina Fatturato
 
-### 1. Grafico a colonne su desktop, torta su mobile
+### 1. KPI "Clienti Unici" cliccabile
 
-Il grafico "Fatturato per Marchio" diventa responsive:
+La card "Clienti Unici" nella dashboard diventa un link che naviga a `/anagrafiche`.
 
-- **Mobile** (< 768px): resta il grafico a torta attuale (donut)
-- **Desktop** (>= 768px): viene mostrato un grafico a colonne raggruppate (BarChart di Recharts) con due barre per ogni marchio -- una per l'anno precedente e una per l'anno corrente
+### 2. KPI "Marchi" cliccabile
 
-Si usa l'hook `useIsMobile()` gia presente nel progetto per il rendering condizionale. I dati `pieData` vengono estesi per includere sia il valore anno corrente che anno precedente per ogni marchio (necessario per il BarChart).
+La card "Marchi" diventa un link che naviga a `/marchi`.
 
-### 2. Inversione ordine anni nelle tabelle
+### 3. KPI "Fatturato Totale" cliccabile + nuova pagina
 
-In tutte le tabelle mensili sottostanti, l'ordine delle colonne viene invertito:
+La card "Fatturato Totale" naviga a una nuova pagina `/fatturato` che mostra una tabella riassuntiva con:
+- Confronto mese su mese degli ultimi 2 anni (anno corrente vs anno precedente)
+- Due sezioni affiancate: una per Fogliani e una per Futurtec
+- Per ogni mese: fatturato anno corrente, fatturato anno precedente, variazione %
+- Riga totale in fondo
+- Stile compatto coerente con le tabelle del dettaglio cliente
 
-- Prima colonna dati: **Anno corrente** (invece di anno precedente)
-- Seconda colonna dati: **Anno precedente** (invece di anno corrente)
-- Il titolo della card diventa "{annoCorrente} vs {annoPrecedente}"
-- Il delta % continua a calcolare la variazione dell'anno corrente rispetto al precedente
+I dati verranno recuperati tramite una nuova funzione RPC `get_fatturato_riepilogo` che aggrega i dati da `sales_records` raggruppando per azienda, anno e mese.
 
 ### Dettagli tecnici
 
-**File da modificare:** `src/pages/ClienteDettaglio.tsx`
+**Nuova migrazione SQL:**
+- Funzione RPC `get_fatturato_riepilogo` che restituisce il fatturato mensile per azienda per gli ultimi 2 anni, con supporto per filtro agente opzionale
 
-- Importare `useIsMobile` da `@/hooks/use-mobile`
-- Importare `BarChart, Bar, XAxis, YAxis, CartesianGrid` da Recharts
-- Creare `barData` con struttura `{ name, corrente, precedente }` per ogni marchio (top 8 + Altri)
-- Rendering condizionale: `isMobile ? <PieChart>` : `<BarChart>` dentro la stessa Card cliccabile
-- Nelle tabelle: scambiare le colonne `{annoPrecedente}` e `{annoCorrente}` nell'header e nel body (corrente prima, precedente dopo)
+**File da creare:**
+- `src/pages/FatturatoRiepilogo.tsx` -- pagina con tabella riassuntiva mese su mese divisa per azienda
+
+**File da modificare:**
+- `src/pages/Dashboard.tsx` -- rendere le 3 card KPI cliccabili (wrapping con `Link` o `useNavigate`)
+- `src/App.tsx` -- aggiungere route `/fatturato`
+
+**Stile delle card cliccabili:**
+- Aggiunta di `cursor-pointer`, effetto hover con ombra e transizione per indicare che sono cliccabili
+- Le card non cliccabili ("Media per Cliente") restano invariate
+

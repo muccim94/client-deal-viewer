@@ -1,51 +1,40 @@
+## Modifiche alla pagina Dettaglio Cliente
 
+### 1. Grafico a torta interattivo per "Fatturato per Marchio"
 
-## Velocizzare il caricamento dei dati
+La sezione attuale con i badge viene sostituita da un grafico a torta (Recharts, gia installato) che mostra la distribuzione del fatturato per marchio del cliente.
 
-### Problema attuale
+- Cliccando su una fetta del grafico (o sulla legenda), si naviga a una nuova pagina dedicata `/anagrafiche/:codice/marchi` che mostra tutti i marchi del cliente con il confronto anno corrente vs anno precedente.
 
-Ogni volta che accedi all'app, vengono scaricati **tutti i 51.000+ record** dal database al browser, con circa 52 richieste HTTP sequenziali. Questo richiede diversi secondi e consuma banda e memoria.
+### 2. Nuova pagina: Marchi per Cliente (`/anagrafiche/:codice/marchi`)
 
-### Strategia proposta: Aggregazione lato server
+Una pagina dedicata accessibile dal grafico a torta che mostra:
 
-Invece di scaricare ogni singolo record e poi fare i calcoli nel browser, creiamo delle **funzioni database (RPC)** che calcolano direttamente i dati aggregati sul server e restituiscono solo i risultati. In questo modo il browser riceve poche centinaia di righe invece di 51.000+.
+- Intestazione con nome cliente e pulsante "Torna al dettaglio"
+- Tabella completa di tutti i marchi del cliente con colonne: Marchio, Fatturato anno corrente, Fatturato anno precedente, Variazione %,
+- Ordinamento e ricerca come nella pagina Marchi globale
+- I dati vengono calcolati dai record gia disponibili tramite la RPC `get_cliente_detail`
 
-### Cosa cambia per ogni pagina
+### 3. Tabella fatturato annuale compatta (stile immagine allegata)
 
-| Pagina | Oggi | Dopo |
-|--------|------|------|
-| **Dashboard** | 51k record scaricati, aggregati nel browser | 1 chiamata RPC che restituisce KPI + top clienti + distribuzione marchi |
-| **Anagrafiche** | 51k record filtrati nel browser | 1 chiamata RPC che restituisce la lista clienti gia aggregata con fatturato per anno |
-| **Provvigioni** | 51k record filtrati nel browser | 1 chiamata RPC che restituisce le provvigioni raggruppate per cliente |
-| **Marchi** | 51k record filtrati nel browser | 1 chiamata RPC che restituisce i dati raggruppati per marchio |
-| **Upload** | Conta dei record esistenti | Resta uguale (solo count) |
-| **Dettaglio Cliente** | Filtra dai 51k in memoria | 1 chiamata RPC filtrata per codice cliente |
+La tabella mensile di confronto viene ridisegnata per essere piu compatta:
 
-### Piano tecnico
+- Righe piu strette con padding ridotto
+- Stile pulito con bordi sottili e sfondo alternato
+- Colonne: Mese | Anno precedente | Anno corrente | Delta %
+- Delta % con colore verde per positivo, rosso per negativo, trattino per invariato
+- Riga totale in fondo con riepilogo (differenza assoluta, variazione %)
+- Font piu piccolo e layout condensato
 
-**1. Creare 4 funzioni database RPC:**
+### Dettagli tecnici
 
-- `get_dashboard_stats(p_azienda, p_anno, p_mese, p_agente)` -- restituisce fatturato totale, clienti unici, marchi, top 10 clienti, distribuzione marchi
-- `get_clienti_list(p_agente)` -- restituisce lista clienti con fatturato anno corrente e precedente
-- `get_provvigioni_grouped(p_azienda, p_anno, p_mese)` -- restituisce provvigioni raggruppate per cliente
-- `get_cliente_detail(p_codice_cliente)` -- restituisce i record di un singolo cliente
+**File da creare:**
 
-**2. Modificare il DataContext:**
+- `src/pages/ClienteMarchi.tsx` -- nuova pagina con tabella marchi per cliente
 
-- Rimuovere il caricamento massivo di tutti i record all'avvio
-- Mantenere solo `addRecords`, `clearRecords` e un semplice `recordCount` per la pagina Upload
-- Ogni pagina chiamera direttamente la propria RPC con i filtri selezionati
+**File da modificare:**
 
-**3. Aggiornare le pagine:**
+- `src/pages/ClienteDettaglio.tsx` -- sostituire badge con PieChart Recharts, rendere tabella compatta
+- `src/App.tsx` -- aggiungere route `/anagrafiche/:codice/marchi`
 
-- Ogni pagina usera `useQuery` (TanStack React Query, gia installato) per chiamare la propria RPC
-- I dati vengono cachati automaticamente da React Query, evitando richieste duplicate
-- Il caricamento avviene solo quando l'utente naviga su quella pagina
-
-### Risultato atteso
-
-- **Tempo di caricamento iniziale**: da 10-15 secondi a meno di 1 secondo
-- **Navigazione tra pagine**: istantanea grazie alla cache di React Query
-- **Memoria browser**: ridotta drasticamente (poche centinaia di righe invece di 51.000+)
-- La barra di progresso non sara piu necessaria perche i dati arriveranno quasi istantaneamente
-
+**Nessuna modifica al database** -- i dati vengono gia forniti dalla RPC `get_cliente_detail` esistente.

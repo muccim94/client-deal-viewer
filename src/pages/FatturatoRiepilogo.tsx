@@ -155,7 +155,7 @@ export default function FatturatoRiepilogo() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Link to="/" className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-5 w-5" />
@@ -163,7 +163,7 @@ export default function FatturatoRiepilogo() {
           <h1 className="text-lg md:text-xl font-bold">Riepilogo Fatturato</h1>
         </div>
         <Select value={filterAgente} onValueChange={setFilterAgente}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Tutti gli agenti" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Tutti gli agenti" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti gli agenti</SelectItem>
             {(agenti ?? []).map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}

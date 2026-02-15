@@ -95,12 +95,12 @@ export default function ClienteMarchi() {
           <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
         </Link>
         <div>
-          <h1 className="text-xl font-bold">{clientName} — Marchi</h1>
+          <h1 className="text-base md:text-xl font-bold truncate max-w-[60vw]">{clientName} — Marchi</h1>
           <p className="text-xs text-muted-foreground">Confronto {annoPrecedente} vs {annoCorrente}</p>
         </div>
       </div>
 
-      <div className="relative max-w-xs">
+      <div className="relative w-full sm:max-w-xs">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Cerca marchio..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-9 text-sm" />
       </div>

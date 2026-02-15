@@ -1,49 +1,59 @@
+## Modifica Tabella Anagrafiche con Fatturato Progressivo e Icone Trend
 
+### Obiettivo
 
-## Modifiche richieste
+Aggiungere alla tabella anagrafiche:
 
-### 1. Top 10 Clienti con fatturato progressivo reale (YTD)
+1. Una colonna "Fatt. 2025 YTD" con il fatturato progressivo dell'anno precedente (calcolato fino al mese corrente) che andra inserita tra il fatturato 2026 e la colonna fatturato 2025 per un totale di 3 valori 
+2. Un'icona freccia verde (crescita) o rossa (calo) tra il codice cliente e il nome, basata sul confronto YTD 2026 vs YTD 2025 
+3. togliere dalle cifre della tabella i numeri dopo "," esempio 3.358,57 sarà arrotondato a 3.358
 
-Attualmente i valori "Anno Prec." sono simulati con numeri casuali. Verranno sostituiti con dati reali calcolando il fatturato progressivo (YTD - Year To Date):
+### Layout tabella risultante (ispirato all'immagine di riferimento)
 
-- Se oggi siamo a febbraio 2026, il fatturato corrente include solo gennaio e febbraio 2026
-- Il fatturato precedente include solo gennaio e febbraio 2025
-- In questo modo il confronto e sempre equo e proporzionato al periodo trascorso
+```text
+Codice | Trend | Nome Cliente | Fatt. 2026 | Fatt. 2025 (YTD) | Fatt. 2025 |  >
+035826   ↗       A.I.M.E. SRL   0,00 EUR         3.358 EUR       3.358 EUR    >
+029831   ↘       A.P.S. DUE SRL 33.582 EUR      38.995 EUR      38.995 EUR    >
+```
 
-**Migrazione SQL:** Aggiornamento della funzione `get_dashboard_stats` per modificare la CTE `top_clienti`. Verra calcolato l'anno corrente e il mese corrente automaticamente. Per ogni cliente nella Top 10:
-- `value` = somma imponibile per i mesi da 1 a mese_corrente dell'anno filtrato (o anno corrente se non filtrato)
-- `valuePrev` = somma imponibile per gli stessi mesi dell'anno precedente
+### 1. Migrazione SQL -- aggiornare `get_clienti_list`
 
-La Top 10 resta ordinata per `value`.
+La funzione attualmente restituisce `fattCurrentYear` (totale anno corrente) e `fattPrevYear` (totale anno precedente), entrambi sull'intero anno. Verra modificata per:
 
-**Frontend (`src/pages/Dashboard.tsx`):** Rimozione della simulazione `useMemo` con `Math.random()`. I dati `valuePrev` arriveranno direttamente dalla funzione RPC, quindi la tabella li utilizzera senza manipolazioni.
+- Calcolare `v_current_month` dal mese corrente
+- `fattCurrentYear` = somma imponibile anno corrente per mesi 1..mese_corrente (YTD corrente)
+- `fattPrevYear` = somma imponibile anno precedente per mesi 1..mese_corrente (YTD precedente)
 
-### 2. Titolo "Trade Off snc" cliccabile
+In questo modo entrambi i valori saranno progressivi e confrontabili (es. gen-feb 2026 vs gen-feb 2025), oltre ad avere un paragone su tutto il 2025
 
-**File da modificare:** `src/components/AppLayout.tsx`
+### 2. Aggiornamento UI -- `src/pages/Anagrafiche.tsx`
 
-Il titolo "Trade Off snc" nell'header verra avvolto in un `Link` di react-router-dom che punta a `/`. Funzionera da qualsiasi pagina dell'applicazione per tornare alla dashboard.
+- Aggiungere import di `TrendingUp` e `TrendingDown` da lucide-react
+- Inserire una nuova colonna tra "Codice" e "Nome Cliente" con l'icona trend:
+  - `TrendingUp` verde se `fattCurrentYear >= fattPrevYear`
+  - `TrendingDown` rossa se `fattCurrentYear < fattPrevYear`
+- Le colonne "Fatt. 2026" e "Fatt. 2025" mostreranno i dati YTD progressivi
+- Aggiornare le intestazioni per indicare che sono dati progressivi
 
 ### Dettagli tecnici
 
-**SQL -- nuova CTE `top_clienti`:**
-```text
-v_current_month = EXTRACT(MONTH FROM current_date)
+**SQL -- CTE aggiornata:**
 
-top_clienti:
-  - Filtra i record con mese <= v_current_month
-  - value = SUM(imponibile) WHERE anno = anno_filtrato AND mese <= v_current_month
-  - valuePrev = SUM(imponibile) WHERE anno = anno_filtrato - 1 AND mese <= v_current_month
-  - ORDER BY value DESC, LIMIT 10
-```
-
-**Risultato JSON aggiornato:**
 ```text
-topClienti: [{ name, codice, value, valuePrev }, ...]
+v_current_month := EXTRACT(MONTH FROM current_date)::integer;
+
+grouped AS (
+  SELECT
+    codice_cliente,
+    MAX(nome_cliente) as nome_cliente,
+    SUM(CASE WHEN anno = v_current_year AND mese <= v_current_month THEN imponibile ELSE 0 END) as fatt_current,
+    SUM(CASE WHEN anno = v_prev_year AND mese <= v_current_month THEN imponibile ELSE 0 END) as fatt_prev
+  FROM filtered
+  GROUP BY codice_cliente
+)
 ```
 
 **File modificati:**
-- Migrazione SQL per `get_dashboard_stats`
-- `src/pages/Dashboard.tsx` -- rimozione simulazione, uso dati reali
-- `src/components/AppLayout.tsx` -- Link sul titolo
 
+- Migrazione SQL per `get_clienti_list`
+- `src/pages/Anagrafiche.tsx` -- aggiunta colonna icona trend, dati YTD

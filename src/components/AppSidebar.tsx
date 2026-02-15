@@ -36,7 +36,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title} className="min-h-[44px]">
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
@@ -57,7 +57,7 @@ export function AppSidebar() {
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start text-muted-foreground hover:text-foreground"
+          className="w-full justify-start text-muted-foreground hover:text-foreground min-h-[44px]"
           onClick={signOut}
         >
           <LogOut className="h-4 w-4 mr-2" />

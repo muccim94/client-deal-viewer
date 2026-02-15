@@ -16,7 +16,10 @@ export default function AppLayout() {
           <header className="h-12 md:h-14 flex items-center justify-between border-b px-3 md:px-4 bg-card">
             <div className="flex items-center gap-1.5 md:gap-2">
               <SidebarTrigger />
-              <Link to="/" className="ml-1 text-base md:text-lg font-semibold text-foreground truncate hover:text-primary transition-colors">Trade Off snc</Link>
+              <Link to="/" className="ml-1 text-sm md:text-lg font-semibold text-foreground truncate hover:text-primary transition-colors">
+                <span className="hidden md:inline">Trade Off snc</span>
+                <span className="md:hidden">Trade Off</span>
+              </Link>
               {role === "admin" && (
                 <Badge variant="secondary" className="text-xs">Admin</Badge>
               )}

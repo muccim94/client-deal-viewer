@@ -126,7 +126,7 @@ export default function Marchi() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
         <div className="inline-flex rounded-lg border bg-muted p-1 mr-auto">
           {["Fogliani", "Futurtec"].map((az) => (
             <button
@@ -144,21 +144,21 @@ export default function Marchi() {
           ))}
         </div>
         <Select value={filterAnno} onValueChange={setFilterAnno}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Anno" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Anno" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti gli anni</SelectItem>
             {anni.map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterMese} onValueChange={setFilterMese}>
-          <SelectTrigger className="w-48"><SelectValue placeholder="Mese" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Mese" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti i mesi</SelectItem>
             {mesi.map((m) => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterAgente} onValueChange={setFilterAgente}>
-          <SelectTrigger className="w-56"><SelectValue placeholder="Tutti gli agenti" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="Tutti gli agenti" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti gli agenti</SelectItem>
             {agenti.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
@@ -173,7 +173,7 @@ export default function Marchi() {
               <Zap className="h-4 w-4" /> Materiale Elettrico
             </CardTitle>
           </CardHeader>
-          <CardContent><p className="text-2xl font-bold">{fmt(kpi.mat_elettrico)}</p></CardContent>
+          <CardContent><p className="text-lg md:text-2xl font-bold">{fmt(kpi.mat_elettrico)}</p></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
@@ -181,7 +181,7 @@ export default function Marchi() {
               <Sun className="h-4 w-4" /> Fotovoltaico
             </CardTitle>
           </CardHeader>
-          <CardContent><p className="text-2xl font-bold">{fmt(kpi.fotovoltaico)}</p></CardContent>
+          <CardContent><p className="text-lg md:text-2xl font-bold">{fmt(kpi.fotovoltaico)}</p></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
@@ -189,7 +189,7 @@ export default function Marchi() {
               <Cable className="h-4 w-4" /> Cavo
             </CardTitle>
           </CardHeader>
-          <CardContent><p className="text-2xl font-bold">{fmt(kpi.cavo)}</p></CardContent>
+          <CardContent><p className="text-lg md:text-2xl font-bold">{fmt(kpi.cavo)}</p></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
@@ -197,7 +197,7 @@ export default function Marchi() {
               <Wrench className="h-4 w-4" /> Risorsa spesa
             </CardTitle>
           </CardHeader>
-          <CardContent><p className="text-2xl font-bold">{fmt(kpi.ricambi)}</p></CardContent>
+          <CardContent><p className="text-lg md:text-2xl font-bold">{fmt(kpi.ricambi)}</p></CardContent>
         </Card>
       </div>
 
@@ -222,7 +222,7 @@ export default function Marchi() {
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattCurrentYear")}>
                     <span className="flex items-center gap-1">{`Fatt. ${currentYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattPrevYear")}>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 hidden sm:table-cell" onClick={() => toggleSort("fattPrevYear")}>
                     <span className="flex items-center gap-1">{`Fatt. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("var")}>
@@ -237,7 +237,7 @@ export default function Marchi() {
                     <TableRow key={r.marchio}>
                       <TableCell className="font-medium">{r.marchio}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmt(r.fattCurrentYear)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmt(r.fattPrevYear)}</TableCell>
+                      <TableCell className="text-right tabular-nums hidden sm:table-cell">{fmt(r.fattPrevYear)}</TableCell>
                       <TableCell className="text-right">
                         {pctVal != null ? (
                           <Badge variant={r.var! >= 0 ? "default" : "destructive"} className={r.var! >= 0 ? "bg-green-600 hover:bg-green-700" : ""}>

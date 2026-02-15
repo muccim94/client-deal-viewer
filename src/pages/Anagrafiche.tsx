@@ -10,15 +10,16 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpDown, Search, Table2, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowUpDown, Search, Table2, ChevronRight, Loader2, TrendingUp, TrendingDown } from "lucide-react";
 
-type SortKey = "codiceCliente" | "nomeCliente" | "fattCurrentYear" | "fattPrevYear";
+type SortKey = "codiceCliente" | "nomeCliente" | "fattCurrentYear" | "fattPrevYearYTD" | "fattPrevYear";
 type SortDir = "asc" | "desc";
 
 interface ClientRow {
   codiceCliente: string;
   nomeCliente: string;
   fattCurrentYear: number;
+  fattPrevYearYTD: number;
   fattPrevYear: number;
 }
 
@@ -71,7 +72,7 @@ export default function Anagrafiche() {
   };
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
+    new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 
   if (isLoading) {
     return (
@@ -124,11 +125,15 @@ export default function Anagrafiche() {
                   <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("codiceCliente")}>
                     <span className="flex items-center gap-1">Codice<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
+                  <TableHead className="hidden sm:table-cell w-10">Trend</TableHead>
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("nomeCliente")}>
                     <span className="flex items-center gap-1">Nome Cliente<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattCurrentYear")}>
                     <span className="flex items-center gap-1">{`Fatt. ${currentYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
+                  <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattPrevYearYTD")}>
+                    <span className="flex items-center gap-1">{`Fatt. ${prevYear} YTD`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                   <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattPrevYear")}>
                     <span className="flex items-center gap-1">{`Fatt. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
@@ -140,12 +145,20 @@ export default function Anagrafiche() {
                 {filtered.map((r) => (
                   <TableRow key={r.codiceCliente} className="group">
                     <TableCell className="hidden sm:table-cell">{r.codiceCliente}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {r.fattCurrentYear >= r.fattPrevYearYTD ? (
+                        <TrendingUp className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4 text-red-500" />
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-base md:text-lg">
                         {r.nomeCliente}
                       </Link>
                     </TableCell>
                     <TableCell className="font-medium text-right tabular-nums text-sm md:text-base">{fmt(r.fattCurrentYear)}</TableCell>
+                    <TableCell className="hidden sm:table-cell font-medium text-right tabular-nums">{fmt(r.fattPrevYearYTD)}</TableCell>
                     <TableCell className="hidden sm:table-cell font-medium text-right tabular-nums">{fmt(r.fattPrevYear)}</TableCell>
                     <TableCell>
                       <Link to={`/anagrafiche/${r.codiceCliente}`}>

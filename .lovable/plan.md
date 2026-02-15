@@ -1,40 +1,31 @@
-## Modifiche alla pagina Dettaglio Cliente
 
-### 1. Grafico a torta interattivo per "Fatturato per Marchio"
 
-La sezione attuale con i badge viene sostituita da un grafico a torta (Recharts, gia installato) che mostra la distribuzione del fatturato per marchio del cliente.
+## Modifiche al Dettaglio Cliente
 
-- Cliccando su una fetta del grafico (o sulla legenda), si naviga a una nuova pagina dedicata `/anagrafiche/:codice/marchi` che mostra tutti i marchi del cliente con il confronto anno corrente vs anno precedente.
+### 1. Grafico a colonne su desktop, torta su mobile
 
-### 2. Nuova pagina: Marchi per Cliente (`/anagrafiche/:codice/marchi`)
+Il grafico "Fatturato per Marchio" diventa responsive:
 
-Una pagina dedicata accessibile dal grafico a torta che mostra:
+- **Mobile** (< 768px): resta il grafico a torta attuale (donut)
+- **Desktop** (>= 768px): viene mostrato un grafico a colonne raggruppate (BarChart di Recharts) con due barre per ogni marchio -- una per l'anno precedente e una per l'anno corrente
 
-- Intestazione con nome cliente e pulsante "Torna al dettaglio"
-- Tabella completa di tutti i marchi del cliente con colonne: Marchio, Fatturato anno corrente, Fatturato anno precedente, Variazione %,
-- Ordinamento e ricerca come nella pagina Marchi globale
-- I dati vengono calcolati dai record gia disponibili tramite la RPC `get_cliente_detail`
+Si usa l'hook `useIsMobile()` gia presente nel progetto per il rendering condizionale. I dati `pieData` vengono estesi per includere sia il valore anno corrente che anno precedente per ogni marchio (necessario per il BarChart).
 
-### 3. Tabella fatturato annuale compatta (stile immagine allegata)
+### 2. Inversione ordine anni nelle tabelle
 
-La tabella mensile di confronto viene ridisegnata per essere piu compatta:
+In tutte le tabelle mensili sottostanti, l'ordine delle colonne viene invertito:
 
-- Righe piu strette con padding ridotto
-- Stile pulito con bordi sottili e sfondo alternato
-- Colonne: Mese | Anno precedente | Anno corrente | Delta %
-- Delta % con colore verde per positivo, rosso per negativo, trattino per invariato
-- Riga totale in fondo con riepilogo (differenza assoluta, variazione %)
-- Font piu piccolo e layout condensato
+- Prima colonna dati: **Anno corrente** (invece di anno precedente)
+- Seconda colonna dati: **Anno precedente** (invece di anno corrente)
+- Il titolo della card diventa "{annoCorrente} vs {annoPrecedente}"
+- Il delta % continua a calcolare la variazione dell'anno corrente rispetto al precedente
 
 ### Dettagli tecnici
 
-**File da creare:**
+**File da modificare:** `src/pages/ClienteDettaglio.tsx`
 
-- `src/pages/ClienteMarchi.tsx` -- nuova pagina con tabella marchi per cliente
-
-**File da modificare:**
-
-- `src/pages/ClienteDettaglio.tsx` -- sostituire badge con PieChart Recharts, rendere tabella compatta
-- `src/App.tsx` -- aggiungere route `/anagrafiche/:codice/marchi`
-
-**Nessuna modifica al database** -- i dati vengono gia forniti dalla RPC `get_cliente_detail` esistente.
+- Importare `useIsMobile` da `@/hooks/use-mobile`
+- Importare `BarChart, Bar, XAxis, YAxis, CartesianGrid` da Recharts
+- Creare `barData` con struttura `{ name, corrente, precedente }` per ogni marchio (top 8 + Altri)
+- Rendering condizionale: `isMobile ? <PieChart>` : `<BarChart>` dentro la stessa Card cliccabile
+- Nelle tabelle: scambiare le colonne `{annoPrecedente}` e `{annoCorrente}` nell'header e nel body (corrente prima, precedente dopo)

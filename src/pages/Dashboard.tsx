@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,21 +59,13 @@ export default function Dashboard() {
         totale: number;
         clienti: number;
         marchi: number;
-        topClienti: { name: string; codice: string; value: number }[];
+        topClienti: { name: string; codice: string; value: number; valuePrev: number }[];
         marchiPie: { name: string; value: number }[];
       };
     },
   });
 
-  // Generate simulated previous year values for trend comparison
-  const topClientiWithPrev = useMemo(() => {
-    if (!stats?.topClienti) return [];
-    return stats.topClienti.map((c) => {
-      const variance = 0.7 + Math.random() * 0.6; // 70%-130% of current
-      const valuePrev = Math.round(c.value * variance);
-      return { ...c, valuePrev };
-    });
-  }, [stats?.topClienti]);
+  const topClientiWithPrev = stats?.topClienti ?? [];
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);

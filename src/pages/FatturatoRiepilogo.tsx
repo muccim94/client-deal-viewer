@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getMeseNome } from "@/types/data";
@@ -5,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter,
 } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -108,10 +112,23 @@ function AziendaTable({
 }
 
 export default function FatturatoRiepilogo() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["fatturato-riepilogo"],
+  const [filterAgente, setFilterAgente] = useState("__all__");
+
+  const { data: agenti } = useQuery({
+    queryKey: ["visible-agents"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_fatturato_riepilogo" as any);
+      const { data, error } = await supabase.rpc("get_visible_agents");
+      if (error) throw error;
+      return data as string[];
+    },
+  });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["fatturato-riepilogo", filterAgente],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_fatturato_riepilogo" as any, {
+        p_agente: filterAgente === "__all__" ? null : filterAgente,
+      });
       if (error) throw error;
       return data as unknown as RiepilogoResult;
     },
@@ -138,11 +155,20 @@ export default function FatturatoRiepilogo() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="flex items-center gap-2">
-        <Link to="/" className="text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="text-lg md:text-xl font-bold">Riepilogo Fatturato</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Link to="/" className="text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="text-lg md:text-xl font-bold">Riepilogo Fatturato</h1>
+        </div>
+        <Select value={filterAgente} onValueChange={setFilterAgente}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Tutti gli agenti" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Tutti gli agenti</SelectItem>
+            {(agenti ?? []).map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid gap-4 md:gap-6 lg:grid-cols-2">

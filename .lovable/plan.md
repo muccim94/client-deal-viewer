@@ -1,39 +1,48 @@
 
 
-## KPI cliccabili nella Dashboard + nuova pagina Fatturato
+## Riprogettazione Top 10 Clienti per Fatturato
 
-### 1. KPI "Clienti Unici" cliccabile
+### Obiettivo
+Trasformare la lista Top 10 in una tabella accattivante ispirata all'immagine di riferimento, con:
+- Icona freccia verde (su) o rossa (giu) al posto del numero progressivo
+- Fatturato anno corrente (evidenziato, colorato)
+- Fatturato anno precedente (secondario, grigio)
+- Confronto visivo immediato tra i due anni
 
-La card "Clienti Unici" nella dashboard diventa un link che naviga a `/anagrafiche`.
+### 1. Migrazione SQL -- aggiornare `get_dashboard_stats`
 
-### 2. KPI "Marchi" cliccabile
+Modificare la CTE `top_clienti` per includere anche il fatturato dell'anno precedente. La funzione calcolera l'anno corrente e il precedente internamente, e per ogni cliente nella Top 10 restituira sia `value` (anno corrente/selezionato) che `valuePrev` (anno precedente).
 
-La card "Marchi" diventa un link che naviga a `/marchi`.
+La logica:
+- Se l'utente filtra per un anno specifico, `value` = fatturato di quell'anno, `valuePrev` = fatturato anno-1
+- La Top 10 resta ordinata per `value` (anno selezionato)
 
-### 3. KPI "Fatturato Totale" cliccabile + nuova pagina
+### 2. Aggiornamento UI -- `src/pages/Dashboard.tsx`
 
-La card "Fatturato Totale" naviga a una nuova pagina `/fatturato` che mostra una tabella riassuntiva con:
-- Confronto mese su mese degli ultimi 2 anni (anno corrente vs anno precedente)
-- Due sezioni affiancate: una per Fogliani e una per Futurtec
-- Per ogni mese: fatturato anno corrente, fatturato anno precedente, variazione %
-- Riga totale in fondo
-- Stile compatto coerente con le tabelle del dettaglio cliente
+Sostituire la lista `<ol>` con una tabella strutturata:
 
-I dati verranno recuperati tramite una nuova funzione RPC `get_fatturato_riepilogo` che aggrega i dati da `sales_records` raggruppando per azienda, anno e mese.
+- **Header**: "Cliente" | "Fatturato" | colonna anno precedente (importo grigio)
+- **Per ogni riga**:
+  - A sinistra: icona `TrendingUp` verde se `value >= valuePrev`, `TrendingDown` rossa se `value < valuePrev`
+  - Nome cliente (troncato, cliccabile)
+  - Importo anno corrente in grassetto, colorato (verde se in crescita, rosso se in calo)
+  - Importo anno precedente in grigio piu piccolo
+- Righe con sfondo alternato per leggibilita
+- Bordo sinistro colorato (verde/rosso) come accento visivo
 
 ### Dettagli tecnici
 
 **Nuova migrazione SQL:**
-- Funzione RPC `get_fatturato_riepilogo` che restituisce il fatturato mensile per azienda per gli ultimi 2 anni, con supporto per filtro agente opzionale
-
-**File da creare:**
-- `src/pages/FatturatoRiepilogo.tsx` -- pagina con tabella riassuntiva mese su mese divisa per azienda
+Aggiornamento della funzione `get_dashboard_stats` per aggiungere `valuePrev` ai dati `topClienti`. La CTE verra modificata per calcolare separatamente il fatturato dell'anno filtrato e dell'anno precedente, mantenendo il ranking sul fatturato corrente.
 
 **File da modificare:**
-- `src/pages/Dashboard.tsx` -- rendere le 3 card KPI cliccabili (wrapping con `Link` o `useNavigate`)
-- `src/App.tsx` -- aggiungere route `/fatturato`
+- `src/pages/Dashboard.tsx` -- nuova sezione Top 10 con layout tabellare, icone trend, doppia colonna importi
 
-**Stile delle card cliccabili:**
-- Aggiunta di `cursor-pointer`, effetto hover con ombra e transizione per indicare che sono cliccabili
-- Le card non cliccabili ("Media per Cliente") restano invariate
+**Tipo dati aggiornato:**
+```text
+topClienti: { name, codice, value, valuePrev }[]
+```
 
+**Componenti Lucide utilizzati:**
+- `TrendingUp` (freccia verde per crescita)
+- `TrendingDown` (freccia rossa per calo)

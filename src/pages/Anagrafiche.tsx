@@ -136,7 +136,7 @@ export default function Anagrafiche() {
             <button
               key={f.key}
               onClick={() => setActiveFilter((prev) => (prev === f.key ? null : f.key))}
-              className={`whitespace-nowrap rounded-full px-3 py-1 text-xs sm:px-4 sm:py-1.5 sm:text-sm border transition-colors ${
+              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[0.8rem] sm:px-5 sm:py-2 sm:text-[0.95rem] border transition-colors ${
                 activeFilter === f.key
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-background text-foreground border-input hover:bg-accent"

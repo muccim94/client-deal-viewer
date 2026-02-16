@@ -24,8 +24,12 @@ const allItems = [
 ];
 
 export function AppSidebar() {
-  const { role, signOut } = useAuth();
-  const items = allItems.filter((item) => !item.adminOnly || role === "admin");
+  const { user, role, canViewProvvigioni, signOut } = useAuth();
+  const items = allItems.filter((item) => {
+    if (item.adminOnly) return role === "admin";
+    if (item.url === "/provvigioni") return role === "admin" || canViewProvvigioni;
+    return true;
+  });
 
   return (
     <Sidebar collapsible="icon">
@@ -54,6 +58,11 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        {user?.email && (
+          <div className="px-3 py-1 text-xs text-muted-foreground truncate">
+            {user.email}
+          </div>
+        )}
         <Button
           variant="ghost"
           size="sm"

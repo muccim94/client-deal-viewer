@@ -14,9 +14,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey =
-      Deno.env.get("SUPABASE_ANON_KEY") ||
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !anonKey) {
@@ -26,27 +24,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify caller identity
+    // Verify caller
     const anonClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } =
-      await anonClient.auth.getClaims(token);
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub as string;
+    const callerId = claimsData.claims.sub as string;
 
-    // Check admin role
+    // Check admin
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: roleRow } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
+      .eq("user_id", callerId)
       .single();
 
     if (!roleRow || roleRow.role !== "admin") {
@@ -56,48 +53,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    // List all users
-    const {
-      data: { users },
-      error: listError,
-    } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+    const { user_id, enabled } = await req.json();
+    if (!user_id || typeof enabled !== "boolean") {
+      return new Response(JSON.stringify({ error: "Invalid body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    if (listError) {
-      console.error("Failed to list users:", listError);
-      return new Response(JSON.stringify({ error: "Unable to retrieve user list" }), {
+    const { error: updateError } = await adminClient
+      .from("user_roles")
+      .update({ can_view_provvigioni: enabled })
+      .eq("user_id", user_id);
+
+    if (updateError) {
+      console.error("Update error:", updateError);
+      return new Response(JSON.stringify({ error: "Update failed" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch roles for all users
-    const { data: rolesData } = await adminClient
-      .from("user_roles")
-      .select("user_id, role, can_view_provvigioni");
-
-    const rolesMap: Record<string, { role: string; can_view_provvigioni: boolean }> = {};
-    if (rolesData) {
-      for (const r of rolesData) {
-        rolesMap[r.user_id] = { role: r.role, can_view_provvigioni: r.can_view_provvigioni ?? false };
-      }
-    }
-
-    const result = users.map((u) => ({
-      id: u.id,
-      email: u.email,
-      role: rolesMap[u.id]?.role || "user",
-      can_view_provvigioni: rolesMap[u.id]?.can_view_provvigioni ?? false,
-    }));
-
-    // Fetch distinct agents via DB function (fast, no pagination needed)
-    const { data: distinctAgents } = await adminClient.rpc("get_distinct_agents");
-    const agents: string[] = distinctAgents || [];
-
-    return new Response(JSON.stringify({ users: result, agents }), {
+    return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("list-users error:", err);
+    console.error("toggle-provvigioni error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

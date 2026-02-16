@@ -102,7 +102,7 @@ export default function Anagrafiche() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 overflow-hidden">
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -126,7 +126,7 @@ export default function Anagrafiche() {
             </div>
           </div>
         </CardHeader>
-        <div className="flex gap-2 px-6 py-3 overflow-x-auto border-b [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex gap-2 px-4 sm:px-6 py-3 overflow-x-auto border-b [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {[
             { key: "perdita", label: "Clienti in perdita" },
             { key: "sotto5k", label: "Sotto i 5k" },
@@ -145,7 +145,7 @@ export default function Anagrafiche() {
             </button>
           ))}
         </div>
-        <CardContent className="p-0">
+        <CardContent className="p-0 min-w-0">
           <div className="max-h-[600px] overflow-auto">
             <Table>
               <TableHeader>
@@ -181,11 +181,11 @@ export default function Anagrafiche() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-base md:text-lg">
+                      <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-sm md:text-lg block max-w-[150px] sm:max-w-none truncate">
                         {r.nomeCliente}
                       </Link>
                     </TableCell>
-                    <TableCell className="font-medium text-right tabular-nums text-sm md:text-base">{fmt(r.fattCurrentYear)}</TableCell>
+                    <TableCell className="font-medium text-right tabular-nums text-xs sm:text-sm md:text-base px-2 sm:px-4">{fmt(r.fattCurrentYear)}</TableCell>
                     <TableCell className="hidden sm:table-cell font-medium text-right tabular-nums">{fmt(r.fattPrevYearYTD)}</TableCell>
                     <TableCell className="hidden sm:table-cell font-medium text-right tabular-nums">{fmt(r.fattPrevYear)}</TableCell>
                     <TableCell>

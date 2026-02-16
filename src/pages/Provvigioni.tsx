@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { getMeseNome } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -21,6 +22,7 @@ interface ProvvigioneRow {
 }
 
 export default function Provvigioni() {
+  const { role, canViewProvvigioni } = useAuth();
   const [filterAzienda, setFilterAzienda] = useState("FO");
   const [filterAnno, setFilterAnno] = useState("2026");
   const [filterMese, setFilterMese] = useState("__all__");
@@ -62,6 +64,16 @@ export default function Provvigioni() {
   const fmt = (n: number) =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
+  if (role !== "admin" && !canViewProvvigioni) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+        <Coins className="h-16 w-16 mb-4 opacity-40" />
+        <p className="text-lg font-medium">Accesso non consentito</p>
+        <p className="text-sm">Non hai i permessi per visualizzare le provvigioni.</p>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -81,7 +93,7 @@ export default function Provvigioni() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-hidden">
       <div className="flex flex-col sm:flex-row flex-wrap gap-3">
         <Select value={filterAzienda} onValueChange={setFilterAzienda}>
           <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Tutte le aziende" /></SelectTrigger>
@@ -126,7 +138,7 @@ export default function Provvigioni() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Codice</TableHead>
+                  <TableHead className="hidden sm:table-cell">Codice</TableHead>
                   <TableHead>Nome Cliente</TableHead>
                   <TableHead className="hidden sm:table-cell">Azienda</TableHead>
                   <TableHead className="text-right">Provvigione</TableHead>
@@ -142,10 +154,10 @@ export default function Provvigioni() {
                 ) : (
                   results.map((r) => (
                     <TableRow key={`${r.azienda}_${r.codice}`}>
-                      <TableCell className="font-mono text-sm">{r.codice}</TableCell>
-                      <TableCell className="text-sm">{r.nome}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{r.aziendaNome}</TableCell>
-                      <TableCell className="text-right tabular-nums font-medium text-sm">{fmt(r.totale)}</TableCell>
+                      <TableCell className="hidden sm:table-cell font-mono text-sm px-2 sm:px-4">{r.codice}</TableCell>
+                      <TableCell className="text-sm px-2 sm:px-4"><span className="block max-w-[150px] sm:max-w-none truncate">{r.nome}</span></TableCell>
+                      <TableCell className="hidden sm:table-cell px-2 sm:px-4">{r.aziendaNome}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium text-xs sm:text-sm px-2 sm:px-4">{fmt(r.totale)}</TableCell>
                     </TableRow>
                   ))
                 )}

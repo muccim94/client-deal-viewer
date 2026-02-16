@@ -7,6 +7,7 @@ type AppRole = "admin" | "user";
 interface AuthContextType {
   user: User | null;
   role: AppRole | null;
+  canViewProvvigioni: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -16,16 +17,18 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [canViewProvvigioni, setCanViewProvvigioni] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadRole = async (userId: string) => {
     const { data } = await supabase
       .from("user_roles")
-      .select("role")
+      .select("role, can_view_provvigioni")
       .eq("user_id", userId)
       .single();
     if (data) {
       setRole(data.role as AppRole);
+      setCanViewProvvigioni(data.role === "admin" || !!(data as any).can_view_provvigioni);
     }
   };
 
@@ -56,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setUser(null);
           setRole(null);
+          setCanViewProvvigioni(false);
           setLoading(false);
         }
       }
@@ -89,10 +93,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     setRole(null);
+    setCanViewProvvigioni(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, loading, signOut }}>
+    <AuthContext.Provider value={{ user, role, canViewProvvigioni, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );

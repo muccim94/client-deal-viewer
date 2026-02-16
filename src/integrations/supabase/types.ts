@@ -91,16 +91,19 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          can_view_provvigioni: boolean
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          can_view_provvigioni?: boolean
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          can_view_provvigioni?: boolean
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string

@@ -1,81 +1,99 @@
-&nbsp;
-
-## Ottimizzazione Mobile Completa
-
-Verifica e correzioni per rendere tutte le pagine responsive su mobile, incluso il menu sidebar.
-
-### Pagine analizzate e problemi trovati
 
 
-| Pagina                 | Stato attuale   | Problemi                                                                                                                             |
-| ---------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Dashboard**          | Buono           | Gia ottimizzata con griglia 2 colonne, FAB ricerca                                                                                   |
-| **Anagrafiche**        | Buono           | Gia nasconde colonne non essenziali su mobile                                                                                        |
-| **ClienteDettaglio**   | Buono           | Pie chart mobile gia implementato                                                                                                    |
-| **ClienteMarchi**      | Problema        | Titolo troppo lungo su mobile, tabella con testo piccolo ma accettabile                                                              |
-| **FatturatoRiepilogo** | Problema        | Header con filtro agente su una riga sola, il SelectTrigger ha larghezza fissa `w-44` che puo traboccare su schermi piccoli          |
-| **Marchi**             | Problema        | Filtri con larghezze fisse (`w-40`, `w-48`, `w-56`) non si adattano a mobile; KPI cards con testo `text-2xl` troppo grande su mobile |
-| **Provvigioni**        | Buono           | Filtri gia `w-full sm:w-*`, tabella nasconde colonna Azienda su mobile                                                               |
-| **UploadExcel**        | Buono           | Layout gia responsive                                                                                                                |
-| **GestioneUtenti**     | Buono           | Gia responsive                                                                                                                       |
-| **Auth**               | Buono           | Centrato con `max-w-sm`                                                                                                              |
-| **AppSidebar**         | Problema        | Il testo del menu non e ottimizzato per mobile; su mobile la sidebar si apre come Sheet ma i testi non sono adattati                 |
-| **AppLayout**          | Problema minore | Il titolo "Trade Off snc" potrebbe essere abbreviato su mobile per dare piu spazio                                                   |
+## Ottimizzazione Mobile + Permesso Provvigioni + Email in Sidebar
 
+### 1. Anagrafiche -- Ottimizzazione larghezza mobile
 
-### Modifiche previste
+**File:** `src/pages/Anagrafiche.tsx`
 
-**1. `src/pages/Marchi.tsx**`
+- Il contenitore principale `space-y-4` non ha limiti di overflow. Aggiungere `overflow-hidden` al wrapper e `overflow-x-auto` alla Card.
+- Ridurre il padding dei filtri rapidi su mobile: `px-4 sm:px-6`
+- Ridurre il font del nome cliente su mobile: da `text-base md:text-lg` a `text-sm md:text-lg`
+- Aggiungere `min-w-0` al wrapper della tabella per evitare overflow
+- Nascondere la colonna "Codice" su mobile con `hidden sm:table-cell` (gia fatto) -- verificato OK
+- Ridurre padding delle celle su mobile: aggiungere `px-2 sm:px-4` alle TableCell visibili
 
-- Rendere i filtri `w-full` su mobile (aggiungere `w-full sm:w-40` ecc.)
-- Ridurre KPI da `text-2xl` a `text-lg md:text-2xl` su mobile
-- Nascondere colonna "Fatt. anno precedente" su mobile nella tabella (`hidden sm:table-cell`)
+### 2. Provvigioni -- Ottimizzazione larghezza mobile
 
-**2. `src/pages/FatturatoRiepilogo.tsx**`
+**File:** `src/pages/Provvigioni.tsx`
 
-- Rendere l'header responsive: su mobile, titolo e filtro su righe separate (`flex-col sm:flex-row`)
-- SelectTrigger da `w-44` a `w-full sm:w-44`
+- Nascondere la colonna "Codice" su mobile: aggiungere `hidden sm:table-cell` alla TableHead e TableCell del codice
+- Ridurre il padding delle celle: `px-2 sm:px-4`
+- Aggiungere `overflow-hidden` al wrapper principale
+- Font della provvigione: `text-xs sm:text-sm`
+- Nome cliente: aggiungere `max-w-[150px] truncate` su mobile per evitare che nomi lunghi allarghino la tabella
 
-**3. `src/pages/ClienteMarchi.tsx**`
+### 3. Permesso visualizzazione Provvigioni per utente
 
-- Titolo su mobile: ridurre font e troncare il nome cliente se troppo lungo
-- Aggiungere `text-base md:text-xl` al titolo
+Questa funzionalita richiede:
 
-**4. `src/components/AppLayout.tsx**`
+**Migrazione SQL:**
+- Aggiungere colonna `can_view_provvigioni` (boolean, default `false`) alla tabella `user_agents` -- No, meglio una tabella/colonna dedicata per utente, non per agente.
+- Aggiungere colonna `can_view_provvigioni` (boolean, default `false`) alla tabella `user_roles`.
+- Policy RLS: gli utenti possono leggere il proprio record, gli admin possono aggiornare qualsiasi record.
 
-- Abbreviare il titolo header su mobile: mostrare "Trade Off" invece di "Trade Off snc" oppure ridurre ulteriormente il font
+**File:** `src/pages/GestioneUtenti.tsx`
+- Per ogni utente non-admin, mostrare un Checkbox con label "Visualizza Provvigioni"
+- Al cambio della spunta, aggiornare il campo `can_view_provvigioni` nella tabella `user_roles` tramite una edge function (dato che le RLS sulla tabella `user_roles` bloccano update diretti)
 
-**5. `src/components/AppSidebar.tsx**`
+**File:** `supabase/functions/toggle-provvigioni/index.ts` (nuovo)
+- Edge function che riceve `{ user_id, enabled }` e aggiorna `user_roles.can_view_provvigioni` usando il service role key
+- Verifica che chi chiama sia admin
 
-- Aggiungere tooltip gia presenti (verificato: ci sono). Il menu su mobile si apre come Sheet tramite il componente Sidebar -- il comportamento e gia corretto. Verificare che il testo sia leggibile e i padding adeguati per touch target.
-- Aumentare leggermente i padding delle voci del menu per facilitare il touch su mobile (min 44px height)
+**File:** `src/contexts/AuthContext.tsx`
+- Caricare anche `can_view_provvigioni` dal record `user_roles` dell'utente corrente
+- Esporre `canViewProvvigioni` nel contesto
+
+**File:** `src/components/AppSidebar.tsx`
+- Condizionare la voce "Provvigioni" nel menu: visibile solo se `role === 'admin'` oppure `canViewProvvigioni === true`
+
+**File:** `src/pages/Provvigioni.tsx`
+- Aggiungere un controllo: se l'utente non ha il permesso, mostrare un messaggio "Accesso non consentito"
+
+**File:** `src/App.tsx`
+- Nessuna modifica necessaria alla route, il controllo avviene dentro il componente
+
+### 4. Email utente nella sidebar
+
+**File:** `src/components/AppSidebar.tsx`
+- Sopra il pulsante "Esci" nel `SidebarFooter`, mostrare l'email dell'utente loggato
+- Usare `useAuth()` per accedere a `user.email`
+- Stile: testo piccolo `text-xs text-muted-foreground truncate` con `px-3 py-1`
 
 ### Dettagli tecnici
 
-`**src/pages/Marchi.tsx**` -- Filtri responsive:
+**Migrazione SQL:**
+```sql
+ALTER TABLE public.user_roles 
+ADD COLUMN can_view_provvigioni boolean NOT NULL DEFAULT false;
+```
 
-- Cambiare i SelectTrigger da larghezze fisse a `w-full sm:w-40`, `w-full sm:w-48`, `w-full sm:w-56`
-- Cambiare il wrapper dei filtri da `flex flex-wrap` a `flex flex-col sm:flex-row flex-wrap`
-- KPI: `text-lg md:text-2xl` invece di `text-2xl`
-- Tabella: aggiungere `hidden sm:table-cell` alla colonna "Fatt. anno precedente"
+**Edge function `toggle-provvigioni`:**
+- Metodo POST, body: `{ user_id: string, enabled: boolean }`
+- Verifica che il chiamante sia admin tramite `has_role`
+- Aggiorna `user_roles SET can_view_provvigioni = enabled WHERE user_id = user_id`
+- Usa il service role key per bypassare le RLS
 
-`**src/pages/FatturatoRiepilogo.tsx**` -- Header responsive:
+**AuthContext:**
+- Nella query di `loadRole`, selezionare anche `can_view_provvigioni`
+- Aggiungere `canViewProvvigioni: boolean` all'interfaccia `AuthContextType`
+- Default `false`, impostato a `true` solo se il campo lo indica oppure se l'utente e admin
 
-- Cambiare `flex items-center justify-between` a `flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2`
-- SelectTrigger: `w-full sm:w-44`
+**GestioneUtenti -- Checkbox:**
+- Per ogni utente con ruolo diverso da "admin", mostrare sotto gli agenti assegnati un `Checkbox` con label "Può visualizzare provvigioni"
+- Lo stato iniziale viene caricato dalla edge function `list-users` (che dovra essere aggiornata per restituire anche `can_view_provvigioni`)
+- Al toggle, chiamare `toggle-provvigioni`
 
-`**src/pages/ClienteMarchi.tsx**` -- Titolo adattivo:
+**Edge function `list-users` -- Aggiornamento:**
+- Aggiungere il campo `can_view_provvigioni` ai dati restituiti per ogni utente, leggendo dalla tabella `user_roles`
 
-- Titolo h1: `text-base md:text-xl` e aggiungere `truncate` o `line-clamp-1`
-- Barra ricerca: `max-w-xs` diventa `w-full sm:max-w-xs`
+**Riepilogo file modificati:**
+1. `src/pages/Anagrafiche.tsx` -- fix larghezza mobile
+2. `src/pages/Provvigioni.tsx` -- fix larghezza mobile + controllo accesso
+3. `src/pages/GestioneUtenti.tsx` -- checkbox permesso provvigioni
+4. `src/components/AppSidebar.tsx` -- email utente + condizione menu provvigioni
+5. `src/contexts/AuthContext.tsx` -- esporre `canViewProvvigioni`
+6. `supabase/functions/toggle-provvigioni/index.ts` -- nuova edge function
+7. `supabase/functions/list-users/index.ts` -- aggiungere campo `can_view_provvigioni`
+8. Migrazione SQL: aggiungere colonna `can_view_provvigioni` a `user_roles`
 
-`**src/components/AppLayout.tsx**` -- Header compatto mobile:
-
-- Ridurre font titolo: `text-sm md:text-lg`
-
-`**src/components/AppSidebar.tsx**` -- Touch target:
-
-- Aggiungere `min-h-[44px]` alle voci del menu per rispettare le linee guida touch (gia gestito dal SidebarMenuButton, ma verificare che il padding sia sufficiente)
-- Il pulsante "Esci" nel footer: aggiungere `min-h-[44px]`
-
-**Nessuna migrazione SQL necessaria.**

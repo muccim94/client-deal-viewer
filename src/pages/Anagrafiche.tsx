@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ interface ClientRow {
 }
 
 export default function Anagrafiche() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filterAgente, setFilterAgente] = useState("__all__");
   const [sortKey, setSortKey] = useState<SortKey>("nomeCliente");
@@ -107,9 +108,9 @@ export default function Anagrafiche() {
         <CardHeader className="pb-3 px-3 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="text-base">{filtered.length} clienti</CardTitle>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="flex flex-row items-center gap-1.5 sm:gap-2">
               <Select value={filterAgente} onValueChange={setFilterAgente}>
-                <SelectTrigger className="w-full sm:w-44">
+                <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-full sm:w-44">
                   <SelectValue placeholder="Tutti gli agenti" />
                 </SelectTrigger>
                 <SelectContent>
@@ -120,13 +121,13 @@ export default function Anagrafiche() {
                 </SelectContent>
               </Select>
               <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Cerca cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+                <Search className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                <Input placeholder="Cerca cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-7 sm:pl-9 h-8 sm:h-10 text-xs sm:text-sm" />
               </div>
             </div>
           </div>
         </CardHeader>
-        <div className="flex gap-2 px-4 sm:px-6 py-3 overflow-x-auto border-b [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex gap-2 px-2 sm:px-6 py-2 sm:py-3 overflow-x-auto border-b [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {[
             { key: "perdita", label: "Clienti in perdita" },
             { key: "sotto5k", label: "Sotto i 5k" },
@@ -135,7 +136,7 @@ export default function Anagrafiche() {
             <button
               key={f.key}
               onClick={() => setActiveFilter((prev) => (prev === f.key ? null : f.key))}
-              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm border transition-colors ${
+              className={`whitespace-nowrap rounded-full px-3 py-1 text-xs sm:px-4 sm:py-1.5 sm:text-sm border transition-colors ${
                 activeFilter === f.key
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-background text-foreground border-input hover:bg-accent"
@@ -166,12 +167,12 @@ export default function Anagrafiche() {
                   <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50 px-2 md:px-4" onClick={() => toggleSort("fattPrevYear")}>
                     <span className="flex items-center gap-1">{`Fatt. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="w-8 px-0 sm:px-2" />
+                  <TableHead className="hidden sm:table-cell w-8 px-0 sm:px-2" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((r) => (
-                  <TableRow key={r.codiceCliente} className="group">
+                  <TableRow key={r.codiceCliente} className="group cursor-pointer sm:cursor-default" onClick={() => navigate(`/anagrafiche/${r.codiceCliente}`)}>
                     <TableCell className="hidden sm:table-cell px-2 md:px-4">{r.codiceCliente}</TableCell>
                     <TableCell className="hidden sm:table-cell">
                       {r.fattCurrentYear >= r.fattPrevYearYTD ? (
@@ -180,12 +181,12 @@ export default function Anagrafiche() {
                         <TrendingDown className="h-4 w-4 text-red-500" />
                       )}
                     </TableCell>
-                    <TableCell className="px-2 md:px-4">
-                      <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-sm md:text-lg">
+                    <TableCell className="px-1 sm:px-2 md:px-4">
+                      <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-sm md:text-lg" onClick={(e) => e.stopPropagation()}>
                         {r.nomeCliente}
                       </Link>
                     </TableCell>
-                    <TableCell className="font-medium text-right tabular-nums text-sm md:text-base px-2 md:px-4 whitespace-nowrap">
+                    <TableCell className="font-medium text-right tabular-nums text-sm md:text-base px-1 sm:px-2 md:px-4 whitespace-nowrap">
                       <span className={`sm:text-foreground ${
                         r.fattCurrentYear >= r.fattPrevYearYTD ? 'text-green-600' : 'text-red-600'
                       }`}>
@@ -194,8 +195,8 @@ export default function Anagrafiche() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell font-medium text-right tabular-nums px-2 md:px-4">{fmt(r.fattPrevYearYTD)}</TableCell>
                     <TableCell className="hidden sm:table-cell font-medium text-right tabular-nums px-2 md:px-4">{fmt(r.fattPrevYear)}</TableCell>
-                    <TableCell className="px-0 sm:px-2 md:px-4 w-8">
-                      <Link to={`/anagrafiche/${r.codiceCliente}`}>
+                    <TableCell className="hidden sm:table-cell px-0 sm:px-2 md:px-4 w-8">
+                      <Link to={`/anagrafiche/${r.codiceCliente}`} onClick={(e) => e.stopPropagation()}>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                       </Link>
                     </TableCell>

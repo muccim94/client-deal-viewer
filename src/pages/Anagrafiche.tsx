@@ -147,17 +147,17 @@ export default function Anagrafiche() {
         </div>
         <CardContent className="p-0 min-w-0">
           <div className="max-h-[600px] overflow-auto">
-            <Table>
+            <Table className="table-fixed sm:table-auto">
               <TableHeader>
                 <TableRow>
                   <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50 px-1 sm:px-2 md:px-4" onClick={() => toggleSort("codiceCliente")}>
                     <span className="flex items-center gap-1">Codice<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                   <TableHead className="hidden sm:table-cell w-10">Trend</TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1 sm:px-2 md:px-4" onClick={() => toggleSort("nomeCliente")}>
+                  <TableHead className="w-[55%] sm:w-auto cursor-pointer select-none hover:bg-muted/50 px-1 sm:px-2 md:px-4" onClick={() => toggleSort("nomeCliente")}>
                     <span className="flex items-center gap-1">Nome Cliente<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1 sm:px-2 md:px-4" onClick={() => toggleSort("fattCurrentYear")}>
+                  <TableHead className="w-[35%] sm:w-auto cursor-pointer select-none hover:bg-muted/50 px-1 sm:px-2 md:px-4" onClick={() => toggleSort("fattCurrentYear")}>
                     <span className="flex items-center gap-1">{`Fatt. ${currentYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                   <TableHead className="hidden md:table-cell cursor-pointer select-none hover:bg-muted/50 px-1 sm:px-2 md:px-4" onClick={() => toggleSort("fattPrevYearYTD")}>
@@ -166,7 +166,7 @@ export default function Anagrafiche() {
                   <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50 px-1 sm:px-2 md:px-4" onClick={() => toggleSort("fattPrevYear")}>
                     <span className="flex items-center gap-1">{`Fatt. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="w-8" />
+                  <TableHead className="hidden sm:table-cell w-8" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -180,8 +180,8 @@ export default function Anagrafiche() {
                         <TrendingDown className="h-4 w-4 text-red-500" />
                       )}
                     </TableCell>
-                    <TableCell className="px-1 sm:px-2 md:px-4">
-                      <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-xs sm:text-sm md:text-lg block max-w-[120px] sm:max-w-[150px] md:max-w-none truncate">
+                    <TableCell className="px-1 sm:px-2 md:px-4 overflow-hidden">
+                      <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-xs sm:text-sm md:text-lg block truncate">
                         {r.nomeCliente}
                       </Link>
                     </TableCell>
@@ -194,7 +194,7 @@ export default function Anagrafiche() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell font-medium text-right tabular-nums px-1 sm:px-2 md:px-4">{fmt(r.fattPrevYearYTD)}</TableCell>
                     <TableCell className="hidden sm:table-cell font-medium text-right tabular-nums px-1 sm:px-2 md:px-4">{fmt(r.fattPrevYear)}</TableCell>
-                    <TableCell className="px-1 sm:px-2 md:px-4">
+                    <TableCell className="hidden sm:table-cell px-1 sm:px-2 md:px-4">
                       <Link to={`/anagrafiche/${r.codiceCliente}`}>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                       </Link>

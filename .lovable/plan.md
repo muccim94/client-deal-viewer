@@ -1,51 +1,94 @@
-
-## Ottimizzazione Mobile Tabella Anagrafiche
+## Card Riepilogativa Unica per Anagrafica Cliente
 
 ### Obiettivo
-Ridurre la larghezza complessiva su mobile (~15%) nascondendo la colonna freccia e compattando i controlli in alto.
 
-### Modifiche su `src/pages/Anagrafiche.tsx`
+Sostituire le 4 card KPI separate (una per azienda per anno) con un'unica card riepilogativa che mostra:
 
-**1. Nascondere la colonna ChevronRight su mobile**
-- TableHead (riga 169): da `w-8 px-0 sm:px-2` a `hidden sm:table-cell w-8 px-0 sm:px-2`
-- TableCell (riga 197-201): da `px-0 sm:px-2 md:px-4 w-8` a `hidden sm:table-cell px-0 sm:px-2 md:px-4 w-8`
-- Rendere l'intera riga cliccabile su mobile tramite un wrapper o usando `onClick` + `useNavigate` sulla TableRow
+- **Dato principale**: Fatturato 2026 (anno corrente) in grande
+- **Comparazione**: Fatturato 2025 YTD affiancato, con freccia verde (TrendingUp) se il 2026 e' superiore, rossa (TrendingDown) se inferiore
+- **Dato secondario**: Fatturato 2025 totale in dimensione piu' piccola
 
-**2. Compattare i controlli di ricerca su mobile**
-- Select agente (riga 112): ridurre altezza con `h-8 text-xs` su mobile -> `h-8 sm:h-10 text-xs sm:text-sm w-full sm:w-44`
-- Input cerca (riga 122-124): ridurre altezza `h-8 sm:h-10 text-xs sm:text-sm` e icona piu piccola `h-3 w-3 sm:h-4 sm:w-4`
-- Mettere Select e Input affiancati su mobile: cambiare il wrapper (riga 110) in `flex flex-row items-center gap-1.5 sm:gap-2` con larghezze `w-1/2` ciascuno su mobile
-- Ridurre padding filtri rapidi (riga 129): `px-2 sm:px-6 py-2 sm:py-3` e bottoni `px-3 py-1 text-xs sm:px-4 sm:py-1.5 sm:text-sm`
+### Modifiche su `src/pages/ClienteDettaglio.tsx`
 
-**3. Ridurre padding celle su mobile**
-- Celle nome e fatturato: da `px-2 md:px-4` a `px-1 sm:px-2 md:px-4`
+**Sostituzione della sezione KPI Cards (righe 130-155)**
+
+Rimuovere il blocco attuale con la griglia `grid-cols-2 lg:grid-cols-4` contenente le 4 card separate e sostituirlo con una singola `<Card>` strutturata cosi':
+
+```text
++--------------------------------------------------+
+|  Fatturato 2026                                   |
+|  EUR 125.430,00                    (grande, bold) |
+|                                                   |
+|  vs 2025 YTD: EUR 110.200,00   [freccia su/giu]  |
+|  Fatt. 2025: EUR 180.500,00       (piccolo, gray) |
++--------------------------------------------------+
+```
+
+**Logica di calcolo:**
+
+- `fattCorrente`: somma imponibile di tutti i record con `anno === annoCorrente`
+- `fattPrecYTD`: somma imponibile dei record con `anno === annoPrecedente` e `mese <= meseCorrente` (dove meseCorrente = mese attuale del calendario)
+- `fattPrecTotale`: somma imponibile di tutti i record con `anno === annoPrecedente`
+- La freccia si basa sul confronto `fattCorrente` vs `fattPrecYTD`
+
+**Struttura della card:**
+
+- CardHeader: titolo "Riepilogo Fatturato"
+- CardContent:
+  - Riga 1: label "Fatturato {annoCorrente}" + valore grande (`text-2xl md:text-3xl font-bold`)
+  - Riga 2: "vs {annoPrecedente} YTD: {valore}" + icona TrendingUp/TrendingDown + percentuale delta
+  - Riga 3: "Fatt. {annoPrecedente}: {valore}" in `text-sm text-muted-foreground`
 
 ### Dettagli tecnici
 
-**Riga cliccabile su mobile (sostituzione freccia):**
-Aggiungere `useNavigate` da react-router-dom e un `onClick` sulla TableRow:
+Il calcolo dei totali viene fatto con un `useMemo` che aggrega tutti i record indipendentemente dall'azienda:
+
 ```tsx
-const navigate = useNavigate();
-// ...
-<TableRow 
-  key={r.codiceCliente} 
-  className="group cursor-pointer sm:cursor-default"
-  onClick={() => navigate(`/anagrafiche/${r.codiceCliente}`)}
->
+const { fattCorrente, fattPrecYTD, fattPrecTotale } = useMemo(() => {
+  const meseCorrente = new Date().getMonth() + 1;
+  let fattCorrente = 0, fattPrecYTD = 0, fattPrecTotale = 0;
+  clientRecords.forEach((r) => {
+    if (r.anno === annoCorrente) fattCorrente += r.imponibile;
+    if (r.anno === annoPrecedente) {
+      fattPrecTotale += r.imponibile;
+      if (r.mese <= meseCorrente) fattPrecYTD += r.imponibile;
+    }
+  });
+  return { fattCorrente, fattPrecYTD, fattPrecTotale };
+}, [clientRecords, annoCorrente, annoPrecedente]);
 ```
 
-**Controlli affiancati su mobile:**
+La card unica:
+
 ```tsx
-<div className="flex flex-row items-center gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-  <Select ...>
-    <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm w-full sm:w-44">
-  </Select>
-  <div className="relative w-full sm:w-64">
-    <Search className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 ..." />
-    <Input ... className="pl-7 sm:pl-9 h-8 sm:h-10 text-xs sm:text-sm" />
-  </div>
-</div>
+<Card>
+  <CardHeader className="pb-2">
+    <CardTitle className="text-base">Riepilogo Fatturato</CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-2">
+    <div>
+      <p className="text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
+      <p className="text-2xl md:text-3xl font-bold">{fmt(fattCorrente)}</p>
+    </div>
+    <div className="flex items-center gap-2">
+      {fattCorrente >= fattPrecYTD
+        ? <TrendingUp className="h-4 w-4 text-emerald-500" />
+        : <TrendingDown className="h-4 w-4 text-red-500" />}
+      <span className="text-sm">
+        vs {annoPrecedente} YTD: {fmt(fattPrecYTD)}
+      </span>
+      <span className={`text-sm font-medium ${
+        fattCorrente >= fattPrecYTD ? 'text-emerald-600' : 'text-red-600'
+      }`}>
+        ({pct(fattCorrente, fattPrecYTD).toFixed(1)}%)
+      </span>
+    </div>
+    <p className="text-sm text-muted-foreground">
+      Fatt. {annoPrecedente}: {fmt(fattPrecTotale)}
+    </p>
+  </CardContent>
+</Card>
 ```
 
-**File modificato:** solo `src/pages/Anagrafiche.tsx`
+**File modificato:** solo `src/pages/ClienteDettaglio.tsx`
 **Nessuna migrazione SQL necessaria.**

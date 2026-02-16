@@ -104,7 +104,7 @@ export default function Anagrafiche() {
   return (
     <div className="space-y-4 overflow-hidden">
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 px-3 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="text-base">{filtered.length} clienti</CardTitle>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">

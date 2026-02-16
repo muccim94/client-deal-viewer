@@ -1,0 +1,1 @@
+ALTER TABLE public.user_roles ADD COLUMN can_view_provvigioni boolean NOT NULL DEFAULT false;

@@ -7,11 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Plus, Users, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface UserInfo {
   id: string;
   email: string;
   role: string;
+  can_view_provvigioni: boolean;
 }
 
 interface UserAgent {
@@ -139,6 +142,29 @@ export default function GestioneUtenti() {
                     </Badge>
                   ))}
                 </div>
+
+                {/* Provvigioni permission */}
+                {u.role !== "admin" && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <Checkbox
+                      id={`prov-${u.id}`}
+                      checked={u.can_view_provvigioni}
+                      onCheckedChange={async (checked) => {
+                        const { error } = await supabase.functions.invoke("toggle-provvigioni", {
+                          body: { user_id: u.id, enabled: !!checked },
+                        });
+                        if (error) {
+                          toast({ title: "Errore", description: error.message, variant: "destructive" });
+                          return;
+                        }
+                        loadData();
+                      }}
+                    />
+                    <Label htmlFor={`prov-${u.id}`} className="text-sm cursor-pointer">
+                      Può visualizzare provvigioni
+                    </Label>
+                  </div>
+                )}
 
                 {/* Add agent */}
                 {unassigned.length > 0 && (

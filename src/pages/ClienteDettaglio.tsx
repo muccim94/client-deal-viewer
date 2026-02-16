@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getMeseNome } from "@/types/data";
 import { SalesRecord } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, Building2, Loader2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -72,6 +72,19 @@ export default function ClienteDettaglio() {
     return { pieData: pieTop, barData: barTop };
   }, [clientRecords, annoCorrente, annoPrecedente]);
 
+  const { fattCorrente, fattPrecYTD, fattPrecTotale } = useMemo(() => {
+    const meseCorrente = new Date().getMonth() + 1;
+    let fattCorrente = 0, fattPrecYTD = 0, fattPrecTotale = 0;
+    clientRecords.forEach((r) => {
+      if (r.anno === annoCorrente) fattCorrente += r.imponibile;
+      if (r.anno === annoPrecedente) {
+        fattPrecTotale += r.imponibile;
+        if (r.mese <= meseCorrente) fattPrecYTD += r.imponibile;
+      }
+    });
+    return { fattCorrente, fattPrecYTD, fattPrecTotale };
+  }, [clientRecords, annoCorrente, annoPrecedente]);
+
   const aziende = useMemo(() => {
     const names = [...new Set(clientRecords.map((r) => r.aziendaNome))].sort();
     return names.map((name) => {
@@ -127,32 +140,34 @@ export default function ClienteDettaglio() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      {(() => {
-        const perAziendaAnno = (azienda: string, anno: number) =>
-          clientRecords.filter((r) => r.aziendaNome === azienda && r.anno === anno).reduce((s, r) => s + r.imponibile, 0);
-        const aziendeNomi = [...new Set(clientRecords.map((r) => r.aziendaNome))].sort();
-        return (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            {aziendeNomi.map((az) => (
-              <Card key={`${az}-${annoCorrente}`}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-muted-foreground flex items-center gap-1"><Building2 className="h-4 w-4" />{az} {annoCorrente}</CardTitle>
-                </CardHeader>
-                <CardContent><p className="text-lg md:text-2xl font-bold">{fmt(perAziendaAnno(az, annoCorrente))}</p></CardContent>
-              </Card>
-            ))}
-            {aziendeNomi.map((az) => (
-              <Card key={`${az}-${annoPrecedente}`}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-muted-foreground flex items-center gap-1"><Building2 className="h-4 w-4" />{az} {annoPrecedente}</CardTitle>
-                </CardHeader>
-                <CardContent><p className="text-lg md:text-2xl font-bold">{fmt(perAziendaAnno(az, annoPrecedente))}</p></CardContent>
-              </Card>
-            ))}
+      {/* Card Riepilogativa */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Riepilogo Fatturato</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div>
+            <p className="text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
+            <p className="text-2xl md:text-3xl font-bold">{fmt(fattCorrente)}</p>
           </div>
-        );
-      })()}
+          <div className="flex items-center gap-2">
+            {fattCorrente >= fattPrecYTD
+              ? <TrendingUp className="h-4 w-4 text-emerald-500" />
+              : <TrendingDown className="h-4 w-4 text-red-500" />}
+            <span className="text-sm">
+              vs {annoPrecedente} YTD: {fmt(fattPrecYTD)}
+            </span>
+            <span className={`text-sm font-medium ${
+              fattCorrente >= fattPrecYTD ? 'text-emerald-600' : 'text-red-600'
+            }`}>
+              ({pct(fattCorrente, fattPrecYTD).toFixed(1)}%)
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Fatt. {annoPrecedente}: {fmt(fattPrecTotale)}
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Pie Chart - Fatturato per Marchio */}
       <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={goToMarchi}>

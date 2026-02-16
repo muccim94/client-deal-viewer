@@ -147,17 +147,17 @@ export default function Anagrafiche() {
         </div>
         <CardContent className="p-0 min-w-0">
           <div className="max-h-[600px] overflow-auto">
-            <Table>
+            <Table className="table-fixed sm:table-auto">
               <TableHeader>
                 <TableRow>
                   <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("codiceCliente")}>
                     <span className="flex items-center gap-1">Codice<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                   <TableHead className="hidden sm:table-cell w-10">Trend</TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("nomeCliente")}>
+                  <TableHead className="px-2 sm:px-4 cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("nomeCliente")}>
                     <span className="flex items-center gap-1">Nome Cliente<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattCurrentYear")}>
+                  <TableHead className="px-2 sm:px-4 cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattCurrentYear")}>
                     <span className="flex items-center gap-1">{`Fatt. ${currentYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                   <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattPrevYearYTD")}>
@@ -166,7 +166,7 @@ export default function Anagrafiche() {
                   <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattPrevYear")}>
                     <span className="flex items-center gap-1">{`Fatt. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="w-8" />
+                  <TableHead className="w-6 sm:w-8 px-1 sm:px-4" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -188,7 +188,7 @@ export default function Anagrafiche() {
                     <TableCell className="font-medium text-right tabular-nums text-xs sm:text-sm md:text-base px-2 sm:px-4">{fmt(r.fattCurrentYear)}</TableCell>
                     <TableCell className="hidden sm:table-cell font-medium text-right tabular-nums">{fmt(r.fattPrevYearYTD)}</TableCell>
                     <TableCell className="hidden sm:table-cell font-medium text-right tabular-nums">{fmt(r.fattPrevYear)}</TableCell>
-                    <TableCell>
+                    <TableCell className="px-1 sm:px-4 py-2">
                       <Link to={`/anagrafiche/${r.codiceCliente}`}>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                       </Link>

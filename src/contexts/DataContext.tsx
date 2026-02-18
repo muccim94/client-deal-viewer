@@ -32,6 +32,7 @@ const PAGE_SIZE = 50;
 
 interface DataContextType {
   addRecords: (records: SalesRecord[]) => Promise<{ added: number; duplicates: number }>;
+  addRecord: (data: Omit<DbRecord, "id" | "created_at">) => Promise<void>;
   clearRecords: () => Promise<void>;
   recordCount: number | null;
   refreshRecordCount: () => Promise<void>;
@@ -116,6 +117,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return { data: (data ?? []) as DbRecord[], total: count ?? 0 };
   }, []);
 
+  const addRecord = useCallback(async (data: Omit<DbRecord, "id" | "created_at">) => {
+    if (!user) throw new Error("Not authenticated");
+    const { error } = await supabase.from("sales_records").insert({
+      ...data,
+      user_id: user.id,
+      fattura_riga: null,
+    });
+    if (error) throw error;
+    await refreshRecordCount();
+  }, [user, refreshRecordCount]);
+
   const updateRecord = useCallback(async (id: string, data: Partial<DbRecord>) => {
     const { error } = await supabase.from("sales_records").update(data).eq("id", id);
     if (error) throw error;
@@ -128,7 +140,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [refreshRecordCount]);
 
   return (
-    <DataContext.Provider value={{ addRecords, clearRecords, recordCount, refreshRecordCount, fetchRecords, updateRecord, deleteRecord }}>
+    <DataContext.Provider value={{ addRecords, addRecord, clearRecords, recordCount, refreshRecordCount, fetchRecords, updateRecord, deleteRecord }}>
       {children}
     </DataContext.Provider>
   );

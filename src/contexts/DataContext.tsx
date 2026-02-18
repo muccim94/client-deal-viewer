@@ -3,11 +3,41 @@ import { SalesRecord } from "@/types/data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+export interface DbRecord {
+  id: string;
+  azienda: string;
+  azienda_nome: string;
+  anno: number;
+  mese: number;
+  codice_cliente: string;
+  nome_cliente: string;
+  agente: string;
+  marchio: string;
+  articolo: string;
+  imponibile: number;
+  provvigione: number;
+  fattura_riga: string | null;
+  user_id: string;
+  created_at: string;
+}
+
+export interface FetchFilters {
+  anno?: number;
+  mese?: number;
+  cliente?: string;
+  agente?: string;
+}
+
+const PAGE_SIZE = 50;
+
 interface DataContextType {
   addRecords: (records: SalesRecord[]) => Promise<{ added: number; duplicates: number }>;
   clearRecords: () => Promise<void>;
   recordCount: number | null;
   refreshRecordCount: () => Promise<void>;
+  fetchRecords: (filters: FetchFilters, page: number) => Promise<{ data: DbRecord[]; total: number }>;
+  updateRecord: (id: string, data: Partial<DbRecord>) => Promise<void>;
+  deleteRecord: (id: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -65,8 +95,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setRecordCount(0);
   }, []);
 
+  const fetchRecords = useCallback(async (filters: FetchFilters, page: number) => {
+    let query = supabase
+      .from("sales_records")
+      .select("*", { count: "exact" })
+      .order("anno", { ascending: false })
+      .order("mese", { ascending: false })
+      .order("nome_cliente", { ascending: true });
+
+    if (filters.anno) query = query.eq("anno", filters.anno);
+    if (filters.mese) query = query.eq("mese", filters.mese);
+    if (filters.cliente) query = query.ilike("nome_cliente", `%${filters.cliente}%`);
+    if (filters.agente) query = query.ilike("agente", `%${filters.agente}%`);
+
+    const from = page * PAGE_SIZE;
+    query = query.range(from, from + PAGE_SIZE - 1);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { data: (data ?? []) as DbRecord[], total: count ?? 0 };
+  }, []);
+
+  const updateRecord = useCallback(async (id: string, data: Partial<DbRecord>) => {
+    const { error } = await supabase.from("sales_records").update(data).eq("id", id);
+    if (error) throw error;
+  }, []);
+
+  const deleteRecord = useCallback(async (id: string) => {
+    const { error } = await supabase.from("sales_records").delete().eq("id", id);
+    if (error) throw error;
+    await refreshRecordCount();
+  }, [refreshRecordCount]);
+
   return (
-    <DataContext.Provider value={{ addRecords, clearRecords, recordCount, refreshRecordCount }}>
+    <DataContext.Provider value={{ addRecords, clearRecords, recordCount, refreshRecordCount, fetchRecords, updateRecord, deleteRecord }}>
       {children}
     </DataContext.Provider>
   );

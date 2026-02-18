@@ -1,10 +1,11 @@
-import { useState, useCallback, useEffect } from "react";
-import { useData } from "@/contexts/DataContext";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useData, DbRecord, FetchFilters } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { parseExcelFile } from "@/lib/parseExcel";
-import { SalesRecord } from "@/types/data";
+import { SalesRecord, getMeseNome } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -12,26 +13,112 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Upload as UploadIcon, FileSpreadsheet, Check, X, Trash2, Download } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Upload as UploadIcon, FileSpreadsheet, Check, X, Trash2, Pencil, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
 import { useQueryClient } from "@tanstack/react-query";
+import { RecordEditDialog } from "@/components/upload/RecordEditDialog";
+
+const PAGE_SIZE = 50;
+
+const MESI = [
+  { v: 1, l: "Gennaio" }, { v: 2, l: "Febbraio" }, { v: 3, l: "Marzo" },
+  { v: 4, l: "Aprile" }, { v: 5, l: "Maggio" }, { v: 6, l: "Giugno" },
+  { v: 7, l: "Luglio" }, { v: 8, l: "Agosto" }, { v: 9, l: "Settembre" },
+  { v: 10, l: "Ottobre" }, { v: 11, l: "Novembre" }, { v: 12, l: "Dicembre" },
+];
+
+const fmt = (n: number) =>
+  new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
 export default function UploadExcel() {
-  const { addRecords, clearRecords, recordCount, refreshRecordCount } = useData();
+  const { addRecords, clearRecords, recordCount, refreshRecordCount, fetchRecords, updateRecord, deleteRecord } = useData();
   const { role } = useAuth();
   const queryClient = useQueryClient();
+
+  // --- upload state ---
   const [preview, setPreview] = useState<SalesRecord[] | null>(null);
   const [fileNames, setFileNames] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const [importing, setImporting] = useState(false);
 
+  // --- editor state ---
+  const [editorPage, setEditorPage] = useState(0);
+  const [editorTotal, setEditorTotal] = useState(0);
+  const [editorRows, setEditorRows] = useState<DbRecord[]>([]);
+  const [editorLoading, setEditorLoading] = useState(false);
+  const [filters, setFilters] = useState<FetchFilters>({});
+  const [filterAnnoStr, setFilterAnnoStr] = useState("");
+  const [filterClienteInput, setFilterClienteInput] = useState("");
+  const [filterAgenteInput, setFilterAgenteInput] = useState("");
+  const [editTarget, setEditTarget] = useState<DbRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DbRecord | null>(null);
+  const clienteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const agenteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const isAdmin = role === "admin";
 
-  useEffect(() => {
-    refreshRecordCount();
-  }, [refreshRecordCount]);
+  useEffect(() => { refreshRecordCount(); }, [refreshRecordCount]);
 
+  // Load editor rows whenever filters or page change
+  const loadEditor = useCallback(async (f: FetchFilters, page: number) => {
+    setEditorLoading(true);
+    try {
+      const { data, total } = await fetchRecords(f, page);
+      setEditorRows(data);
+      setEditorTotal(total);
+    } catch {
+      toast.error("Errore nel caricamento dei dati");
+    } finally {
+      setEditorLoading(false);
+    }
+  }, [fetchRecords]);
+
+  useEffect(() => {
+    if (isAdmin && recordCount != null && recordCount > 0) {
+      loadEditor(filters, editorPage);
+    }
+  }, [filters, editorPage, recordCount, isAdmin, loadEditor]);
+
+  // --- filter handlers ---
+  const handleAnnoChange = (v: string) => {
+    const anno = v === "all" ? undefined : Number(v);
+    setFilterAnnoStr(v);
+    setEditorPage(0);
+    setFilters((f) => ({ ...f, anno }));
+  };
+
+  const handleMeseChange = (v: string) => {
+    const mese = v === "all" ? undefined : Number(v);
+    setEditorPage(0);
+    setFilters((f) => ({ ...f, mese }));
+  };
+
+  const handleClienteInput = (v: string) => {
+    setFilterClienteInput(v);
+    if (clienteDebounce.current) clearTimeout(clienteDebounce.current);
+    clienteDebounce.current = setTimeout(() => {
+      setEditorPage(0);
+      setFilters((f) => ({ ...f, cliente: v || undefined }));
+    }, 400);
+  };
+
+  const handleAgenteInput = (v: string) => {
+    setFilterAgenteInput(v);
+    if (agenteDebounce.current) clearTimeout(agenteDebounce.current);
+    agenteDebounce.current = setTimeout(() => {
+      setEditorPage(0);
+      setFilters((f) => ({ ...f, agente: v || undefined }));
+    }, 400);
+  };
+
+  // Derive unique years from available records (rough: just use filter options)
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 6 }, (_, i) => currentYear - i);
+
+  // --- upload handlers ---
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     try {
       const allData: SalesRecord[] = [];
@@ -48,14 +135,11 @@ export default function UploadExcel() {
     }
   }, []);
 
-  const onDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragging(false);
-      if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
-    },
-    [handleFiles],
-  );
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  }, [handleFiles]);
 
   const onFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) handleFiles(e.target.files);
@@ -76,8 +160,8 @@ export default function UploadExcel() {
       }
       setPreview(null);
       setFileNames([]);
-      // Invalidate all queries so pages re-fetch aggregated data
       queryClient.invalidateQueries();
+      loadEditor(filters, editorPage);
     } catch (err: any) {
       toast.error(err.message || "Errore durante l'importazione");
     } finally {
@@ -85,16 +169,15 @@ export default function UploadExcel() {
     }
   };
 
-  const cancel = () => {
-    setPreview(null);
-    setFileNames([]);
-  };
+  const cancel = () => { setPreview(null); setFileNames([]); };
 
   const clearAll = async () => {
     try {
       await clearRecords();
       setPreview(null);
       setFileNames([]);
+      setEditorRows([]);
+      setEditorTotal(0);
       queryClient.invalidateQueries();
       toast.success("Storico dati cancellato");
     } catch (err: any) {
@@ -102,11 +185,31 @@ export default function UploadExcel() {
     }
   };
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
+  // --- editor handlers ---
+  const handleSaveRecord = async (id: string, data: Partial<DbRecord>) => {
+    await updateRecord(id, data);
+    toast.success("Record aggiornato");
+    loadEditor(filters, editorPage);
+    queryClient.invalidateQueries();
+  };
+
+  const handleDeleteRecord = async (record: DbRecord) => {
+    try {
+      await deleteRecord(record.id);
+      toast.success("Record eliminato");
+      loadEditor(filters, editorPage);
+      queryClient.invalidateQueries();
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante l'eliminazione");
+    }
+    setDeleteTarget(null);
+  };
+
+  const totalPages = Math.ceil(editorTotal / PAGE_SIZE);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      {/* Upload card */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Carica File Excel</CardTitle>
@@ -126,51 +229,44 @@ export default function UploadExcel() {
               Trascina qui i file Excel oppure clicca per selezionarli
             </p>
             <p className="text-xs text-muted-foreground mt-1">Formati supportati: .xlsx, .xls — puoi selezionare più file</p>
-            <input
-              id="file-input"
-              type="file"
-              accept=".xlsx,.xls"
-              multiple
-              className="hidden"
-              onChange={onFileInput}
-            />
+            <input id="file-input" type="file" accept=".xlsx,.xls" multiple className="hidden" onChange={onFileInput} />
           </div>
         </CardContent>
       </Card>
 
+      {/* Record count + clear */}
       {recordCount != null && recordCount > 0 && (
         <Card>
           <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
             <p className="text-sm text-muted-foreground">
               Storico attuale: <span className="font-medium text-foreground">{recordCount.toLocaleString("it-IT")}</span> record
             </p>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              {isAdmin && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm">
-                      <Trash2 className="h-4 w-4 mr-1" /> Cancella storico
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Cancellare tutti i dati?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Questa azione eliminerà tutti i {recordCount.toLocaleString("it-IT")} record importati. L'operazione non è reversibile.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annulla</AlertDialogCancel>
-                      <AlertDialogAction onClick={clearAll}>Cancella tutto</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-            </div>
+            {isAdmin && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="h-4 w-4 mr-1" /> Cancella storico
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancellare tutti i dati?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Questa azione eliminerà tutti i {recordCount.toLocaleString("it-IT")} record importati. L'operazione non è reversibile.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annulla</AlertDialogCancel>
+                    <AlertDialogAction onClick={clearAll}>Cancella tutto</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </CardContent>
         </Card>
       )}
 
+      {/* Import preview */}
       {preview && (
         <Card>
           <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -224,6 +320,173 @@ export default function UploadExcel() {
           </CardContent>
         </Card>
       )}
+
+      {/* ── EDITOR SEZIONE (solo admin) ── */}
+      {isAdmin && recordCount != null && recordCount > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Modifica Storico</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Filtri */}
+            <div className="flex flex-wrap gap-2">
+              <Select value={filterAnnoStr || "all"} onValueChange={handleAnnoChange}>
+                <SelectTrigger className="w-28">
+                  <SelectValue placeholder="Anno" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tutti gli anni</SelectItem>
+                  {years.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select onValueChange={handleMeseChange} defaultValue="all">
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Mese" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tutti i mesi</SelectItem>
+                  {MESI.map((m) => (
+                    <SelectItem key={m.v} value={String(m.v)}>{m.l}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="relative flex-1 min-w-40">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-8"
+                  placeholder="Cerca cliente..."
+                  value={filterClienteInput}
+                  onChange={(e) => handleClienteInput(e.target.value)}
+                />
+              </div>
+
+              <div className="relative flex-1 min-w-36">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-8"
+                  placeholder="Cerca agente..."
+                  value={filterAgenteInput}
+                  onChange={(e) => handleAgenteInput(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Tabella */}
+            <div className="rounded-md border overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-14">Anno</TableHead>
+                    <TableHead className="w-24">Mese</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="hidden md:table-cell">Agente</TableHead>
+                    <TableHead className="hidden lg:table-cell">Marchio</TableHead>
+                    <TableHead className="text-right">Imponibile</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">Provvigione</TableHead>
+                    <TableHead className="w-20 text-center">Azioni</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {editorLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground text-sm">
+                        Caricamento...
+                      </TableCell>
+                    </TableRow>
+                  ) : editorRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground text-sm">
+                        Nessun record trovato
+                      </TableCell>
+                    </TableRow>
+                  ) : editorRows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="text-sm">{r.anno}</TableCell>
+                      <TableCell className="text-sm">{getMeseNome(r.mese)}</TableCell>
+                      <TableCell className="text-sm">{r.nome_cliente}</TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">{r.agente}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">{r.marchio}</TableCell>
+                      <TableCell className="text-right text-sm">{fmt(r.imponibile)}</TableCell>
+                      <TableCell className="text-right hidden sm:table-cell text-sm">{fmt(r.provvigione)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost" size="icon" className="h-7 w-7"
+                            onClick={() => setEditTarget(r)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+
+                          <AlertDialog open={deleteTarget?.id === r.id} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
+                                onClick={() => setDeleteTarget(r)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Eliminare il record?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Stai per eliminare il record di <strong>{r.nome_cliente}</strong> ({getMeseNome(r.mese)} {r.anno}). L'operazione non è reversibile.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive hover:bg-destructive/90"
+                                  onClick={() => handleDeleteRecord(r)}
+                                >
+                                  Elimina
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Paginazione */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <Button
+                  variant="outline" size="sm"
+                  disabled={editorPage === 0}
+                  onClick={() => setEditorPage((p) => p - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Precedente
+                </Button>
+                <span>Pagina {editorPage + 1} di {totalPages} ({editorTotal.toLocaleString("it-IT")} record)</span>
+                <Button
+                  variant="outline" size="sm"
+                  disabled={editorPage >= totalPages - 1}
+                  onClick={() => setEditorPage((p) => p + 1)}
+                >
+                  Successivo <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit dialog */}
+      <RecordEditDialog
+        record={editTarget}
+        open={!!editTarget}
+        onClose={() => setEditTarget(null)}
+        onSave={handleSaveRecord}
+      />
     </div>
   );
 }

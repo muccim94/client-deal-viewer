@@ -1,94 +1,87 @@
-## Card Riepilogativa Unica per Anagrafica Cliente
+
+## Editor Dati nella Pagina Upload Excel
 
 ### Obiettivo
+Aggiungere una sezione "Storico Dati" nella pagina `/upload` che permette di visualizzare, filtrare, modificare ed eliminare singoli record gia' importati nel database.
 
-Sostituire le 4 card KPI separate (una per azienda per anno) con un'unica card riepilogativa che mostra:
+### Struttura della nuova sezione
 
-- **Dato principale**: Fatturato 2026 (anno corrente) in grande
-- **Comparazione**: Fatturato 2025 YTD affiancato, con freccia verde (TrendingUp) se il 2026 e' superiore, rossa (TrendingDown) se inferiore
-- **Dato secondario**: Fatturato 2025 totale in dimensione piu' piccola
+La nuova sezione apparira' sotto il blocco dello storico attuale (il contatore dei record), e sara' composta da:
 
-### Modifiche su `src/pages/ClienteDettaglio.tsx`
+1. **Barra filtri**: campi di ricerca rapida per Anno, Mese, Cliente, Agente
+2. **Tabella editabile**: mostra i record con paginazione (50 per pagina), con un pulsante "Modifica" per riga
+3. **Dialog di modifica**: form inline per modificare i campi del record selezionato
+4. **Pulsante elimina singolo record**: per ogni riga, icona cestino con conferma
 
-**Sostituzione della sezione KPI Cards (righe 130-155)**
+### Modifiche tecniche
 
-Rimuovere il blocco attuale con la griglia `grid-cols-2 lg:grid-cols-4` contenente le 4 card separate e sostituirlo con una singola `<Card>` strutturata cosi':
+#### 1. `src/contexts/DataContext.tsx`
+Aggiungere due nuove funzioni al context:
+- `updateRecord(id: string, data: Partial<SalesRecord>): Promise<void>` — esegue `supabase.from("sales_records").update(...).eq("id", id)`
+- `deleteRecord(id: string): Promise<void>` — esegue `supabase.from("sales_records").delete().eq("id", id)`
+- `fetchRecords(filters): Promise<{data: DbRecord[], total: number}>` — query paginata con filtri opzionali
 
+#### 2. `src/pages/UploadExcel.tsx`
+Aggiungere sotto la card dello storico una nuova `<Card>` con titolo "Modifica Storico" che contiene:
+
+**Filtri**:
 ```text
-+--------------------------------------------------+
-|  Fatturato 2026                                   |
-|  EUR 125.430,00                    (grande, bold) |
-|                                                   |
-|  vs 2025 YTD: EUR 110.200,00   [freccia su/giu]  |
-|  Fatt. 2025: EUR 180.500,00       (piccolo, gray) |
-+--------------------------------------------------+
+[ Anno ▼ ] [ Mese ▼ ] [ 🔍 Cerca cliente... ] [ Cerca agente... ]
 ```
 
-**Logica di calcolo:**
+**Tabella** con colonne:
+```text
+| Anno | Mese | Cliente | Agente | Marchio | Imponibile | Provvigione | ✏️ | 🗑️ |
+```
 
-- `fattCorrente`: somma imponibile di tutti i record con `anno === annoCorrente`
-- `fattPrecYTD`: somma imponibile dei record con `anno === annoPrecedente` e `mese <= meseCorrente` (dove meseCorrente = mese attuale del calendario)
-- `fattPrecTotale`: somma imponibile di tutti i record con `anno === annoPrecedente`
-- La freccia si basa sul confronto `fattCorrente` vs `fattPrecYTD`
+**Dialog di modifica** (Radix Dialog gia' presente nel progetto) con i campi:
+- Anno, Mese (number input)
+- Azienda (select: FO/FU)
+- Nome Cliente, Codice Cliente (text)
+- Agente, Marchio, Articolo (text)
+- Imponibile, Provvigione (number)
 
-**Struttura della card:**
+**Paginazione**: bottoni "Precedente / Pagina X di Y / Successivo"
 
-- CardHeader: titolo "Riepilogo Fatturato"
-- CardContent:
-  - Riga 1: label "Fatturato {annoCorrente}" + valore grande (`text-2xl md:text-3xl font-bold`)
-  - Riga 2: "vs {annoPrecedente} YTD: {valore}" + icona TrendingUp/TrendingDown + percentuale delta
-  - Riga 3: "Fatt. {annoPrecedente}: {valore}" in `text-sm text-muted-foreground`
+### Flusso dati
+
+```text
+DB (sales_records)
+      |
+      | supabase query con filtri + range paginazione
+      ▼
+fetchRecords() nel DataContext
+      |
+      ▼
+Tabella nella pagina UploadExcel
+      |
+   [Modifica] → Dialog con form → updateRecord() → refresh tabella
+   [Elimina]  → AlertDialog conferma → deleteRecord() → refresh tabella + refreshRecordCount()
+```
 
 ### Dettagli tecnici
 
-Il calcolo dei totali viene fatto con un `useMemo` che aggrega tutti i record indipendentemente dall'azienda:
+**Query paginata con filtri**:
+```ts
+let query = supabase
+  .from("sales_records")
+  .select("*", { count: "exact" })
+  .order("anno", { ascending: false })
+  .order("mese", { ascending: false });
 
-```tsx
-const { fattCorrente, fattPrecYTD, fattPrecTotale } = useMemo(() => {
-  const meseCorrente = new Date().getMonth() + 1;
-  let fattCorrente = 0, fattPrecYTD = 0, fattPrecTotale = 0;
-  clientRecords.forEach((r) => {
-    if (r.anno === annoCorrente) fattCorrente += r.imponibile;
-    if (r.anno === annoPrecedente) {
-      fattPrecTotale += r.imponibile;
-      if (r.mese <= meseCorrente) fattPrecYTD += r.imponibile;
-    }
-  });
-  return { fattCorrente, fattPrecYTD, fattPrecTotale };
-}, [clientRecords, annoCorrente, annoPrecedente]);
+if (filterAnno) query = query.eq("anno", filterAnno);
+if (filterMese) query = query.eq("mese", filterMese);
+if (filterCliente) query = query.ilike("nome_cliente", `%${filterCliente}%`);
+if (filterAgente) query = query.ilike("agente", `%${filterAgente}%`);
+
+const from = page * PAGE_SIZE;
+query = query.range(from, from + PAGE_SIZE - 1);
 ```
 
-La card unica:
+**RLS**: Le policy esistenti permettono gia' agli admin di UPDATE e DELETE su `sales_records`. La funzionalita' di modifica sara' visibile solo agli admin (come gia' avviene per "Cancella storico").
 
-```tsx
-<Card>
-  <CardHeader className="pb-2">
-    <CardTitle className="text-base">Riepilogo Fatturato</CardTitle>
-  </CardHeader>
-  <CardContent className="space-y-2">
-    <div>
-      <p className="text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
-      <p className="text-2xl md:text-3xl font-bold">{fmt(fattCorrente)}</p>
-    </div>
-    <div className="flex items-center gap-2">
-      {fattCorrente >= fattPrecYTD
-        ? <TrendingUp className="h-4 w-4 text-emerald-500" />
-        : <TrendingDown className="h-4 w-4 text-red-500" />}
-      <span className="text-sm">
-        vs {annoPrecedente} YTD: {fmt(fattPrecYTD)}
-      </span>
-      <span className={`text-sm font-medium ${
-        fattCorrente >= fattPrecYTD ? 'text-emerald-600' : 'text-red-600'
-      }`}>
-        ({pct(fattCorrente, fattPrecYTD).toFixed(1)}%)
-      </span>
-    </div>
-    <p className="text-sm text-muted-foreground">
-      Fatt. {annoPrecedente}: {fmt(fattPrecTotale)}
-    </p>
-  </CardContent>
-</Card>
-```
+**Nessuna migrazione SQL necessaria** — le tabelle e le policy RLS esistenti coprono gia' tutti i casi.
 
-**File modificato:** solo `src/pages/ClienteDettaglio.tsx`
-**Nessuna migrazione SQL necessaria.**
+### File modificati
+- `src/contexts/DataContext.tsx` — aggiunta `updateRecord`, `deleteRecord`, `fetchRecords`
+- `src/pages/UploadExcel.tsx` — aggiunta sezione editor con tabella, filtri, dialog e paginazione

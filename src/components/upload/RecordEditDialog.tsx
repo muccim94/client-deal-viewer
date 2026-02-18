@@ -15,25 +15,43 @@ interface Props {
   record: DbRecord | null;
   open: boolean;
   onClose: () => void;
-  onSave: (id: string, data: Partial<DbRecord>) => Promise<void>;
+  onSave: (id: string | null, data: Partial<DbRecord>) => Promise<void>;
 }
+
+const now = new Date();
+const DEFAULT_FORM: Partial<DbRecord> = {
+  anno: now.getFullYear(),
+  mese: now.getMonth() + 1,
+  azienda: "FO",
+  azienda_nome: "Fogliani",
+  codice_cliente: "",
+  nome_cliente: "",
+  agente: "",
+  marchio: "",
+  articolo: "",
+  imponibile: 0,
+  provvigione: 0,
+};
 
 export function RecordEditDialog({ record, open, onClose, onSave }: Props) {
   const [form, setForm] = useState<Partial<DbRecord>>({});
   const [saving, setSaving] = useState(false);
 
+  const isNew = record === null;
+
   useEffect(() => {
-    if (record) setForm({ ...record });
-  }, [record]);
+    if (open) {
+      setForm(record ? { ...record } : { ...DEFAULT_FORM });
+    }
+  }, [record, open]);
 
   const set = (key: keyof DbRecord, value: string | number) =>
     setForm((f) => ({ ...f, [key]: value }));
 
   const handleSave = async () => {
-    if (!record) return;
     setSaving(true);
     try {
-      await onSave(record.id, {
+      await onSave(record?.id ?? null, {
         anno: form.anno,
         mese: form.mese,
         azienda: form.azienda,
@@ -56,7 +74,7 @@ export function RecordEditDialog({ record, open, onClose, onSave }: Props) {
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Modifica Record</DialogTitle>
+          <DialogTitle>{isNew ? "Nuovo Record" : "Modifica Record"}</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-4 py-2">

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useData, DbRecord, FetchFilters } from "@/contexts/DataContext";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { parseExcelFile } from "@/lib/parseExcel";
 import { SalesRecord, getMeseNome } from "@/types/data";
@@ -16,7 +17,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Upload as UploadIcon, FileSpreadsheet, Check, X, Trash2, Pencil, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Upload as UploadIcon, FileSpreadsheet, Check, X, Trash2, Pencil, ChevronLeft, ChevronRight, Search, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { RecordEditDialog } from "@/components/upload/RecordEditDialog";
@@ -34,7 +35,7 @@ const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
 export default function UploadExcel() {
-  const { addRecords, clearRecords, recordCount, refreshRecordCount, fetchRecords, updateRecord, deleteRecord } = useData();
+  const { addRecords, addRecord, clearRecords, recordCount, refreshRecordCount, fetchRecords, updateRecord, deleteRecord } = useData();
   const { role } = useAuth();
   const queryClient = useQueryClient();
 
@@ -54,6 +55,7 @@ export default function UploadExcel() {
   const [filterClienteInput, setFilterClienteInput] = useState("");
   const [filterAgenteInput, setFilterAgenteInput] = useState("");
   const [editTarget, setEditTarget] = useState<DbRecord | null>(null);
+  const [addingNew, setAddingNew] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DbRecord | null>(null);
   const clienteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const agenteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -186,11 +188,20 @@ export default function UploadExcel() {
   };
 
   // --- editor handlers ---
-  const handleSaveRecord = async (id: string, data: Partial<DbRecord>) => {
-    await updateRecord(id, data);
-    toast.success("Record aggiornato");
-    loadEditor(filters, editorPage);
-    queryClient.invalidateQueries();
+  const handleSaveRecord = async (id: string | null, data: Partial<DbRecord>) => {
+    try {
+      if (id) {
+        await updateRecord(id, data);
+        toast.success("Record aggiornato");
+      } else {
+        await addRecord(data as Omit<DbRecord, "id" | "created_at">);
+        toast.success("Record aggiunto");
+      }
+      loadEditor(filters, editorPage);
+      queryClient.invalidateQueries();
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante il salvataggio");
+    }
   };
 
   const handleDeleteRecord = async (record: DbRecord) => {
@@ -322,10 +333,13 @@ export default function UploadExcel() {
       )}
 
       {/* ── EDITOR SEZIONE (solo admin) ── */}
-      {isAdmin && recordCount != null && recordCount > 0 && (
+      {isAdmin && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Modifica Storico</CardTitle>
+            <Button size="sm" onClick={() => setAddingNew(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Nuovo Record
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Filtri */}
@@ -480,11 +494,11 @@ export default function UploadExcel() {
         </Card>
       )}
 
-      {/* Edit dialog */}
+      {/* Edit / New dialog */}
       <RecordEditDialog
-        record={editTarget}
-        open={!!editTarget}
-        onClose={() => setEditTarget(null)}
+        record={addingNew ? null : editTarget}
+        open={!!editTarget || addingNew}
+        onClose={() => { setEditTarget(null); setAddingNew(false); }}
         onSave={handleSaveRecord}
       />
     </div>

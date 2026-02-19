@@ -10,6 +10,7 @@ import AppLayout from "@/components/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import FatturatoRiepilogo from "@/pages/FatturatoRiepilogo";
 import Anagrafiche from "@/pages/Anagrafiche";
+import IncentivazioniBrowser from "@/pages/IncentivazioniBrowser";
 import ClienteDettaglio from "@/pages/ClienteDettaglio";
 import ClienteMarchi from "@/pages/ClienteMarchi";
 import UploadExcel from "@/pages/UploadExcel";
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/fatturato" element={<FatturatoRiepilogo />} />
               <Route path="/anagrafiche" element={<Anagrafiche />} />
+              <Route path="/anagrafiche/incentivazioni" element={<IncentivazioniBrowser />} />
               <Route path="/anagrafiche/:codice" element={<ClienteDettaglio />} />
               <Route path="/anagrafiche/:codice/marchi" element={<ClienteMarchi />} />
               <Route path="/marchi" element={<Marchi />} />

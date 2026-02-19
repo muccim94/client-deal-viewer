@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AnagraficheTabBar } from "@/pages/IncentivazioniBrowser";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -86,24 +87,31 @@ export default function Anagrafiche() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="space-y-4">
+        <AnagraficheTabBar active="clienti" />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       </div>
     );
   }
 
   if (!clienti.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-        <Table2 className="h-16 w-16 mb-4 opacity-40" />
-        <p className="text-lg font-medium">Nessun dato disponibile</p>
-        <p className="text-sm">Carica un file Excel dalla sezione Upload per iniziare.</p>
+      <div className="space-y-4">
+        <AnagraficheTabBar active="clienti" />
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+          <Table2 className="h-16 w-16 mb-4 opacity-40" />
+          <p className="text-lg font-medium">Nessun dato disponibile</p>
+          <p className="text-sm">Carica un file Excel dalla sezione Upload per iniziare.</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4 overflow-hidden">
+      <AnagraficheTabBar active="clienti" />
       <Card>
         <CardHeader className="pb-3 px-3 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">

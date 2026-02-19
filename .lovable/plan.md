@@ -1,138 +1,194 @@
-## Sezione Incentivazioni nella Scheda Cliente
+
+## Pagina "Incentivazioni" nella sezione Anagrafiche
 
 ### Obiettivo
-
-Aggiungere una card che porta ad una pagina interna all'anagrafica "Incentivazioni" in alto alla pagina `/anagrafiche/:codice`  alla destra della card overview cliente, allinterno della quale possiamo di:
-
-1. Creare una nuova lettera di incentivazione con tabella di scaglioni editabile (calcolo in tempo reale)
-2. Salvare le lettere approvate come storico persistente nel database
-3. Consultare le lettere salvate in precedenza
+Creare una nuova pagina `/anagrafiche/incentivazioni` accessibile come sotto-sezione della pagina Anagrafiche, con:
+- Visualizzazione di tutte le incentivazioni salvate, filtrate per anno e raggruppate per cliente
+- Esportazione PDF singola per ogni lettera (con anagrafica cliente + tabella scaglioni)
+- Download massivo in PDF tramite selezione multipla con filtri (anno, codice cliente) e checkbox "Seleziona tutto"
 
 ---
 
-### Struttura della tabella incentivazione (da CSV/immagine)
+### Architettura della soluzione
 
-La tabella ha 10 righe di scaglioni, ciascuna con:
+#### Navigazione
+La pagina sara' raggiungibile tramite un tab/link nella pagina `/anagrafiche`. Viene aggiunta una route dedicata in `App.tsx`:
 
-- **Scaglione di fatturato** (€, input numerico)
-- **Premio % per step** (%, input numerico)
-- **Importo premio x scaglione** (calcolato automaticamente: scaglione × percentuale)
-
-In fondo alla tabella:
-
-- **Totale fatturato** = somma di tutti gli scaglioni compilati
-- **Tot premi liquidati** = somma di tutti gli importi premio
-- **Incidenza** = tot premi / totale fatturato × 100
-
----
-
-### Modifiche tecniche
-
-#### 1. Nuova tabella database: `cliente_incentivazioni`
-
-```sql
-CREATE TABLE public.cliente_incentivazioni (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  codice_cliente text NOT NULL,
-  nome_cliente  text NOT NULL,
-  anno          integer NOT NULL,
-  note          text,
-  righe         jsonb NOT NULL,   -- array di 10 scaglioni [{fatturato, percentuale}]
-  totale_fatturato  numeric NOT NULL,
-  totale_premi      numeric NOT NULL,
-  incidenza         numeric NOT NULL,
-  created_at    timestamptz NOT NULL DEFAULT now(),
-  created_by    uuid NOT NULL
-);
+```
+/anagrafiche                → Anagrafiche (lista clienti)
+/anagrafiche/incentivazioni → Pagina Incentivazioni globale  ← NUOVA
+/anagrafiche/:codice        → ClienteDettaglio
+/anagrafiche/:codice/marchi → ClienteMarchi
 ```
 
-**RLS policies:**
+ATTENZIONE: la route `/anagrafiche/incentivazioni` deve essere definita PRIMA di `/anagrafiche/:codice` in `App.tsx` per evitare conflitti di routing (altrimenti "incentivazioni" verrebbe interpretato come un codice cliente).
 
-- SELECT: autenticato (admin vede tutto, agente vede solo i clienti assegnati — ma in pratica le incentivazioni sono per admin, quindi solo admin)
-- INSERT/UPDATE/DELETE: solo admin
-
-#### 2. Nuovo componente: `src/components/cliente/Incentivazioni.tsx`
-
-Componente autonomo che riceve `codice` e `nomeCliente` come props. Contiene:
-
-**Stato locale:**
-
-```ts
-const [righe, setRighe] = useState<Array<{fatturato: number, percentuale: number}>>( Array(10).fill({fatturato: 0, percentuale: 0}) )
-const [anno, setAnno] = useState(new Date().getFullYear())
-const [note, setNote] = useState("")
-const [saving, setSaving] = useState(false)
-```
-
-**Calcoli derivati (in tempo reale):**
-
-```ts
-const righeCalcolate = righe.map(r => ({
-  ...r,
-  premio: r.fatturato * (r.percentuale / 100)
-}))
-const totaleFatturato = righeCalcolate.reduce((s, r) => s + r.fatturato, 0)
-const totalePremi = righeCalcolate.reduce((s, r) => s + r.premio, 0)
-const incidenza = totaleFatturato > 0 ? (totalePremi / totaleFatturato) * 100 : 0
-```
-
-**Layout della tabella editabile:**
-
-```text
-┌──────┬─────────────────────────┬──────────────────┬──────────────────────────┐
-│  #   │  SCAGLIONI DI FATTURATO │ PREMIO % PER STEP│ IMPORTO PREMIO X SCAGL.  │
-├──────┼─────────────────────────┼──────────────────┼──────────────────────────┤
-│  1   │  [ input €           ]  │  [ input %     ] │  € 0,00  (calcolato)     │
-│  2   │  [ input €           ]  │  [ input %     ] │  € 0,00                  │
-│ ...  │  ...                    │  ...             │  ...                     │
-│ 10   │  [ input €           ]  │  [ input %     ] │  € 0,00                  │
-├──────┴─────────────────────────┼──────────────────┼──────────────────────────┤
-│  TOTALE FATT.: €200.000        │ TOT PREMI: €12k  │ INCIDENZA: 6,00%         │
-└────────────────────────────────┴──────────────────┴──────────────────────────┘
-```
-
-**Storico lettere salvate:**
-Sotto la tabella di inserimento, una lista collassabile delle lettere già salvate per quel cliente, con possibilità di espanderle per vedere i dettagli.
-
-**Azioni:**
-
-- Pulsante "Salva Lettera" → insert nel DB + refresh lista storico
-- Ogni lettera salvata mostra: anno, data creazione, note, totale fatturato, tot premi, incidenza
-- Pulsante "Elimina" su ogni lettera (solo admin)
-
-#### 3. Integrazione in `src/pages/ClienteDettaglio.tsx`
-
-Importare e aggiungere `<IncentivazionI codice={codice} nomeCliente={clientName} />` in fondo alla lista delle card, dopo le tabelle mensili.
-
-Il componente gestisce autonomamente il fetch e il salvataggio tramite Supabase direttamente (senza passare per DataContext, che è orientato ai sales_records).
-
----
-
-### Flusso dati
-
-```text
-ClienteDettaglio
-    └── <Incentivazioni codice="035826" nomeCliente="..." />
-            │
-            ├─ fetch storico → supabase.from("cliente_incentivazioni")
-            │                   .select("*").eq("codice_cliente", codice)
-            │
-            ├─ Tabella editabile (10 righe, calcolo live)
-            │   └─ onChange → aggiorna stato locale → ricalcola totali
-            │
-            └─ "Salva Lettera" → insert → refresh storico
-```
+#### Navigazione dalla pagina lista
+Nella pagina `Anagrafiche.tsx` viene aggiunto un tab-bar in cima alla card, con due voci:
+- **Clienti** (lista attuale)
+- **Incentivazioni** (link alla nuova pagina)
 
 ---
 
 ### File da creare/modificare
 
+| File | Operazione |
+|---|---|
+| `src/pages/IncentivazioniBrowser.tsx` | NUOVO - pagina principale con tabella, filtri, selezione e PDF |
+| `src/App.tsx` | Aggiungere route `/anagrafiche/incentivazioni` prima di `/:codice` |
+| `src/pages/Anagrafiche.tsx` | Aggiungere tab-bar "Clienti / Incentivazioni" in cima |
 
-| File                                        | Operazione                                     |
-| ------------------------------------------- | ---------------------------------------------- |
-| `supabase/migrations/...sql`                | CREATE TABLE `cliente_incentivazioni` + RLS    |
-| `src/components/cliente/Incentivazioni.tsx` | Nuovo componente (tabella editabile + storico) |
-| `src/pages/ClienteDettaglio.tsx`            | Aggiungere `<Incentivazioni>` in fondo         |
+**Nessuna modifica al database** — la tabella `cliente_incentivazioni` e le RLS policy esistono gia'.
 
+---
 
-**Nessuna modifica** a DataContext, AuthContext o tabelle esistenti.
+### Dettaglio tecnico: `src/pages/IncentivazioniBrowser.tsx`
+
+#### Struttura della pagina
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  🏆 Incentivazioni                            [↓ Scarica PDF]│
+│                                                             │
+│  Filtri:  [ Anno ▼ ]  [ 🔍 Codice/Nome cliente... ]        │
+│           [☑ Seleziona tutto]  X lettere selezionate       │
+│                                                             │
+│  ┌───┬──────────────────┬──────┬───────────┬────────┬────┐  │
+│  │ ☐ │ Cliente          │ Anno │ Fatt. Tot │ Premi  │PDF │  │
+│  ├───┼──────────────────┼──────┼───────────┼────────┼────┤  │
+│  │ ☑ │ Rossi Spa (0358) │ 2025 │ €120.000  │ €7.200 │ ↓  │  │
+│  │ ☐ │ Bianchi Srl (02) │ 2025 │ €80.000   │ €4.000 │ ↓  │  │
+│  └───┴──────────────────┴──────┴───────────┴────────┴────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Filtri e query
+
+```ts
+// Fetch tutte le incentivazioni con filtri opzionali
+const { data } = useQuery({
+  queryKey: ["all-incentivazioni", filterAnno, filterCliente],
+  queryFn: async () => {
+    let q = supabase
+      .from("cliente_incentivazioni")
+      .select("*")
+      .order("anno", { ascending: false })
+      .order("nome_cliente", { ascending: true });
+    if (filterAnno) q = q.eq("anno", filterAnno);
+    if (filterCliente) q = q.ilike("nome_cliente", `%${filterCliente}%`);
+    // oppure codice cliente esatto
+    const { data, error } = await q;
+    if (error) throw error;
+    return data;
+  },
+  enabled: isAdmin,
+});
+```
+
+Il filtro cliente supporta sia la ricerca per nome (ilike) sia per codice cliente (eq su `codice_cliente`).
+
+#### Selezione multipla
+
+```ts
+const [selected, setSelected] = useState<Set<string>>(new Set());
+const allIds = filtered.map(l => l.id);
+const allSelected = allIds.length > 0 && allIds.every(id => selected.has(id));
+
+const toggleAll = () => {
+  if (allSelected) setSelected(new Set());
+  else setSelected(new Set(allIds));
+};
+```
+
+#### Generazione PDF (senza librerie aggiuntive)
+
+La generazione PDF viene realizzata tramite **stampa HTML** (`window.print()`) con CSS `@media print` dedicato. Questo approccio non richiede librerie esterne (jsPDF, pdfmake, ecc.) ed e' gia' supportato da tutti i browser moderni.
+
+Il flusso e':
+1. Si genera dinamicamente un `<div>` con il contenuto HTML della lettera
+2. Si apre una nuova finestra (`window.open`)
+3. Si scrive il contenuto HTML con stili di stampa inlined
+4. Si chiama `window.print()` nella nuova finestra
+5. La finestra si chiude automaticamente dopo la stampa
+
+**Struttura HTML del PDF singolo**:
+```
+┌─────────────────────────────────────────────────┐
+│              LETTERA DI INCENTIVAZIONE          │
+│                                                 │
+│  Cliente:  Rossi Spa                            │
+│  Codice:   035826                               │
+│  Anno:     2025                                 │
+│  Data:     19/02/2026                           │
+│                                                 │
+│  ┌────────┬────────────────┬──────┬───────────┐ │
+│  │   #    │ Scaglione €    │  %   │ Premio    │ │
+│  ├────────┼────────────────┼──────┼───────────┤ │
+│  │   1    │ €50.000        │ 2%   │ €1.000    │ │
+│  │  ...   │  ...           │ ...  │  ...      │ │
+│  ├────────┴────────────────┼──────┼───────────┤ │
+│  │ TOTALE                  │ Inc% │ Tot.Premi │ │
+│  └─────────────────────────┴──────┴───────────┘ │
+│                                                 │
+│  Note: ...                                      │
+└─────────────────────────────────────────────────┘
+```
+
+**Download massivo**: itera su ogni lettera selezionata aprendo sequenzialmente finestre di stampa (con piccolo delay tra l'una e l'altra per non bloccare il browser), oppure — approccio alternativo piu' pulito — genera un unico documento HTML con tutte le lettere separate da `page-break-after: always` e lo stampa una sola volta.
+
+L'approccio con un unico documento e' preferibile perche':
+- L'utente apre UNA sola finestra di stampa
+- Puo' salvare come PDF con tutte le lettere in un unico file
+- Nessun popup blocker
+
+```ts
+const handleDownloadSelected = () => {
+  const lettere = data.filter(l => selected.has(l.id));
+  const html = lettere.map((l, idx) => generateLetteraHtml(l, idx < lettere.length - 1)).join('');
+  const win = window.open('', '_blank');
+  win.document.write(`<html><head><title>Incentivazioni</title>${styles}</head><body>${html}</body></html>`);
+  win.document.close();
+  win.print();
+};
+```
+
+dove `generateLetteraHtml(lettera, addPageBreak)` restituisce l'HTML di una singola lettera con `page-break-after: always` se non e' l'ultima.
+
+---
+
+### Modifica `src/App.tsx`
+
+```tsx
+// IMPORTANTE: la route statica deve stare PRIMA di quella dinamica
+<Route path="/anagrafiche/incentivazioni" element={<IncentivazioniBrowser />} />
+<Route path="/anagrafiche/:codice" element={<ClienteDettaglio />} />
+```
+
+---
+
+### Modifica `src/pages/Anagrafiche.tsx`
+
+Aggiungere un tab-bar in cima, prima della card dei clienti:
+
+```tsx
+<div className="flex gap-2 border-b mb-4">
+  <Link to="/anagrafiche">
+    <button className={`px-4 py-2 text-sm font-medium border-b-2 ${
+      !isIncentivazioni ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
+    }`}>Clienti</button>
+  </Link>
+  <Link to="/anagrafiche/incentivazioni">
+    <button className={`px-4 py-2 text-sm font-medium border-b-2 ...`}>Incentivazioni</button>
+  </Link>
+</div>
+```
+
+Poiche' le due pagine sono route separate, il tab attivo si determina con `useLocation()` o semplicemente lasciando che ogni pagina mostri il proprio tab-bar con lo stato corretto. Entrambe le pagine (`Anagrafiche` e `IncentivazioniBrowser`) mostreranno lo stesso tab-bar con il tab appropriato attivo.
+
+---
+
+### Riepilogo file modificati
+
+- `src/App.tsx` — aggiunge route `/anagrafiche/incentivazioni`
+- `src/pages/Anagrafiche.tsx` — aggiunge tab-bar in cima
+- `src/pages/IncentivazioniBrowser.tsx` — NUOVO: tabella con filtri, selezione, export PDF

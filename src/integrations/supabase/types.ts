@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      cliente_incentivazioni: {
+        Row: {
+          anno: number
+          codice_cliente: string
+          created_at: string
+          created_by: string
+          id: string
+          incidenza: number
+          nome_cliente: string
+          note: string | null
+          righe: Json
+          totale_fatturato: number
+          totale_premi: number
+        }
+        Insert: {
+          anno: number
+          codice_cliente: string
+          created_at?: string
+          created_by: string
+          id?: string
+          incidenza: number
+          nome_cliente: string
+          note?: string | null
+          righe: Json
+          totale_fatturato: number
+          totale_premi: number
+        }
+        Update: {
+          anno?: number
+          codice_cliente?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          incidenza?: number
+          nome_cliente?: string
+          note?: string | null
+          righe?: Json
+          totale_fatturato?: number
+          totale_premi?: number
+        }
+        Relationships: []
+      }
       sales_records: {
         Row: {
           agente: string

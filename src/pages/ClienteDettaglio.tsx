@@ -9,6 +9,7 @@ import { ArrowLeft, TrendingUp, TrendingDown, Minus, Loader2 } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
+import Incentivazioni from "@/components/cliente/Incentivazioni";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
@@ -275,6 +276,9 @@ export default function ClienteDettaglio() {
           </Card>
         );
       })}
+
+      {/* Incentivazioni */}
+      <Incentivazioni codice={codice!} nomeCliente={clientName} />
     </div>
   );
 }

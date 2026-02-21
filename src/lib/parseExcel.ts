@@ -94,7 +94,7 @@ function parseAsRiepilogo(json: Record<string, unknown>[]): SalesRecord[] {
 
     const imponibile = parseFatturato(row[fatturatoCol]);
     const provvigione = imponibile > 0 ? Math.round(imponibile * 0.035 * 100) / 100 : 0;
-    const fatturaRiga = `RIEP_${azienda}_${anno}_${mese}_${codiceCliente}_${marchio}_${agente}_${i}`;
+    const fatturaRiga = `RIEP_${azienda}_${anno}_${mese}_${codiceCliente}_${marchio}`;
 
     const parsed = {
       azienda,

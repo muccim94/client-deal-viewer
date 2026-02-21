@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Upload as UploadIcon, FileSpreadsheet, Check, X, Trash2, Pencil, ChevronLeft, ChevronRight, Search, Plus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { RecordEditDialog } from "@/components/upload/RecordEditDialog";
@@ -57,6 +58,9 @@ export default function UploadExcel() {
   const [editTarget, setEditTarget] = useState<DbRecord | null>(null);
   const [addingNew, setAddingNew] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DbRecord | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const clienteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const agenteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -208,6 +212,7 @@ export default function UploadExcel() {
     try {
       await deleteRecord(record.id);
       toast.success("Record eliminato");
+      setSelected((prev) => { const next = new Set(prev); next.delete(record.id); return next; });
       loadEditor(filters, editorPage);
       queryClient.invalidateQueries();
     } catch (err: any) {
@@ -215,6 +220,52 @@ export default function UploadExcel() {
     }
     setDeleteTarget(null);
   };
+
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    try {
+      const ids = Array.from(selected);
+      const { error } = await (await import("@/integrations/supabase/client")).supabase
+        .from("sales_records")
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} record eliminati`);
+      setSelected(new Set());
+      loadEditor(filters, editorPage);
+      queryClient.invalidateQueries();
+      refreshRecordCount();
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante l'eliminazione multipla");
+    } finally {
+      setBulkDeleting(false);
+      setShowBulkDeleteDialog(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    const allIds = editorRows.map((r) => r.id);
+    const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id));
+    if (allSelected) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        allIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelected((prev) => new Set([...prev, ...allIds]));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const allOnPageSelected = editorRows.length > 0 && editorRows.every((r) => selected.has(r.id));
 
   const totalPages = Math.ceil(editorTotal / PAGE_SIZE);
 
@@ -337,9 +388,21 @@ export default function UploadExcel() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Modifica Storico</CardTitle>
-            <Button size="sm" onClick={() => setAddingNew(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Nuovo Record
-            </Button>
+            <div className="flex items-center gap-2">
+              {selected.size > 0 && (
+                <Button
+                  variant="destructive" size="sm"
+                  onClick={() => setShowBulkDeleteDialog(true)}
+                  disabled={bulkDeleting}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Elimina {selected.size} selezionati
+                </Button>
+              )}
+              <Button size="sm" onClick={() => setAddingNew(true)}>
+                <Plus className="h-4 w-4 mr-1" /> Nuovo Record
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Filtri */}
@@ -394,6 +457,13 @@ export default function UploadExcel() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={allOnPageSelected}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Seleziona tutti"
+                      />
+                    </TableHead>
                     <TableHead className="w-14">Anno</TableHead>
                     <TableHead className="w-24">Mese</TableHead>
                     <TableHead>Cliente</TableHead>
@@ -407,18 +477,25 @@ export default function UploadExcel() {
                 <TableBody>
                   {editorLoading ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground text-sm">
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground text-sm">
                         Caricamento...
                       </TableCell>
                     </TableRow>
                   ) : editorRows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground text-sm">
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground text-sm">
                         Nessun record trovato
                       </TableCell>
                     </TableRow>
                   ) : editorRows.map((r) => (
-                    <TableRow key={r.id}>
+                    <TableRow key={r.id} data-state={selected.has(r.id) ? "selected" : undefined}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selected.has(r.id)}
+                          onCheckedChange={() => toggleSelect(r.id)}
+                          aria-label={`Seleziona ${r.nome_cliente}`}
+                        />
+                      </TableCell>
                       <TableCell className="text-sm">{r.anno}</TableCell>
                       <TableCell className="text-sm">{getMeseNome(r.mese)}</TableCell>
                       <TableCell className="text-sm">{r.nome_cliente}</TableCell>
@@ -493,6 +570,28 @@ export default function UploadExcel() {
           </CardContent>
         </Card>
       )}
+
+      {/* Bulk delete dialog */}
+      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminare {selected.size} record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Stai per eliminare {selected.size} record selezionati. L'operazione non è reversibile.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+            >
+              {bulkDeleting ? "Eliminazione..." : "Elimina tutti"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit / New dialog */}
       <RecordEditDialog

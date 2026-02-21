@@ -1,194 +1,108 @@
+## Supporto Nuovo Formato Excel (Riepilogo Fatturato per Linea)
 
-## Pagina "Incentivazioni" nella sezione Anagrafiche
+### Problema
 
-### Obiettivo
-Creare una nuova pagina `/anagrafiche/incentivazioni` accessibile come sotto-sezione della pagina Anagrafiche, con:
-- Visualizzazione di tutte le incentivazioni salvate, filtrate per anno e raggruppate per cliente
-- Esportazione PDF singola per ogni lettera (con anagrafica cliente + tabella scaglioni)
-- Download massivo in PDF tramite selezione multipla con filtri (anno, codice cliente) e checkbox "Seleziona tutto"
+I dati di fatturato per gennaio-giugno 2025 sono in un formato Excel diverso da quello attuale. Le differenze principali sono:
 
----
 
-### Architettura della soluzione
+| Campo          | Formato attuale                        | Nuovo formato                                   |
+| -------------- | -------------------------------------- | ----------------------------------------------- |
+| Azienda        | "FO" / "FU"                            | "fogliani" / "futurtec" (testo esteso)          |
+| Mese           | numero (1-12)                          | testo ("gennaio", "febbraio"...)                |
+| Agente         | "FO_FO77"                              | "FO_FO77 Michelangelo Mucci" (con nome)         |
+| Cliente        | "FO_035826 - NOME"                     | Stesso formato                                  |
+| Articolo/Linea | Colonna "Articolo" con codice completo | Colonna "Linea" (es. "FO_FV.")                  |
+| Fatturato      | Colonna "Imponibile" (numero)          | Colonna "Fatturato + Bollettato 2025" (con "€") |
+| Provvigione    | Presente                               | Assente (default 0)                             |
+| Fattura_Riga   | Presente                               | Assente (va generata per dedup)                 |
 
-#### Navigazione
-La pagina sara' raggiungibile tramite un tab/link nella pagina `/anagrafiche`. Viene aggiunta una route dedicata in `App.tsx`:
 
-```
-/anagrafiche                → Anagrafiche (lista clienti)
-/anagrafiche/incentivazioni → Pagina Incentivazioni globale  ← NUOVA
-/anagrafiche/:codice        → ClienteDettaglio
-/anagrafiche/:codice/marchi → ClienteMarchi
-```
+### Soluzione
 
-ATTENZIONE: la route `/anagrafiche/incentivazioni` deve essere definita PRIMA di `/anagrafiche/:codice` in `App.tsx` per evitare conflitti di routing (altrimenti "incentivazioni" verrebbe interpretato come un codice cliente).
+Creare una seconda funzione di parsing `parseRiepilogoExcel` che trasforma il nuovo formato nello stesso tipo `SalesRecord[]` gia' usato dal sistema. Il sistema di upload rileva automaticamente il formato del file in base alle colonne presenti.
 
-#### Navigazione dalla pagina lista
-Nella pagina `Anagrafiche.tsx` viene aggiunto un tab-bar in cima alla card, con due voci:
-- **Clienti** (lista attuale)
-- **Incentivazioni** (link alla nuova pagina)
+### Mappatura campi
 
----
+- **AZIENDA**: "fogliani" -> "FO", "futurtec" -> "FU"
+- **MESE**: "gennaio" -> 1, "febbraio" -> 2, ecc.
+- **Agente**: "FO_FO77 Michelangelo Mucci" -> prende solo "FO_FO77" (prima dello spazio)
+- **Cliente**: "FO_C007918 - ELETTRICA 77..." -> codice "C007918", nome "ELETTRICA 77..."
+- **Linea**: "FO_FV." -> marchio "FV." (rimuove prefisso "FO_")
+- **Fatturato**: parsato come numero (rimuovendo "€" e gestendo separatori migliaia)
+- **Articolo**: uguale al marchio (non c'e' dettaglio articolo in questo formato)
+- **Provvigione**: si calcola un 3,5% sull'importo (esclusi tutti i dati negativi)
+- **Fattura_Riga**: generata come `RIEP_{azienda}_{anno}_{mese}_{codice}_{marchio}` per deduplicazione
 
-### File da creare/modificare
+### Modifiche tecniche
 
-| File | Operazione |
-|---|---|
-| `src/pages/IncentivazioniBrowser.tsx` | NUOVO - pagina principale con tabella, filtri, selezione e PDF |
-| `src/App.tsx` | Aggiungere route `/anagrafiche/incentivazioni` prima di `/:codice` |
-| `src/pages/Anagrafiche.tsx` | Aggiungere tab-bar "Clienti / Incentivazioni" in cima |
+#### 1. `src/lib/parseExcel.ts`
 
-**Nessuna modifica al database** — la tabella `cliente_incentivazioni` e le RLS policy esistono gia'.
+Aggiungere:
 
----
+- Mappa `AZIENDA_REVERSE`: `{ "fogliani": "FO", "futurtec": "FU" }`
+- Mappa `MESE_TEXT_MAP`: `{ "gennaio": 1, "febbraio": 2, ... "dicembre": 12 }`
+- Costante `RIEPILOGO_COLUMNS` con le colonne attese: `["AZIENDA", "ANNO", "MESE", "Agente (Anagrafico)", "Cliente", "Linea", "Fatturato + Bollettato 2025"]`
+- Funzione `detectFileFormat(row)`: controlla se la prima riga ha le colonne del formato riepilogo o del formato standard
+- Funzione `parseRiepilogoRow(row)` -> `SalesRecord`: trasforma una riga del nuovo formato
+- Funzione `parseRiepilogoExcel(file)` -> `Promise<SalesRecord[]>`: logica completa con validazione Zod
 
-### Dettaglio tecnico: `src/pages/IncentivazioniBrowser.tsx`
+La funzione `parseExcelFile` esistente viene rinominata internamente ma l'export rimane compatibile. Si aggiunge un nuovo export `parseExcelFileAuto(file)` che rileva automaticamente il formato e chiama il parser corretto.
 
-#### Struttura della pagina
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  🏆 Incentivazioni                            [↓ Scarica PDF]│
-│                                                             │
-│  Filtri:  [ Anno ▼ ]  [ 🔍 Codice/Nome cliente... ]        │
-│           [☑ Seleziona tutto]  X lettere selezionate       │
-│                                                             │
-│  ┌───┬──────────────────┬──────┬───────────┬────────┬────┐  │
-│  │ ☐ │ Cliente          │ Anno │ Fatt. Tot │ Premi  │PDF │  │
-│  ├───┼──────────────────┼──────┼───────────┼────────┼────┤  │
-│  │ ☑ │ Rossi Spa (0358) │ 2025 │ €120.000  │ €7.200 │ ↓  │  │
-│  │ ☐ │ Bianchi Srl (02) │ 2025 │ €80.000   │ €4.000 │ ↓  │  │
-│  └───┴──────────────────┴──────┴───────────┴────────┴────┘  │
-└─────────────────────────────────────────────────────────────┘
-```
-
-#### Filtri e query
+Oppure, piu' semplice: modificare `parseExcelFile` per fare auto-detect:
 
 ```ts
-// Fetch tutte le incentivazioni con filtri opzionali
-const { data } = useQuery({
-  queryKey: ["all-incentivazioni", filterAnno, filterCliente],
-  queryFn: async () => {
-    let q = supabase
-      .from("cliente_incentivazioni")
-      .select("*")
-      .order("anno", { ascending: false })
-      .order("nome_cliente", { ascending: true });
-    if (filterAnno) q = q.eq("anno", filterAnno);
-    if (filterCliente) q = q.ilike("nome_cliente", `%${filterCliente}%`);
-    // oppure codice cliente esatto
-    const { data, error } = await q;
-    if (error) throw error;
-    return data;
-  },
-  enabled: isAdmin,
-});
+export function parseExcelFile(file: File): Promise<SalesRecord[]> {
+  // ... legge il workbook come prima ...
+  // Controlla le colonne della prima riga
+  if ("Linea" in json[0] && "Agente (Anagrafico)" in json[0]) {
+    return parseAsRiepilogo(json);
+  } else {
+    return parseAsStandard(json);
+  }
+}
 ```
 
-Il filtro cliente supporta sia la ricerca per nome (ilike) sia per codice cliente (eq su `codice_cliente`).
-
-#### Selezione multipla
+Logica di parsing per ogni riga del riepilogo:
 
 ```ts
-const [selected, setSelected] = useState<Set<string>>(new Set());
-const allIds = filtered.map(l => l.id);
-const allSelected = allIds.length > 0 && allIds.every(id => selected.has(id));
+// Azienda
+const aziendaRaw = String(row["AZIENDA"]).toLowerCase().trim();
+const azienda = AZIENDA_REVERSE[aziendaRaw] ?? aziendaRaw.substring(0,2).toUpperCase();
 
-const toggleAll = () => {
-  if (allSelected) setSelected(new Set());
-  else setSelected(new Set(allIds));
-};
+// Mese
+const meseRaw = String(row["MESE"]).toLowerCase().trim();
+const mese = MESE_TEXT_MAP[meseRaw] ?? 0;
+
+// Agente: "FO_FO77 Michelangelo Mucci" -> "FO_FO77"
+const agenteRaw = String(row["Agente (Anagrafico)"]).trim();
+const agente = agenteRaw.split(" ")[0]; // "FO_FO77"
+
+// Cliente: "FO_C007918 - NOME CLIENTE" -> codice + nome
+// Stesso parsing del formato standard
+
+// Linea: "FO_FV." -> "FV."
+const lineaRaw = String(row["Linea"]).trim();
+const marchio = lineaRaw.includes("_") 
+  ? lineaRaw.substring(lineaRaw.indexOf("_") + 1) 
+  : lineaRaw;
+
+// Fatturato: "1,108 €" o numero puro
+// XLSX potrebbe gia' restituire un numero; se stringa, rimuovere € e parsare
+
+// Fattura_Riga per dedup
+const fatturaRiga = `RIEP_${azienda}_${anno}_${mese}_${codiceCliente}_${marchio}`;
 ```
 
-#### Generazione PDF (senza librerie aggiuntive)
+#### 2. `src/pages/UploadExcel.tsx`
 
-La generazione PDF viene realizzata tramite **stampa HTML** (`window.print()`) con CSS `@media print` dedicato. Questo approccio non richiede librerie esterne (jsPDF, pdfmake, ecc.) ed e' gia' supportato da tutti i browser moderni.
+Nessuna modifica necessaria: il componente chiama gia' `parseExcelFile(file)` e riceve `SalesRecord[]`. Il rilevamento automatico del formato e' trasparente.
 
-Il flusso e':
-1. Si genera dinamicamente un `<div>` con il contenuto HTML della lettera
-2. Si apre una nuova finestra (`window.open`)
-3. Si scrive il contenuto HTML con stili di stampa inlined
-4. Si chiama `window.print()` nella nuova finestra
-5. La finestra si chiude automaticamente dopo la stampa
+### File modificati
 
-**Struttura HTML del PDF singolo**:
-```
-┌─────────────────────────────────────────────────┐
-│              LETTERA DI INCENTIVAZIONE          │
-│                                                 │
-│  Cliente:  Rossi Spa                            │
-│  Codice:   035826                               │
-│  Anno:     2025                                 │
-│  Data:     19/02/2026                           │
-│                                                 │
-│  ┌────────┬────────────────┬──────┬───────────┐ │
-│  │   #    │ Scaglione €    │  %   │ Premio    │ │
-│  ├────────┼────────────────┼──────┼───────────┤ │
-│  │   1    │ €50.000        │ 2%   │ €1.000    │ │
-│  │  ...   │  ...           │ ...  │  ...      │ │
-│  ├────────┴────────────────┼──────┼───────────┤ │
-│  │ TOTALE                  │ Inc% │ Tot.Premi │ │
-│  └─────────────────────────┴──────┴───────────┘ │
-│                                                 │
-│  Note: ...                                      │
-└─────────────────────────────────────────────────┘
-```
 
-**Download massivo**: itera su ogni lettera selezionata aprendo sequenzialmente finestre di stampa (con piccolo delay tra l'una e l'altra per non bloccare il browser), oppure — approccio alternativo piu' pulito — genera un unico documento HTML con tutte le lettere separate da `page-break-after: always` e lo stampa una sola volta.
+| File                    | Operazione                                        |
+| ----------------------- | ------------------------------------------------- |
+| `src/lib/parseExcel.ts` | Aggiungere auto-detect formato + parser riepilogo |
 
-L'approccio con un unico documento e' preferibile perche':
-- L'utente apre UNA sola finestra di stampa
-- Puo' salvare come PDF con tutte le lettere in un unico file
-- Nessun popup blocker
 
-```ts
-const handleDownloadSelected = () => {
-  const lettere = data.filter(l => selected.has(l.id));
-  const html = lettere.map((l, idx) => generateLetteraHtml(l, idx < lettere.length - 1)).join('');
-  const win = window.open('', '_blank');
-  win.document.write(`<html><head><title>Incentivazioni</title>${styles}</head><body>${html}</body></html>`);
-  win.document.close();
-  win.print();
-};
-```
-
-dove `generateLetteraHtml(lettera, addPageBreak)` restituisce l'HTML di una singola lettera con `page-break-after: always` se non e' l'ultima.
-
----
-
-### Modifica `src/App.tsx`
-
-```tsx
-// IMPORTANTE: la route statica deve stare PRIMA di quella dinamica
-<Route path="/anagrafiche/incentivazioni" element={<IncentivazioniBrowser />} />
-<Route path="/anagrafiche/:codice" element={<ClienteDettaglio />} />
-```
-
----
-
-### Modifica `src/pages/Anagrafiche.tsx`
-
-Aggiungere un tab-bar in cima, prima della card dei clienti:
-
-```tsx
-<div className="flex gap-2 border-b mb-4">
-  <Link to="/anagrafiche">
-    <button className={`px-4 py-2 text-sm font-medium border-b-2 ${
-      !isIncentivazioni ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'
-    }`}>Clienti</button>
-  </Link>
-  <Link to="/anagrafiche/incentivazioni">
-    <button className={`px-4 py-2 text-sm font-medium border-b-2 ...`}>Incentivazioni</button>
-  </Link>
-</div>
-```
-
-Poiche' le due pagine sono route separate, il tab attivo si determina con `useLocation()` o semplicemente lasciando che ogni pagina mostri il proprio tab-bar con lo stato corretto. Entrambe le pagine (`Anagrafiche` e `IncentivazioniBrowser`) mostreranno lo stesso tab-bar con il tab appropriato attivo.
-
----
-
-### Riepilogo file modificati
-
-- `src/App.tsx` — aggiunge route `/anagrafiche/incentivazioni`
-- `src/pages/Anagrafiche.tsx` — aggiunge tab-bar in cima
-- `src/pages/IncentivazioniBrowser.tsx` — NUOVO: tabella con filtri, selezione, export PDF
+Nessuna modifica al database, nessuna migrazione SQL. I record vengono inseriti nella stessa tabella `sales_records` con lo stesso upsert basato su `fattura_riga`.

@@ -1,52 +1,33 @@
 
 
-## Fix duplicati importazione Riepilogo: usare "Linea Fascia" come chiave
+## Aggiungere pulsante Backup accanto a Cancella Storico
 
-### Problema
+### Cosa cambia
 
-Il file Excel contiene piu' righe per lo stesso cliente con la stessa "Linea" ma diversa "Linea Fascia". Esempio:
+Nella card che mostra il conteggio dei record ("Storico attuale: X record"), verra' aggiunto un pulsante "Backup" accanto al pulsante rosso "Cancella storico". Cliccandolo, il sistema scarichera' tutti i record attualmente visibili nello storico in un file Excel (.xlsx).
 
-| Cliente | Linea | Linea Fascia | Fatturato |
-|---|---|---|---|
-| ELETTRO 2000 | FO_FV. | FO_FV.35 (ZCS) | 0 |
-| ELETTRO 2000 | FO_FV. | FO_FV.24 (SUNBALLAST) | 0 |
-| ELETTRO 2000 | FO_FV. | FO_FV.36 (TRINA) | 0 |
+### Dettagli tecnici
 
-Attualmente il parser usa "Linea" come marchio, quindi tutte e tre le righe generano la stessa `fattura_riga` = `RIEP_FO_2025_1_0011501_FV.` e solo una viene salvata.
+#### File: `src/pages/UploadExcel.tsx`
 
-### Soluzione
+1. **Import**: aggiungere l'icona `Download` da `lucide-react` e la libreria `xlsx` (gia' installata nel progetto).
 
-Usare la colonna **"Linea Fascia"** al posto di "Linea" per estrarre il marchio e generare la chiave di deduplicazione univoca.
+2. **Funzione `handleBackup`**: 
+   - Recupera tutti i record dal database (usando `supabase.from("sales_records").select("*")` con paginazione per superare il limite di 1000 righe)
+   - Converte i dati in un foglio Excel con le colonne originali (Azienda, Anno, Mese, Codice Cliente, Nome Cliente, Agente, Marchio, Articolo, Imponibile, Provvigione)
+   - Scarica il file come `backup_storico_YYYY-MM-DD.xlsx`
 
-- `FO_FV.36` diventa marchio `FV.36`
-- `FO_CV.47` diventa marchio `CV.47`
-- `FO_CSM03` diventa marchio `CSM03`
-
-Questo rende ogni riga univoca nella `fattura_riga`: `RIEP_FO_2025_1_0011501_FV.36`
-
-### Modifica tecnica
-
-#### File: `src/lib/parseExcel.ts` - funzione `parseAsRiepilogo`
-
-Cambiare l'estrazione del marchio da "Linea" a "Linea Fascia":
+3. **UI**: inserire il pulsante subito prima del `<AlertDialog>` di cancellazione, dentro un `<div className="flex gap-2">`:
 
 ```
-// PRIMA (causa duplicati):
-const lineaRaw = String(row["Linea"] ?? "").trim();
-
-// DOPO (usa Linea Fascia per univocita'):
-const lineaRaw = String(row["Linea Fascia"] ?? row["Linea"] ?? "").trim();
+<Button variant="outline" size="sm" onClick={handleBackup}>
+  <Download className="h-4 w-4 mr-1" /> Backup
+</Button>
 ```
-
-La logica di rimozione prefisso (`FO_`) rimane identica. Il fallback su "Linea" garantisce compatibilita' nel caso il campo "Linea Fascia" non sia presente.
-
-Anche il campo `articolo` viene impostato uguale al nuovo marchio derivato da "Linea Fascia".
-
-### Riepilogo
 
 | File | Modifica |
 |---|---|
-| `src/lib/parseExcel.ts` | Usare "Linea Fascia" invece di "Linea" in `parseAsRiepilogo` |
+| `src/pages/UploadExcel.tsx` | Aggiungere funzione backup e pulsante Download accanto a Cancella storico |
 
-Nessuna modifica al database. La chiave di deduplicazione `fattura_riga` diventa automaticamente piu' granulare.
+Nessuna modifica al database.
 

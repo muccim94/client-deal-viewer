@@ -67,14 +67,17 @@ export default function UploadExcel() {
   const agenteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isAdmin = role === "admin";
+  const [backupProgress, setBackupProgress] = useState<{ loaded: number; total: number } | null>(null);
 
   useEffect(() => { refreshRecordCount(); }, [refreshRecordCount]);
 
   const handleBackup = async () => {
     try {
-      toast.info("Preparazione backup in corso...");
       const { supabase } = await import("@/integrations/supabase/client");
       const XLSX = await import("xlsx");
+      const total = recordCount ?? 0;
+      if (total === 0) { toast.warning("Nessun record da esportare"); return; }
+      setBackupProgress({ loaded: 0, total });
       const allRows: any[] = [];
       const PAGE = 1000;
       let from = 0;
@@ -87,13 +90,13 @@ export default function UploadExcel() {
         if (error) throw error;
         if (data && data.length > 0) {
           allRows.push(...data);
+          setBackupProgress({ loaded: allRows.length, total });
           from += PAGE;
           if (data.length < PAGE) keepGoing = false;
         } else {
           keepGoing = false;
         }
       }
-      if (allRows.length === 0) { toast.warning("Nessun record da esportare"); return; }
       const mapped = allRows.map((r) => ({
         Azienda: r.azienda,
         Anno: r.anno,
@@ -114,6 +117,8 @@ export default function UploadExcel() {
       toast.success(`Backup completato: ${allRows.length} record esportati`);
     } catch (err: any) {
       toast.error(err.message || "Errore durante il backup");
+    } finally {
+      setBackupProgress(null);
     }
   };
 
@@ -388,8 +393,11 @@ export default function UploadExcel() {
             </p>
             {isAdmin && (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleBackup}>
-                  <Download className="h-4 w-4 mr-1" /> Backup
+                <Button variant="outline" size="sm" onClick={handleBackup} disabled={!!backupProgress}>
+                  <Download className="h-4 w-4 mr-1" />
+                  {backupProgress
+                    ? `${Math.round((backupProgress.loaded / backupProgress.total) * 100)}%`
+                    : "Backup"}
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>

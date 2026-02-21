@@ -47,25 +47,39 @@ function parseFatturato(value: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
+function findFatturatoColumn(row: Record<string, unknown>): string | null {
+  const keys = Object.keys(row);
+  // Search for column starting with "Fatturato" (handles any year suffix)
+  const match = keys.find((k) => k.toLowerCase().startsWith("fatturato"));
+  return match ?? null;
+}
+
 function parseAsRiepilogo(json: Record<string, unknown>[]): SalesRecord[] {
   const errors: string[] = [];
   const records: SalesRecord[] = [];
 
+  // Detect fatturato column name dynamically from the first row
+  const fatturatoCol = findFatturatoColumn(json[0]);
+  if (!fatturatoCol) {
+    throw new Error("Colonna 'Fatturato' non trovata nel file Riepilogo");
+  }
+
   for (let i = 0; i < json.length; i++) {
     const row = json[i];
 
-    const aziendaRaw = String(row["AZIENDA"] ?? "").toLowerCase().trim();
+    const aziendaRaw = String(row["AZIENDA"] ?? row["Azienda"] ?? row["azienda"] ?? "").toLowerCase().trim();
     const azienda = AZIENDA_REVERSE[aziendaRaw] ?? aziendaRaw.substring(0, 2).toUpperCase();
 
-    const anno = Number(row["ANNO"] ?? 0);
+    const annoRaw = row["ANNO"] ?? row["Anno"] ?? row["anno"] ?? 0;
+    const anno = Number(annoRaw);
 
-    const meseRaw = String(row["MESE"] ?? "").toLowerCase().trim();
-    const mese = MESE_TEXT_MAP[meseRaw] ?? 0;
+    const meseRaw = String(row["MESE"] ?? row["Mese"] ?? row["mese"] ?? "").toLowerCase().trim();
+    const mese = MESE_TEXT_MAP[meseRaw] ?? (Number(meseRaw) >= 1 && Number(meseRaw) <= 12 ? Number(meseRaw) : 0);
 
-    const agenteRaw = String(row["Agente (Anagrafico)"] ?? "").trim();
-    const agente = agenteRaw.split(" ")[0]; // "FO_FO77"
+    const agenteRaw = String(row["Agente (Anagrafico)"] ?? row["Agente"] ?? "").trim();
+    const agente = agenteRaw.split(" ")[0];
 
-    const clienteRaw = String(row["Cliente"] ?? "");
+    const clienteRaw = String(row["Cliente"] ?? row["cliente"] ?? "");
     const dashIdx = clienteRaw.indexOf(" - ");
     const codiceRaw = dashIdx >= 0 ? clienteRaw.substring(0, dashIdx).trim() : clienteRaw.trim();
     const nomeCliente = dashIdx >= 0 ? clienteRaw.substring(dashIdx + 3).trim() : "";
@@ -73,12 +87,12 @@ function parseAsRiepilogo(json: Record<string, unknown>[]): SalesRecord[] {
       ? codiceRaw.substring(codiceRaw.indexOf("_") + 1)
       : codiceRaw;
 
-    const lineaRaw = String(row["Linea"] ?? "").trim();
+    const lineaRaw = String(row["Linea"] ?? row["linea"] ?? "").trim();
     const marchio = lineaRaw.includes("_")
       ? lineaRaw.substring(lineaRaw.indexOf("_") + 1)
       : lineaRaw;
 
-    const imponibile = parseFatturato(row["Fatturato + Bollettato 2025"]);
+    const imponibile = parseFatturato(row[fatturatoCol]);
     const provvigione = imponibile > 0 ? Math.round(imponibile * 0.035 * 100) / 100 : 0;
     const fatturaRiga = `RIEP_${azienda}_${anno}_${mese}_${codiceCliente}_${marchio}`;
 

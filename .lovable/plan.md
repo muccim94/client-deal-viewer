@@ -1,33 +1,32 @@
 
 
-## Aggiungere pulsante Backup accanto a Cancella Storico
+## Backup persistente durante la navigazione
 
-### Cosa cambia
+### Problema attuale
+Lo stato del backup (progresso e blocco pulsante) vive dentro il componente `UploadExcel`. Quando si naviga su un'altra pagina, il componente viene smontato e lo stato si perde: il progresso scompare e il pulsante torna cliccabile anche se il backup e' ancora in corso.
 
-Nella card che mostra il conteggio dei record ("Storico attuale: X record"), verra' aggiunto un pulsante "Backup" accanto al pulsante rosso "Cancella storico". Cliccandolo, il sistema scarichera' tutti i record attualmente visibili nello storico in un file Excel (.xlsx).
+### Soluzione
+Spostare lo stato del backup nel **DataContext**, che e' gia' montato a livello globale (`App.tsx` riga 37) e non viene smontato durante la navigazione tra le pagine protette.
 
-### Dettagli tecnici
+### Modifiche tecniche
 
-#### File: `src/pages/UploadExcel.tsx`
+#### 1. `src/contexts/DataContext.tsx`
+- Aggiungere lo stato `backupProgress` (`{ loaded: number; total: number } | null`) e `isBackingUp` (boolean) al context
+- Spostare la funzione `handleBackup` dal componente `UploadExcel` dentro il DataContext (rinominata `runBackup`)
+- Esporre `backupProgress`, `isBackingUp` e `runBackup` tramite il Provider
 
-1. **Import**: aggiungere l'icona `Download` da `lucide-react` e la libreria `xlsx` (gia' installata nel progetto).
+#### 2. `src/pages/UploadExcel.tsx`
+- Rimuovere lo stato locale `backupProgress` e la funzione `handleBackup`
+- Importare `backupProgress`, `isBackingUp` e `runBackup` da `useData()`
+- Il pulsante Backup usa `isBackingUp` per disabilitarsi e `backupProgress` per mostrare la percentuale
 
-2. **Funzione `handleBackup`**: 
-   - Recupera tutti i record dal database (usando `supabase.from("sales_records").select("*")` con paginazione per superare il limite di 1000 righe)
-   - Converte i dati in un foglio Excel con le colonne originali (Azienda, Anno, Mese, Codice Cliente, Nome Cliente, Agente, Marchio, Articolo, Imponibile, Provvigione)
-   - Scarica il file come `backup_storico_YYYY-MM-DD.xlsx`
-
-3. **UI**: inserire il pulsante subito prima del `<AlertDialog>` di cancellazione, dentro un `<div className="flex gap-2">`:
-
-```
-<Button variant="outline" size="sm" onClick={handleBackup}>
-  <Download className="h-4 w-4 mr-1" /> Backup
-</Button>
-```
+### Risultato
+- Il backup continua in background anche navigando su altre pagine
+- Tornando sulla pagina Upload, il progresso e' ancora visibile
+- Il pulsante resta disabilitato finche' il backup non termina, impedendo richieste duplicate
 
 | File | Modifica |
 |---|---|
-| `src/pages/UploadExcel.tsx` | Aggiungere funzione backup e pulsante Download accanto a Cancella storico |
-
-Nessuna modifica al database.
+| `src/contexts/DataContext.tsx` | Aggiungere stato backup e funzione `runBackup` |
+| `src/pages/UploadExcel.tsx` | Usare stato e funzione dal context invece che locali |
 

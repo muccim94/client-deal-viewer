@@ -61,6 +61,8 @@ export default function UploadExcel() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [showPeriodDeleteDialog, setShowPeriodDeleteDialog] = useState(false);
+  const [periodDeleting, setPeriodDeleting] = useState(false);
   const clienteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const agenteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -267,6 +269,40 @@ export default function UploadExcel() {
 
   const allOnPageSelected = editorRows.length > 0 && editorRows.every((r) => selected.has(r.id));
 
+  const hasActiveFilters = !!(filters.anno || filters.mese || filters.cliente || filters.agente);
+
+  const periodFilterLabel = [
+    filters.anno ? `Anno ${filters.anno}` : null,
+    filters.mese ? MESI.find(m => m.v === filters.mese)?.l : null,
+    filters.cliente ? `Cliente "${filters.cliente}"` : null,
+    filters.agente ? `Agente "${filters.agente}"` : null,
+  ].filter(Boolean).join(", ");
+
+  const handlePeriodDelete = async () => {
+    setPeriodDeleting(true);
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      let q = supabase.from("sales_records").delete();
+      if (filters.anno) q = q.eq("anno", filters.anno);
+      if (filters.mese) q = q.eq("mese", filters.mese);
+      if (filters.cliente) q = q.or(`nome_cliente.ilike.%${filters.cliente}%,codice_cliente.ilike.%${filters.cliente}%`);
+      if (filters.agente) q = q.ilike("agente", `%${filters.agente}%`);
+      const { error, count } = await q;
+      if (error) throw error;
+      toast.success(`Record del periodo eliminati con successo`);
+      setSelected(new Set());
+      loadEditor(filters, 0);
+      setEditorPage(0);
+      queryClient.invalidateQueries();
+      refreshRecordCount();
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante l'eliminazione per periodo");
+    } finally {
+      setPeriodDeleting(false);
+      setShowPeriodDeleteDialog(false);
+    }
+  };
+
   const totalPages = Math.ceil(editorTotal / PAGE_SIZE);
 
   return (
@@ -388,7 +424,17 @@ export default function UploadExcel() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Modifica Storico</CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {hasActiveFilters && (
+                <Button
+                  variant="outline" size="sm"
+                  className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setShowPeriodDeleteDialog(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Elimina periodo
+                </Button>
+              )}
               {selected.size > 0 && (
                 <Button
                   variant="destructive" size="sm"
@@ -588,6 +634,28 @@ export default function UploadExcel() {
               disabled={bulkDeleting}
             >
               {bulkDeleting ? "Eliminazione..." : "Elimina tutti"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Period delete dialog */}
+      <AlertDialog open={showPeriodDeleteDialog} onOpenChange={setShowPeriodDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminare tutti i record del periodo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Stai per eliminare <strong>tutti i {editorTotal} record</strong> corrispondenti ai filtri: <strong>{periodFilterLabel}</strong>. L'operazione non è reversibile.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={handlePeriodDelete}
+              disabled={periodDeleting}
+            >
+              {periodDeleting ? "Eliminazione..." : "Elimina periodo"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

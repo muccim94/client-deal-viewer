@@ -87,7 +87,7 @@ function parseAsRiepilogo(json: Record<string, unknown>[]): SalesRecord[] {
       ? codiceRaw.substring(codiceRaw.indexOf("_") + 1)
       : codiceRaw;
 
-    const lineaRaw = String(row["Linea"] ?? row["linea"] ?? "").trim();
+    const lineaRaw = String(row["Linea Fascia"] ?? row["Linea"] ?? row["linea"] ?? "").trim();
     const marchio = lineaRaw.includes("_")
       ? lineaRaw.substring(lineaRaw.indexOf("_") + 1)
       : lineaRaw;

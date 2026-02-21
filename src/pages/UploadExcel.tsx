@@ -17,7 +17,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Upload as UploadIcon, FileSpreadsheet, Check, X, Trash2, Pencil, ChevronLeft, ChevronRight, Search, Plus } from "lucide-react";
+import { Upload as UploadIcon, FileSpreadsheet, Check, X, Trash2, Pencil, ChevronLeft, ChevronRight, Search, Plus, Download } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -69,6 +69,53 @@ export default function UploadExcel() {
   const isAdmin = role === "admin";
 
   useEffect(() => { refreshRecordCount(); }, [refreshRecordCount]);
+
+  const handleBackup = async () => {
+    try {
+      toast.info("Preparazione backup in corso...");
+      const { supabase } = await import("@/integrations/supabase/client");
+      const XLSX = await import("xlsx");
+      const allRows: any[] = [];
+      const PAGE = 1000;
+      let from = 0;
+      let keepGoing = true;
+      while (keepGoing) {
+        const { data, error } = await supabase
+          .from("sales_records")
+          .select("azienda, anno, mese, codice_cliente, nome_cliente, agente, marchio, articolo, imponibile, provvigione")
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (data && data.length > 0) {
+          allRows.push(...data);
+          from += PAGE;
+          if (data.length < PAGE) keepGoing = false;
+        } else {
+          keepGoing = false;
+        }
+      }
+      if (allRows.length === 0) { toast.warning("Nessun record da esportare"); return; }
+      const mapped = allRows.map((r) => ({
+        Azienda: r.azienda,
+        Anno: r.anno,
+        Mese: r.mese,
+        "Codice Cliente": r.codice_cliente,
+        "Nome Cliente": r.nome_cliente,
+        Agente: r.agente,
+        Marchio: r.marchio,
+        Articolo: r.articolo,
+        Imponibile: r.imponibile,
+        Provvigione: r.provvigione,
+      }));
+      const ws = XLSX.utils.json_to_sheet(mapped);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Storico");
+      const today = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `backup_storico_${today}.xlsx`);
+      toast.success(`Backup completato: ${allRows.length} record esportati`);
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante il backup");
+    }
+  };
 
   // Load editor rows whenever filters or page change
   const loadEditor = useCallback(async (f: FetchFilters, page: number) => {
@@ -340,25 +387,30 @@ export default function UploadExcel() {
               Storico attuale: <span className="font-medium text-foreground">{recordCount.toLocaleString("it-IT")}</span> record
             </p>
             {isAdmin && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
-                    <Trash2 className="h-4 w-4 mr-1" /> Cancella storico
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Cancellare tutti i dati?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Questa azione eliminerà tutti i {recordCount.toLocaleString("it-IT")} record importati. L'operazione non è reversibile.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annulla</AlertDialogCancel>
-                    <AlertDialogAction onClick={clearAll}>Cancella tutto</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleBackup}>
+                  <Download className="h-4 w-4 mr-1" /> Backup
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4 mr-1" /> Cancella storico
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancellare tutti i dati?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Questa azione eliminerà tutti i {recordCount.toLocaleString("it-IT")} record importati. L'operazione non è reversibile.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annulla</AlertDialogCancel>
+                      <AlertDialogAction onClick={clearAll}>Cancella tutto</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             )}
           </CardContent>
         </Card>

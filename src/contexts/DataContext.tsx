@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, ReactNode } from "rea
 import { SalesRecord } from "@/types/data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export interface DbRecord {
   id: string;
@@ -39,6 +40,9 @@ interface DataContextType {
   fetchRecords: (filters: FetchFilters, page: number) => Promise<{ data: DbRecord[]; total: number }>;
   updateRecord: (id: string, data: Partial<DbRecord>) => Promise<void>;
   deleteRecord: (id: string) => Promise<void>;
+  backupProgress: { loaded: number; total: number } | null;
+  isBackingUp: boolean;
+  runBackup: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -64,6 +68,61 @@ function toDB(r: SalesRecord, userId: string) {
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [recordCount, setRecordCount] = useState<number | null>(null);
+  const [backupProgress, setBackupProgress] = useState<{ loaded: number; total: number } | null>(null);
+  const [isBackingUp, setIsBackingUp] = useState(false);
+
+  const runBackup = useCallback(async () => {
+    if (isBackingUp) return;
+    try {
+      setIsBackingUp(true);
+      const XLSX = await import("xlsx");
+      const total = recordCount ?? 0;
+      if (total === 0) { toast.warning("Nessun record da esportare"); setIsBackingUp(false); return; }
+      setBackupProgress({ loaded: 0, total });
+      const allRows: any[] = [];
+      const PAGE = 1000;
+      let from = 0;
+      let keepGoing = true;
+      while (keepGoing) {
+        const { data, error } = await supabase
+          .from("sales_records")
+          .select("azienda, anno, mese, codice_cliente, nome_cliente, agente, marchio, articolo, imponibile, provvigione")
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (data && data.length > 0) {
+          allRows.push(...data);
+          setBackupProgress({ loaded: allRows.length, total });
+          from += PAGE;
+          if (data.length < PAGE) keepGoing = false;
+        } else {
+          keepGoing = false;
+        }
+      }
+      const mapped = allRows.map((r) => ({
+        Azienda: r.azienda,
+        Anno: r.anno,
+        Mese: r.mese,
+        "Codice Cliente": r.codice_cliente,
+        "Nome Cliente": r.nome_cliente,
+        Agente: r.agente,
+        Marchio: r.marchio,
+        Articolo: r.articolo,
+        Imponibile: r.imponibile,
+        Provvigione: r.provvigione,
+      }));
+      const ws = XLSX.utils.json_to_sheet(mapped);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Storico");
+      const today = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `backup_storico_${today}.xlsx`);
+      toast.success(`Backup completato: ${allRows.length} record esportati`);
+    } catch (err: any) {
+      toast.error(err.message || "Errore durante il backup");
+    } finally {
+      setBackupProgress(null);
+      setIsBackingUp(false);
+    }
+  }, [isBackingUp, recordCount]);
 
   const refreshRecordCount = useCallback(async () => {
     if (!user) { setRecordCount(null); return; }
@@ -140,7 +199,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [refreshRecordCount]);
 
   return (
-    <DataContext.Provider value={{ addRecords, addRecord, clearRecords, recordCount, refreshRecordCount, fetchRecords, updateRecord, deleteRecord }}>
+    <DataContext.Provider value={{ addRecords, addRecord, clearRecords, recordCount, refreshRecordCount, fetchRecords, updateRecord, deleteRecord, backupProgress, isBackingUp, runBackup }}>
       {children}
     </DataContext.Provider>
   );

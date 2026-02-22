@@ -1,32 +1,43 @@
+## Miglioramenti alla pagina Anagrafiche
+
+### 1. Spostare i filtri rapidi dentro la barra di ricerca
+
+Attualmente i filtri rapidi ("Clienti in perdita", "Sotto i 5k", "Top 10 clienti") sono in una riga separata sotto l'header. Verranno spostati nella stessa riga del selettore agente e della barra di ricerca, integrandoli visivamente come parte dell'area filtri
+
+### 2. Riferimento corretto nelle intestazioni colonne
+
+Le intestazioni della tabella mostreranno sempre gli anni esplicitamente:
+
+- `Fatt. 2026` (anno corrente YTD)
+- `Fatt. 2025 YTD` (anno precedente, stesso periodo)
+- `Fatt. 2025` (anno precedente, totale annuo) -- colonna nascondibile
+
+I filtri rapidi continueranno a confrontare il fatturato 2026 con il fatturato 2025 YTD, come gia' implementato.
+
+### 3. Toggle per mostrare/nascondere la colonna "Fatt. 2025" (totale annuo)
+
+Verra' aggiunto uno switch (toggle) nell'area filtri che permette di nascondere/mostrare l'ultima colonna (`fattPrevYear`). Questo rende la tabella piu' compatta e leggibile quando non serve il dato annuale completo.
+
+### Dettagli tecnici
+
+#### File: `src/pages/Anagrafiche.tsx`
+
+**Nuovo stato:**
+
+- `showFullYear` (boolean, default `true`): controlla la visibilita' della colonna "Fatt. 2025"
+
+**Layout modificato nel CardHeader:**
+
+- Prima riga: titolo conteggio clienti + selettore agente + barra di ricerca (invariato)
+- Seconda riga (dentro CardHeader, prima della tabella): filtri rapidi (pill buttons) + toggle "Fatt. 2025" con label e componente Switch
+
+**Rimozione:** la `<div>` separata con `border-b` che contiene i filtri viene eliminata; i filtri si spostano nel CardHeader.
+
+**Colonna "Fatt. 2025":**
+
+- Il `<TableHead>` e il `<TableCell>` corrispondenti verranno condizionati a `showFullYear`, mostrandosi solo quando il toggle e' attivo.
 
 
-## Backup persistente durante la navigazione
-
-### Problema attuale
-Lo stato del backup (progresso e blocco pulsante) vive dentro il componente `UploadExcel`. Quando si naviga su un'altra pagina, il componente viene smontato e lo stato si perde: il progresso scompare e il pulsante torna cliccabile anche se il backup e' ancora in corso.
-
-### Soluzione
-Spostare lo stato del backup nel **DataContext**, che e' gia' montato a livello globale (`App.tsx` riga 37) e non viene smontato durante la navigazione tra le pagine protette.
-
-### Modifiche tecniche
-
-#### 1. `src/contexts/DataContext.tsx`
-- Aggiungere lo stato `backupProgress` (`{ loaded: number; total: number } | null`) e `isBackingUp` (boolean) al context
-- Spostare la funzione `handleBackup` dal componente `UploadExcel` dentro il DataContext (rinominata `runBackup`)
-- Esporre `backupProgress`, `isBackingUp` e `runBackup` tramite il Provider
-
-#### 2. `src/pages/UploadExcel.tsx`
-- Rimuovere lo stato locale `backupProgress` e la funzione `handleBackup`
-- Importare `backupProgress`, `isBackingUp` e `runBackup` da `useData()`
-- Il pulsante Backup usa `isBackingUp` per disabilitarsi e `backupProgress` per mostrare la percentuale
-
-### Risultato
-- Il backup continua in background anche navigando su altre pagine
-- Tornando sulla pagina Upload, il progresso e' ancora visibile
-- Il pulsante resta disabilitato finche' il backup non termina, impedendo richieste duplicate
-
-| File | Modifica |
-|---|---|
-| `src/contexts/DataContext.tsx` | Aggiungere stato backup e funzione `runBackup` |
-| `src/pages/UploadExcel.tsx` | Usare stato e funzione dal context invece che locali |
-
+| File                        | Modifica                                                                               |
+| --------------------------- | -------------------------------------------------------------------------------------- |
+| `src/pages/Anagrafiche.tsx` | Spostare filtri nel header, aggiungere toggle per colonna Fatt. anno precedente totale |

@@ -36,7 +36,7 @@ const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
 export default function UploadExcel() {
-  const { addRecords, addRecord, clearRecords, recordCount, refreshRecordCount, fetchRecords, updateRecord, deleteRecord } = useData();
+  const { addRecords, addRecord, clearRecords, recordCount, refreshRecordCount, fetchRecords, updateRecord, deleteRecord, backupProgress, isBackingUp, runBackup } = useData();
   const { role } = useAuth();
   const queryClient = useQueryClient();
 
@@ -67,60 +67,7 @@ export default function UploadExcel() {
   const agenteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isAdmin = role === "admin";
-  const [backupProgress, setBackupProgress] = useState<{ loaded: number; total: number } | null>(null);
 
-  useEffect(() => { refreshRecordCount(); }, [refreshRecordCount]);
-
-  const handleBackup = async () => {
-    try {
-      const { supabase } = await import("@/integrations/supabase/client");
-      const XLSX = await import("xlsx");
-      const total = recordCount ?? 0;
-      if (total === 0) { toast.warning("Nessun record da esportare"); return; }
-      setBackupProgress({ loaded: 0, total });
-      const allRows: any[] = [];
-      const PAGE = 1000;
-      let from = 0;
-      let keepGoing = true;
-      while (keepGoing) {
-        const { data, error } = await supabase
-          .from("sales_records")
-          .select("azienda, anno, mese, codice_cliente, nome_cliente, agente, marchio, articolo, imponibile, provvigione")
-          .range(from, from + PAGE - 1);
-        if (error) throw error;
-        if (data && data.length > 0) {
-          allRows.push(...data);
-          setBackupProgress({ loaded: allRows.length, total });
-          from += PAGE;
-          if (data.length < PAGE) keepGoing = false;
-        } else {
-          keepGoing = false;
-        }
-      }
-      const mapped = allRows.map((r) => ({
-        Azienda: r.azienda,
-        Anno: r.anno,
-        Mese: r.mese,
-        "Codice Cliente": r.codice_cliente,
-        "Nome Cliente": r.nome_cliente,
-        Agente: r.agente,
-        Marchio: r.marchio,
-        Articolo: r.articolo,
-        Imponibile: r.imponibile,
-        Provvigione: r.provvigione,
-      }));
-      const ws = XLSX.utils.json_to_sheet(mapped);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Storico");
-      const today = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `backup_storico_${today}.xlsx`);
-      toast.success(`Backup completato: ${allRows.length} record esportati`);
-    } catch (err: any) {
-      toast.error(err.message || "Errore durante il backup");
-    } finally {
-      setBackupProgress(null);
-    }
-  };
 
   // Load editor rows whenever filters or page change
   const loadEditor = useCallback(async (f: FetchFilters, page: number) => {
@@ -393,7 +340,7 @@ export default function UploadExcel() {
             </p>
             {isAdmin && (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleBackup} disabled={!!backupProgress}>
+                <Button variant="outline" size="sm" onClick={runBackup} disabled={isBackingUp}>
                   <Download className="h-4 w-4 mr-1" />
                   {backupProgress
                     ? `${Math.round((backupProgress.loaded / backupProgress.total) * 100)}%`

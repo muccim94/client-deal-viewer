@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUpDown, Search, Table2, ChevronRight, Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 type SortKey = "codiceCliente" | "nomeCliente" | "fattCurrentYear" | "fattPrevYearYTD" | "fattPrevYear";
 type SortDir = "asc" | "desc";
@@ -31,6 +33,7 @@ export default function Anagrafiche() {
   const [sortKey, setSortKey] = useState<SortKey>("nomeCliente");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [showFullYear, setShowFullYear] = useState(true);
 
   const currentYear = new Date().getFullYear();
   const prevYear = currentYear - 1;
@@ -134,26 +137,30 @@ export default function Anagrafiche() {
               </div>
             </div>
           </div>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            {[
+              { key: "perdita", label: "Clienti in perdita" },
+              { key: "sotto5k", label: "Sotto i 5k" },
+              { key: "top10", label: "Top 10 clienti" },
+            ].map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setActiveFilter((prev) => (prev === f.key ? null : f.key))}
+                className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[0.8rem] sm:px-5 sm:py-2 sm:text-[0.95rem] border transition-colors ${
+                  activeFilter === f.key
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-foreground border-input hover:bg-accent"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+            <div className="flex items-center gap-2 ml-auto">
+              <Label htmlFor="toggle-full-year" className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">Fatt. {prevYear}</Label>
+              <Switch id="toggle-full-year" checked={showFullYear} onCheckedChange={setShowFullYear} />
+            </div>
+          </div>
         </CardHeader>
-        <div className="flex gap-2 px-2 sm:px-6 py-2 sm:py-3 overflow-x-auto border-b [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {[
-            { key: "perdita", label: "Clienti in perdita" },
-            { key: "sotto5k", label: "Sotto i 5k" },
-            { key: "top10", label: "Top 10 clienti" },
-          ].map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setActiveFilter((prev) => (prev === f.key ? null : f.key))}
-              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[0.8rem] sm:px-5 sm:py-2 sm:text-[0.95rem] border transition-colors ${
-                activeFilter === f.key
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-foreground border-input hover:bg-accent"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
         <CardContent className="p-0 min-w-0">
           <div className="max-h-[600px] overflow-auto">
             <Table>
@@ -172,9 +179,11 @@ export default function Anagrafiche() {
                   <TableHead className="hidden md:table-cell cursor-pointer select-none hover:bg-muted/50 px-2 md:px-4" onClick={() => toggleSort("fattPrevYearYTD")}>
                     <span className="flex items-center gap-1">{`Fatt. ${prevYear} YTD`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50 px-2 md:px-4" onClick={() => toggleSort("fattPrevYear")}>
-                    <span className="flex items-center gap-1">{`Fatt. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
-                  </TableHead>
+                  {showFullYear && (
+                    <TableHead className="hidden sm:table-cell cursor-pointer select-none hover:bg-muted/50 px-2 md:px-4" onClick={() => toggleSort("fattPrevYear")}>
+                      <span className="flex items-center gap-1">{`Fatt. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                    </TableHead>
+                  )}
                   <TableHead className="hidden sm:table-cell w-8 px-0 sm:px-2" />
                 </TableRow>
               </TableHeader>
@@ -202,7 +211,7 @@ export default function Anagrafiche() {
                       </span>
                     </TableCell>
                     <TableCell className="hidden md:table-cell font-medium text-right tabular-nums px-2 md:px-4">{fmt(r.fattPrevYearYTD)}</TableCell>
-                    <TableCell className="hidden sm:table-cell font-medium text-right tabular-nums px-2 md:px-4">{fmt(r.fattPrevYear)}</TableCell>
+                    {showFullYear && <TableCell className="hidden sm:table-cell font-medium text-right tabular-nums px-2 md:px-4">{fmt(r.fattPrevYear)}</TableCell>}
                     <TableCell className="hidden sm:table-cell px-0 sm:px-2 md:px-4 w-8">
                       <Link to={`/anagrafiche/${r.codiceCliente}`} onClick={(e) => e.stopPropagation()}>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />

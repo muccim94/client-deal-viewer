@@ -33,7 +33,15 @@ export default function Anagrafiche() {
   const [sortKey, setSortKey] = useState<SortKey>("nomeCliente");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [showFullYear, setShowFullYear] = useState(true);
+  const [showFullYear, setShowFullYear] = useState(() => {
+    const saved = localStorage.getItem("anagrafiche-show-full-year");
+    return saved !== null ? saved === "true" : true;
+  });
+
+  const handleToggleFullYear = (checked: boolean) => {
+    setShowFullYear(checked);
+    localStorage.setItem("anagrafiche-show-full-year", String(checked));
+  };
 
   const currentYear = new Date().getFullYear();
   const prevYear = currentYear - 1;
@@ -157,7 +165,7 @@ export default function Anagrafiche() {
             ))}
             <div className="flex items-center gap-2 ml-auto">
               <Label htmlFor="toggle-full-year" className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">Fatt. {prevYear}</Label>
-              <Switch id="toggle-full-year" checked={showFullYear} onCheckedChange={setShowFullYear} />
+              <Switch id="toggle-full-year" checked={showFullYear} onCheckedChange={handleToggleFullYear} />
             </div>
           </div>
         </CardHeader>

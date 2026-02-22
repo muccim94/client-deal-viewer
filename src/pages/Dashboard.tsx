@@ -182,7 +182,7 @@ export default function Dashboard() {
                   <TableHead className="w-8 px-3"></TableHead>
                   <TableHead className="px-2">Cliente</TableHead>
                   <TableHead className="text-right px-3">Fatturato{"\n"}Progressivo</TableHead>
-                  <TableHead className="text-right px-3 hidden sm:table-cell">Anno Prec.</TableHead>
+                  <TableHead className="text-right px-3 hidden sm:table-cell">Progressivo Anno Prec.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

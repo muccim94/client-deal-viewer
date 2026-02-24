@@ -16,7 +16,7 @@ const pct = (curr: number, prev: number) => {
   return ((curr - prev) / Math.abs(prev)) * 100;
 };
 
-type SortKey = "marchio" | "corrente" | "precedente" | "delta";
+type SortKey = "marchio" | "corrente" | "progressivo" | "precedente" | "delta";
 
 export default function ClienteMarchi() {
   const { codice } = useParams<{ codice: string }>();
@@ -41,25 +41,34 @@ export default function ClienteMarchi() {
   const annoCorrente = anni[0] ?? new Date().getFullYear();
   const annoPrecedente = annoCorrente - 1;
 
+  const meseMax = useMemo(() => {
+    const mesiCorrente = clientRecords.filter((r) => r.anno === annoCorrente).map((r) => r.mese);
+    return mesiCorrente.length ? Math.max(...mesiCorrente) : 12;
+  }, [clientRecords, annoCorrente]);
+
   const getFamiglia = (marchio: string) =>
     marchio.match(/^[A-Za-z.*]+/)?.[0] ?? marchio;
 
   const marchi = useMemo(() => {
-    const map = new Map<string, { corrente: number; precedente: number }>();
+    const map = new Map<string, { corrente: number; progressivo: number; precedente: number }>();
     clientRecords.forEach((r) => {
       const famiglia = getFamiglia(r.marchio);
-      const entry = map.get(famiglia) ?? { corrente: 0, precedente: 0 };
+      const entry = map.get(famiglia) ?? { corrente: 0, progressivo: 0, precedente: 0 };
       if (r.anno === annoCorrente) entry.corrente += r.imponibile;
-      if (r.anno === annoPrecedente) entry.precedente += r.imponibile;
+      if (r.anno === annoPrecedente) {
+        entry.precedente += r.imponibile;
+        if (r.mese <= meseMax) entry.progressivo += r.imponibile;
+      }
       map.set(famiglia, entry);
     });
     return [...map.entries()].map(([marchio, v]) => ({
       marchio,
       corrente: v.corrente,
+      progressivo: v.progressivo,
       precedente: v.precedente,
       delta: pct(v.corrente, v.precedente),
     }));
-  }, [clientRecords, annoCorrente, annoPrecedente]);
+  }, [clientRecords, annoCorrente, annoPrecedente, meseMax]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -77,6 +86,7 @@ export default function ClienteMarchi() {
   };
 
   const totCorr = filtered.reduce((s, m) => s + m.corrente, 0);
+  const totProg = filtered.reduce((s, m) => s + m.progressivo, 0);
   const totPrec = filtered.reduce((s, m) => s + m.precedente, 0);
 
   const DeltaIcon = ({ val }: { val: number }) => {
@@ -112,22 +122,24 @@ export default function ClienteMarchi() {
       <Card>
         <CardContent className="p-0">
           <div className="overflow-auto">
-            <table className="w-full text-[0.9375rem]">
+            <table className="w-full text-[1.125rem]">
               <thead>
                 <tr className="border-b bg-muted/40">
-                   <th className="text-left py-2 px-2 font-medium cursor-pointer select-none" onClick={() => toggle("marchio")}>Marchio<SortArrow k="marchio" /></th>
-                   <th className="text-right py-2 px-2 font-medium cursor-pointer select-none" onClick={() => toggle("precedente")}>{annoPrecedente}<SortArrow k="precedente" /></th>
-                   <th className="text-right py-2 px-2 font-medium cursor-pointer select-none" onClick={() => toggle("corrente")}>{annoCorrente}<SortArrow k="corrente" /></th>
-                   <th className="text-right py-2 px-2 font-medium cursor-pointer select-none" onClick={() => toggle("delta")}>Var.&nbsp;%<SortArrow k="delta" /></th>
+                   <th className="text-left py-2 px-1.5 font-medium cursor-pointer select-none" onClick={() => toggle("marchio")}>Marchio<SortArrow k="marchio" /></th>
+                   <th className="text-right py-2 px-1.5 font-medium cursor-pointer select-none" onClick={() => toggle("corrente")}>{annoCorrente}<SortArrow k="corrente" /></th>
+                   <th className="text-right py-2 px-1.5 font-medium cursor-pointer select-none" onClick={() => toggle("progressivo")}>Progr.&nbsp;{annoPrecedente}<SortArrow k="progressivo" /></th>
+                   <th className="text-right py-2 px-1.5 font-medium cursor-pointer select-none" onClick={() => toggle("precedente")}>Totale&nbsp;{annoPrecedente}<SortArrow k="precedente" /></th>
+                   <th className="text-right py-2 px-1.5 font-medium cursor-pointer select-none" onClick={() => toggle("delta")}>Var.&nbsp;%<SortArrow k="delta" /></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((m, i) => (
                   <tr key={m.marchio} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
-                     <td className="py-1.5 px-2 font-medium">{m.marchio}</td>
-                     <td className="py-1.5 px-2 text-right">{fmt(m.precedente)}</td>
-                     <td className="py-1.5 px-2 text-right font-medium">{fmt(m.corrente)}</td>
-                     <td className="py-1.5 px-2 text-right">
+                     <td className="py-1.5 px-1.5 font-medium">{m.marchio}</td>
+                     <td className="py-1.5 px-1.5 text-right font-medium">{fmt(m.corrente)}</td>
+                     <td className="py-1.5 px-1.5 text-right text-muted-foreground">{fmt(m.progressivo)}</td>
+                     <td className="py-1.5 px-1.5 text-right">{fmt(m.precedente)}</td>
+                     <td className="py-1.5 px-1.5 text-right">
                       <DeltaIcon val={m.delta} />{" "}
                       <span className={m.delta > 1 ? "text-emerald-600" : m.delta < -1 ? "text-red-600" : "text-muted-foreground"}>
                         {m.delta.toFixed(1)}%
@@ -138,10 +150,11 @@ export default function ClienteMarchi() {
               </tbody>
               <tfoot>
                 <tr className="border-t bg-muted/50 font-semibold">
-                   <td className="py-2 px-2">Totale ({filtered.length})</td>
-                   <td className="py-2 px-2 text-right">{fmt(totPrec)}</td>
-                   <td className="py-2 px-2 text-right">{fmt(totCorr)}</td>
-                   <td className="py-2 px-2 text-right">
+                   <td className="py-2 px-1.5">Totale ({filtered.length})</td>
+                   <td className="py-2 px-1.5 text-right">{fmt(totCorr)}</td>
+                   <td className="py-2 px-1.5 text-right text-muted-foreground">{fmt(totProg)}</td>
+                   <td className="py-2 px-1.5 text-right">{fmt(totPrec)}</td>
+                   <td className="py-2 px-1.5 text-right">
                     <DeltaIcon val={pct(totCorr, totPrec)} />{" "}
                     {pct(totCorr, totPrec).toFixed(1)}%
                   </td>

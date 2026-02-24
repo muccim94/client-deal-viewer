@@ -1,26 +1,28 @@
-## Modifiche alla pagina Anagrafica Cliente
 
-### 1. Riportare la card "Riepilogo Fatturato" nella posizione originale
 
-La card "Riepilogo Fatturato" verra' spostata di nuovo **subito dopo la Scheda Anagrafica**, prima delle tabelle mensili.
+## Modifiche alla pagina Dettaglio Cliente
 
-Nuovo ordine delle sezioni:
+### 1. Invertire le due card nella griglia
 
-1. Header (nome cliente + codice)
-2. Scheda Anagrafica (diviso a metà affiancato alla card riepilogo fatturato )
-3. **Card Riepilogo Fatturato** -- (la prima card subito sotto al nome del cliente e relativo codice )
-4. Tabelle mensili (2026 vs 2025)
-5. Grafico Fatturato per Marchio
-6. Incentivazioni
+Attualmente nella griglia a 2 colonne l'ordine e':
+- Sinistra: **Scheda Anagrafica**
+- Destra: **Riepilogo Fatturato**
 
-### 2. Tabelle mensili: colonne piu' vicine e font piu' grande
+Verranno invertite:
+- Sinistra: **Riepilogo Fatturato**
+- Destra: **Scheda Anagrafica**
 
-- **Padding orizzontale ridotto**: da `px-4` a `px-2` per avvicinare le colonne
-- **Font size aumentato del 10%**: applico `text-[0.96rem]` (circa 15.4px, +10% rispetto ai 14px di `text-sm`) al corpo della tabella, e proporzionalmente all'header e al footer
+### 2. Avvicinare le colonne della tabella del 15%
+
+Il padding orizzontale delle celle passera' da `px-2` (8px) a `px-1.5` (6px), una riduzione di circa il 25% che avvicina sensibilmente le colonne.
+
+### 3. Aumentare il font della tabella del 10%
+
+Il font della tabella passera' da `text-[0.96rem]` (~15.4px) a `text-[1.056rem]` (~16.9px, +10%). Lo stesso aumento sara' applicato al footer.
 
 ### Dettagli tecnici
 
+| File | Modifica |
+|---|---|
+| `src/pages/ClienteDettaglio.tsx` | Scambiare le due Card nella griglia (righe 163-221); ridurre padding celle da `px-2` a `px-1.5`; aumentare font tabella da `text-[0.96rem]` a `text-[1.056rem]` |
 
-| File                             | Modifica                                                                                                                                                                                                                                        |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/pages/ClienteDettaglio.tsx` | Spostare il blocco "Card Riepilogo Fatturato" (righe 283-310) subito dopo la Scheda Anagrafica (dopo riga 192). Ridurre il padding orizzontale delle celle da `px-4` a `px-2`. Aumentare il font della tabella da `text-sm` a `text-[0.96rem]`. |

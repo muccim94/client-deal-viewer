@@ -158,72 +158,96 @@ export default function ClienteDettaglio() {
         </div>
       </div>
 
-      {/* Grid: Riepilogo + Anagrafica */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Card Riepilogativa */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Riepilogo Fatturato</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div>
-              <p className="text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
-              <p className="text-2xl md:text-3xl font-bold">{fmt(fattCorrente)}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {fattCorrente >= fattPrecYTD
-                ? <TrendingUp className="h-4 w-4 text-emerald-500" />
-                : <TrendingDown className="h-4 w-4 text-red-500" />}
-              <span className="text-sm">
-                vs {annoPrecedente} YTD: {fmt(fattPrecYTD)}
-              </span>
-              <span className={`text-sm font-medium ${
-                fattCorrente >= fattPrecYTD ? 'text-emerald-600' : 'text-red-600'
-              }`}>
-                ({pct(fattCorrente, fattPrecYTD).toFixed(1)}%)
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Fatt. {annoPrecedente}: {fmt(fattPrecTotale)}
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Card Scheda Anagrafica */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Scheda Anagrafica</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {anagrafica && (anagrafica.indirizzo || anagrafica.provincia) ? (
-              <>
-                {anagrafica.indirizzo && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Indirizzo sede legale</p>
-                      <p className="text-sm font-medium">{anagrafica.indirizzo}</p>
-                    </div>
+      {/* Scheda Anagrafica - larghezza piena */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Scheda Anagrafica</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {anagrafica && (anagrafica.indirizzo || anagrafica.provincia) ? (
+            <>
+              {anagrafica.indirizzo && (
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Indirizzo sede legale</p>
+                    <p className="text-sm font-medium">{anagrafica.indirizzo}</p>
                   </div>
-                )}
-                {anagrafica.provincia && (
-                  <div className="flex items-start gap-2">
-                    <Building2 className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Provincia</p>
-                      <p className="text-sm font-medium">{anagrafica.provincia}</p>
-                    </div>
+                </div>
+              )}
+              {anagrafica.provincia && (
+                <div className="flex items-start gap-2">
+                  <Building2 className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Provincia</p>
+                    <p className="text-sm font-medium">{anagrafica.provincia}</p>
                   </div>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">Dati non disponibili</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Dati non disponibili</p>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Pie Chart - Fatturato per Marchio */}
+      {/* Tabelle mensili */}
+      {aziende.map(({ name, rows }) => {
+        const totCorr = rows.reduce((s, r) => s + r.corrente, 0);
+        const totPrec = rows.reduce((s, r) => s + r.precedente, 0);
+        const totDelta = pct(totCorr, totPrec);
+        return (
+          <Card key={name}>
+            <CardHeader className="pb-2 px-4 pt-4">
+              <CardTitle className="text-base font-semibold">{name} — {annoCorrente} vs {annoPrecedente}</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/40">
+                      <th className="text-left py-2 px-4 font-medium">Mese</th>
+                      <th className="text-right py-2 px-4 font-medium">{annoCorrente}</th>
+                      <th className="text-right py-2 px-4 font-medium">{annoPrecedente}</th>
+                      <th className="text-right py-2 px-4 font-medium">Δ %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, i) => (
+                      <tr key={r.mese} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
+                        <td className="py-2 px-4">{r.meseNome}</td>
+                        <td className="py-2 px-4 text-right font-medium">{fmt(r.corrente)}</td>
+                        <td className="py-2 px-4 text-right">{fmt(r.precedente)}</td>
+                        <td className="py-2 px-4 text-right">
+                          <DeltaIcon val={r.delta} />{" "}
+                          <span className={r.delta > 1 ? "text-emerald-600" : r.delta < -1 ? "text-red-600" : "text-muted-foreground"}>
+                            {r.delta.toFixed(1)}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t bg-muted/50 font-semibold text-sm">
+                      <td className="py-2.5 px-4">Totale</td>
+                      <td className="py-2.5 px-4 text-right">{fmt(totCorr)}</td>
+                      <td className="py-2.5 px-4 text-right">{fmt(totPrec)}</td>
+                      <td className="py-2.5 px-4 text-right">
+                        <DeltaIcon val={totDelta} />{" "}
+                        <span className={totDelta > 1 ? "text-emerald-600" : totDelta < -1 ? "text-red-600" : "text-muted-foreground"}>
+                          {totDelta.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+
+      {/* Grafico Fatturato per Marchio */}
       <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={goToMarchi}>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center justify-between">
@@ -235,29 +259,11 @@ export default function ClienteDettaglio() {
           <ResponsiveContainer width="100%" height={280}>
             {isMobile ? (
               <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  innerRadius={45}
-                  paddingAngle={2}
-                  stroke="none"
-                >
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
+                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={45} paddingAngle={2} stroke="none">
+                  {pieData.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
                 </Pie>
-                <Tooltip
-                  formatter={(value: number) => fmt(value)}
-                  contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                />
-                <Legend
-                  wrapperStyle={{ fontSize: 11 }}
-                  formatter={(value: string) => <span className="text-foreground">{value}</span>}
-                />
+                <Tooltip formatter={(value: number) => fmt(value)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} formatter={(value: string) => <span className="text-foreground">{value}</span>} />
               </PieChart>
             ) : (
               <BarChart data={barData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
@@ -274,61 +280,34 @@ export default function ClienteDettaglio() {
         </CardContent>
       </Card>
 
-      {/* Compact monthly tables */}
-      {aziende.map(({ name, rows }) => {
-        const totCorr = rows.reduce((s, r) => s + r.corrente, 0);
-        const totPrec = rows.reduce((s, r) => s + r.precedente, 0);
-        const totDelta = pct(totCorr, totPrec);
-        return (
-          <Card key={name}>
-            <CardHeader className="pb-2 px-3 pt-3">
-              <CardTitle className="text-sm font-semibold">{name} — {annoCorrente} vs {annoPrecedente}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b bg-muted/40">
-                      <th className="text-left py-1.5 px-3 font-medium">Mese</th>
-                      <th className="text-right py-1.5 px-3 font-medium">{annoCorrente}</th>
-                      <th className="text-right py-1.5 px-3 font-medium">{annoPrecedente}</th>
-                      <th className="text-right py-1.5 px-3 font-medium">Δ %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r, i) => (
-                      <tr key={r.mese} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
-                        <td className="py-1 px-3">{r.meseNome}</td>
-                        <td className="py-1 px-3 text-right font-medium">{fmt(r.corrente)}</td>
-                        <td className="py-1 px-3 text-right">{fmt(r.precedente)}</td>
-                        <td className="py-1 px-3 text-right">
-                          <DeltaIcon val={r.delta} />{" "}
-                          <span className={r.delta > 1 ? "text-emerald-600" : r.delta < -1 ? "text-red-600" : "text-muted-foreground"}>
-                            {r.delta.toFixed(1)}%
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t bg-muted/50 font-semibold text-xs">
-                      <td className="py-2 px-3">Totale</td>
-                      <td className="py-2 px-3 text-right">{fmt(totCorr)}</td>
-                      <td className="py-2 px-3 text-right">{fmt(totPrec)}</td>
-                      <td className="py-2 px-3 text-right">
-                        <DeltaIcon val={totDelta} />{" "}
-                        <span className={totDelta > 1 ? "text-emerald-600" : totDelta < -1 ? "text-red-600" : "text-muted-foreground"}>
-                          {totDelta.toFixed(1)}%
-                        </span>
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {/* Card Riepilogo Fatturato - in fondo */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Riepilogo Fatturato</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div>
+            <p className="text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
+            <p className="text-2xl md:text-3xl font-bold">{fmt(fattCorrente)}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {fattCorrente >= fattPrecYTD
+              ? <TrendingUp className="h-4 w-4 text-emerald-500" />
+              : <TrendingDown className="h-4 w-4 text-red-500" />}
+            <span className="text-sm">
+              vs {annoPrecedente} YTD: {fmt(fattPrecYTD)}
+            </span>
+            <span className={`text-sm font-medium ${
+              fattCorrente >= fattPrecYTD ? 'text-emerald-600' : 'text-red-600'
+            }`}>
+              ({pct(fattCorrente, fattPrecYTD).toFixed(1)}%)
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Fatt. {annoPrecedente}: {fmt(fattPrecTotale)}
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Incentivazioni */}
       <Incentivazioni codice={codice!} nomeCliente={clientName} />

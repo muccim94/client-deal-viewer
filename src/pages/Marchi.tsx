@@ -14,15 +14,18 @@ import {
 } from "@/components/ui/select";
 import { ArrowUpDown, Search, Tag, Zap, Sun, Cable, Wrench, Loader2 } from "lucide-react";
 
-type SortKey = "marchio" | "fattCurrentYear" | "fattPrevYear" | "var";
+type SortKey = "marchio" | "fattCurrentYear" | "fattPrevYearYTD" | "fattPrevYear" | "var";
 type SortDir = "asc" | "desc";
 
 interface BrandRow {
   marchio: string;
   fattCurrentYear: number;
   fattPrevYear: number;
+  fattPrevYearYTD: number;
   var: number | null;
 }
+
+const getFamiglia = (marchio: string) => marchio.slice(0, 3).toUpperCase();
 
 export default function Marchi() {
   const [search, setSearch] = useState("");
@@ -61,18 +64,36 @@ export default function Marchi() {
       if (error) throw error;
       return data as unknown as {
         kpi: { mat_elettrico: number; fotovoltaico: number; cavo: number; ricambi: number };
-        brands: { marchio: string; fattCurrentYear: number; fattPrevYear: number }[];
+        brands: { marchio: string; fattCurrentYear: number; fattPrevYear: number; fattPrevYearYTD: number }[];
       };
     },
   });
 
   const kpi = marchiData?.kpi ?? { mat_elettrico: 0, fotovoltaico: 0, cavo: 0, ricambi: 0 };
 
+  // Group brands by family (first 3 chars) and compute var %
   const brands: BrandRow[] = useMemo(() => {
     if (!marchiData?.brands) return [];
-    return marchiData.brands.map((b) => ({
-      ...b,
-      var: b.fattPrevYear > 0 ? ((b.fattCurrentYear - b.fattPrevYear) / b.fattPrevYear) * 100 : null,
+    const familyMap = new Map<string, { fattCurrentYear: number; fattPrevYear: number; fattPrevYearYTD: number }>();
+    for (const b of marchiData.brands) {
+      const fam = getFamiglia(b.marchio);
+      const existing = familyMap.get(fam);
+      if (existing) {
+        existing.fattCurrentYear += b.fattCurrentYear;
+        existing.fattPrevYear += b.fattPrevYear;
+        existing.fattPrevYearYTD += b.fattPrevYearYTD;
+      } else {
+        familyMap.set(fam, {
+          fattCurrentYear: b.fattCurrentYear,
+          fattPrevYear: b.fattPrevYear,
+          fattPrevYearYTD: b.fattPrevYearYTD,
+        });
+      }
+    }
+    return Array.from(familyMap.entries()).map(([marchio, v]) => ({
+      marchio,
+      ...v,
+      var: v.fattPrevYearYTD > 0 ? ((v.fattCurrentYear - v.fattPrevYearYTD) / v.fattPrevYearYTD) * 100 : null,
     }));
   }, [marchiData]);
 
@@ -204,7 +225,7 @@ export default function Marchi() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <CardTitle className="text-base">{filtered.length} marchi</CardTitle>
+            <CardTitle className="text-base">{filtered.length} famiglie marchio</CardTitle>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Cerca marchio..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
@@ -213,7 +234,7 @@ export default function Marchi() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="max-h-[600px] overflow-auto">
-            <Table>
+            <Table className="text-[1.05rem]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("marchio")}>
@@ -222,11 +243,14 @@ export default function Marchi() {
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattCurrentYear")}>
                     <span className="flex items-center gap-1">{`Fatt. ${currentYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 hidden sm:table-cell" onClick={() => toggleSort("fattPrevYear")}>
-                    <span className="flex items-center gap-1">{`Fatt. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattPrevYearYTD")}>
+                    <span className="flex items-center gap-1">{`Progr. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("var")}>
                     <span className="flex items-center gap-1">Var. %<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 hidden sm:table-cell" onClick={() => toggleSort("fattPrevYear")}>
+                    <span className="flex items-center gap-1">{`Totale ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -235,10 +259,10 @@ export default function Marchi() {
                   const pctVal = fmtPct(r.var);
                   return (
                     <TableRow key={r.marchio}>
-                      <TableCell className="font-medium">{r.marchio}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmt(r.fattCurrentYear)}</TableCell>
-                      <TableCell className="text-right tabular-nums hidden sm:table-cell">{fmt(r.fattPrevYear)}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="font-medium py-2 px-2">{r.marchio}</TableCell>
+                      <TableCell className="text-right tabular-nums py-2 px-2">{fmt(r.fattCurrentYear)}</TableCell>
+                      <TableCell className="text-right tabular-nums py-2 px-2">{fmt(r.fattPrevYearYTD)}</TableCell>
+                      <TableCell className="text-right py-2 px-2">
                         {pctVal != null ? (
                           <Badge variant={r.var! >= 0 ? "default" : "destructive"} className={r.var! >= 0 ? "bg-green-600 hover:bg-green-700" : ""}>
                             {pctVal}
@@ -247,6 +271,7 @@ export default function Marchi() {
                           <Badge variant="outline" className="text-muted-foreground">N/A</Badge>
                         )}
                       </TableCell>
+                      <TableCell className="text-right tabular-nums hidden sm:table-cell py-2 px-2">{fmt(r.fattPrevYear)}</TableCell>
                     </TableRow>
                   );
                 })}

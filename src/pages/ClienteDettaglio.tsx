@@ -2,6 +2,7 @@ import { useMemo, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { MapPin, Building2 } from "lucide-react";
 import { getMeseNome } from "@/types/data";
 import { SalesRecord } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +40,22 @@ export default function ClienteDettaglio() {
       return (data as unknown as SalesRecord[]) ?? [];
     },
     enabled: !!codice,
+  });
+
+  const { data: anagrafica } = useQuery({
+    queryKey: ["cliente-anagrafica", clientRecords[0]?.nomeCliente],
+    queryFn: async () => {
+      const nome = clientRecords[0]?.nomeCliente;
+      if (!nome) return null;
+      const { data, error } = await supabase
+        .from("clienti_anagrafica" as any)
+        .select("nome_cliente, indirizzo, provincia")
+        .eq("nome_cliente", nome)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as { nome_cliente: string; indirizzo: string | null; provincia: string | null } | null;
+    },
+    enabled: !!clientRecords[0]?.nomeCliente,
   });
 
   const clientName = clientRecords[0]?.nomeCliente ?? "Cliente";
@@ -141,34 +158,70 @@ export default function ClienteDettaglio() {
         </div>
       </div>
 
-      {/* Card Riepilogativa */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Riepilogo Fatturato</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div>
-            <p className="text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
-            <p className="text-2xl md:text-3xl font-bold">{fmt(fattCorrente)}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {fattCorrente >= fattPrecYTD
-              ? <TrendingUp className="h-4 w-4 text-emerald-500" />
-              : <TrendingDown className="h-4 w-4 text-red-500" />}
-            <span className="text-sm">
-              vs {annoPrecedente} YTD: {fmt(fattPrecYTD)}
-            </span>
-            <span className={`text-sm font-medium ${
-              fattCorrente >= fattPrecYTD ? 'text-emerald-600' : 'text-red-600'
-            }`}>
-              ({pct(fattCorrente, fattPrecYTD).toFixed(1)}%)
-            </span>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Fatt. {annoPrecedente}: {fmt(fattPrecTotale)}
-          </p>
-        </CardContent>
-      </Card>
+      {/* Grid: Riepilogo + Anagrafica */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Card Riepilogativa */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Riepilogo Fatturato</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
+              <p className="text-2xl md:text-3xl font-bold">{fmt(fattCorrente)}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {fattCorrente >= fattPrecYTD
+                ? <TrendingUp className="h-4 w-4 text-emerald-500" />
+                : <TrendingDown className="h-4 w-4 text-red-500" />}
+              <span className="text-sm">
+                vs {annoPrecedente} YTD: {fmt(fattPrecYTD)}
+              </span>
+              <span className={`text-sm font-medium ${
+                fattCorrente >= fattPrecYTD ? 'text-emerald-600' : 'text-red-600'
+              }`}>
+                ({pct(fattCorrente, fattPrecYTD).toFixed(1)}%)
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Fatt. {annoPrecedente}: {fmt(fattPrecTotale)}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card Scheda Anagrafica */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Scheda Anagrafica</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {anagrafica && (anagrafica.indirizzo || anagrafica.provincia) ? (
+              <>
+                {anagrafica.indirizzo && (
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Indirizzo sede legale</p>
+                      <p className="text-sm font-medium">{anagrafica.indirizzo}</p>
+                    </div>
+                  </div>
+                )}
+                {anagrafica.provincia && (
+                  <div className="flex items-start gap-2">
+                    <Building2 className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Provincia</p>
+                      <p className="text-sm font-medium">{anagrafica.provincia}</p>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Dati non disponibili</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Pie Chart - Fatturato per Marchio */}
       <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={goToMarchi}>

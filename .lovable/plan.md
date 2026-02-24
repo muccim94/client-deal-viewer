@@ -1,40 +1,39 @@
-
-
 ## Modifiche alla pagina Marchi del Cliente
 
-### 1. Raggruppamento marchi per famiglia
+### 1. Font piu' grande (+20%)
 
-Attualmente ogni marchio (es. `LEG`, `LEG40`, `LEG50`) viene mostrato come riga separata. Con questa modifica, i marchi verranno raggruppati per **famiglia** estraendo solo le lettere iniziali (la parte alfabetica del codice marchio). Ad esempio:
-- `LEG`, `LEG40`, `LEG50` -> famiglia **LEG**
-- `BEG`, `BEG10` -> famiglia **BEG**
-- `CV.` rimane **CV.**
+Il font della tabella passera' da `text-[0.9375rem]` (15px) a `text-[1.125rem]` (18px, +20%).
 
-I fatturati di tutti i marchi della stessa famiglia verranno sommati in un'unica riga.
+### 2. Colonne piu' vicine (-15%)
 
-**Logica di estrazione famiglia**: si prende la parte iniziale del codice marchio composta solo da lettere e punti (regex: `/^[A-Za-z.*]+/`), rimuovendo eventuali suffissi numerici.
+Il padding orizzontale delle celle passera' da `px-2` (8px) a `px-1.5` (6px), una riduzione del 25% che avvicina le colonne.
 
-### 2. Font piu' grande (+25%)
+### 3. Riordino colonne
 
-Il font della tabella passera' da `text-xs` (12px) a `text-[0.9375rem]` (~15px, +25%). Lo stesso aumento si applica a header, corpo e footer.
+L'ordine attuale e': Marchio | Anno Precedente | Anno Corrente | Var. %
 
-### 3. Colonne piu' vicine (-20%)
+Il nuovo ordine sara': **Marchio | Anno Corrente | Progr. Anno Prec. (nuova) | Anno Precedente | Var. %**
 
-Il padding orizzontale delle celle passera' da `px-3` (12px) a `px-2` (8px), una riduzione di circa il 33% che avvicina sensibilmente le colonne.
+La colonna del fatturato corrente (es. 2026) viene spostata subito dopo il marchio.
+
+### 4. Nuova colonna "Progressivo Anno Precedente"
+
+Tra le due colonne di fatturato viene aggiunta una colonna che mostra il **fatturato progressivo del 2025** calcolato fino allo stesso mese massimo disponibile nei dati dell'anno corrente. Ad esempio, se i dati 2026 arrivano fino a marzo, la colonna mostrera' il totale 2025 solo per gennaio-febbraio-marzo.
+
+Questo permette un confronto piu' equo tra i due anni.
 
 ### Dettagli tecnici
 
-| File | Modifica |
-|---|---|
-| `src/pages/ClienteMarchi.tsx` | Aggiungere funzione di estrazione famiglia dal codice marchio; modificare il `useMemo` dei marchi (righe 44-58) per raggruppare per famiglia invece che per marchio singolo; cambiare font tabella da `text-xs` a `text-[0.9375rem]`; ridurre padding da `px-3` a `px-2` |
 
-### Esempio di raggruppamento
+| File                          | Modifica                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/pages/ClienteMarchi.tsx` | Calcolare il mese massimo dell'anno corrente dai dati; nel `useMemo` dei marchi aggiungere il campo `progressivo` (somma anno precedente filtrata per mesi <= meseMax); aggiungere `"progressivo"` al tipo `SortKey`; riordinare le colonne nella tabella (header, body, footer); aumentare font a `text-[1.125rem]`; ridurre padding a `px-1.5` |
+
+
+### Esempio layout tabella
 
 ```text
-Prima:                          Dopo:
-LEG    -> € 1.000              LEG    -> € 2.500 (somma LEG + LEG40 + LEG50)
-LEG40  -> € 800
-LEG50  -> € 700
-BEG    -> € 500                BEG    -> € 900 (somma BEG + BEG10)
-BEG10  -> € 400
+Marchio | 2026      | Progr. 2025 | totale 2025 | Var. %
+LEG     | € 2.500   | € 1.800     | € 3.200     | +12.5%
+BEG     | € 900     | € 600       | € 1.100     | -8.2%
 ```
-

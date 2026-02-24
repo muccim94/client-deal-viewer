@@ -1,43 +1,59 @@
-## Miglioramenti alla pagina Anagrafiche
-
-### 1. Spostare i filtri rapidi dentro la barra di ricerca
-
-Attualmente i filtri rapidi ("Clienti in perdita", "Sotto i 5k", "Top 10 clienti") sono in una riga separata sotto l'header. Verranno spostati nella stessa riga del selettore agente e della barra di ricerca, integrandoli visivamente come parte dell'area filtri
-
-### 2. Riferimento corretto nelle intestazioni colonne
-
-Le intestazioni della tabella mostreranno sempre gli anni esplicitamente:
-
-- `Fatt. 2026` (anno corrente YTD)
-- `Fatt. 2025 YTD` (anno precedente, stesso periodo)
-- `Fatt. 2025` (anno precedente, totale annuo) -- colonna nascondibile
-
-I filtri rapidi continueranno a confrontare il fatturato 2026 con il fatturato 2025 YTD, come gia' implementato.
-
-### 3. Toggle per mostrare/nascondere la colonna "Fatt. 2025" (totale annuo)
-
-Verra' aggiunto uno switch (toggle) nell'area filtri che permette di nascondere/mostrare l'ultima colonna (`fattPrevYear`). Questo rende la tabella piu' compatta e leggibile quando non serve il dato annuale completo.
-
-### Dettagli tecnici
-
-#### File: `src/pages/Anagrafiche.tsx`
-
-**Nuovo stato:**
-
-- `showFullYear` (boolean, default `true`): controlla la visibilita' della colonna "Fatt. 2025"
-
-**Layout modificato nel CardHeader:**
-
-- Prima riga: titolo conteggio clienti + selettore agente + barra di ricerca (invariato)
-- Seconda riga (dentro CardHeader, prima della tabella): filtri rapidi (pill buttons) + toggle "Fatt. 2025" con label e componente Switch
-
-**Rimozione:** la `<div>` separata con `border-b` che contiene i filtri viene eliminata; i filtri si spostano nel CardHeader.
-
-**Colonna "Fatt. 2025":**
-
-- Il `<TableHead>` e il `<TableCell>` corrispondenti verranno condizionati a `showFullYear`, mostrandosi solo quando il toggle e' attivo.
 
 
-| File                        | Modifica                                                                               |
-| --------------------------- | -------------------------------------------------------------------------------------- |
-| `src/pages/Anagrafiche.tsx` | Spostare filtri nel header, aggiungere toggle per colonna Fatt. anno precedente totale |
+## Aggiunta card "Scheda Anagrafica" nella pagina cliente
+
+### Panoramica
+Aggiungere una card "Scheda Anagrafica" accanto alla card "Riepilogo Fatturato" nella pagina dettaglio cliente. I dati anagrafici (indirizzo e provincia) provengono dal file Excel caricato e verranno salvati in una nuova tabella del database.
+
+### Dati dal file Excel
+Il file contiene 3 colonne:
+- **AZIENDA**: ragione sociale del cliente
+- **INDIRIZZO SEDE LEGALE**: indirizzo completo
+- **PROVINCIA**: sigla provincia (es. MO, BO, RE)
+
+### Modifiche tecniche
+
+#### 1. Nuova tabella database: `clienti_anagrafica`
+
+```text
+clienti_anagrafica
++-------------------+----------+-----------------------------------+
+| nome_cliente      | text PK  | ragione sociale (chiave primaria) |
+| indirizzo         | text     | indirizzo sede legale             |
+| provincia         | text     | sigla provincia                   |
++-------------------+----------+-----------------------------------+
+```
+
+- RLS abilitato con policy di lettura per utenti autenticati
+- Policy di scrittura per admin (per futuri aggiornamenti)
+
+#### 2. Importazione dati Excel
+
+Creazione di una migration SQL che inserisce tutti i ~170 record del file Excel direttamente nella tabella tramite `INSERT INTO`.
+
+#### 3. File: `src/pages/ClienteDettaglio.tsx`
+
+- Aggiungere una query per recuperare i dati anagrafici dalla tabella `clienti_anagrafica`, cercando per `nome_cliente` corrispondente
+- Le due card ("Riepilogo Fatturato" e "Scheda Anagrafica") vengono disposte in una griglia a 2 colonne (`grid grid-cols-1 md:grid-cols-2`) occupando ciascuna meta' dello spazio
+- La card "Scheda Anagrafica" mostra:
+  - Indirizzo sede legale
+  - Provincia
+  - Un messaggio "Dati non disponibili" se il cliente non e' presente nella tabella anagrafica
+
+### Layout risultante
+
+```text
++---------------------------+---------------------------+
+|   Riepilogo Fatturato     |   Scheda Anagrafica       |
+|                           |                           |
+|   Fatt. 2026: EUR XXX     |   Indirizzo:              |
+|   vs 2025 YTD: EUR XXX    |   Via Example 123, Citta' |
+|   Fatt. 2025: EUR XXX     |   Provincia: MO           |
++---------------------------+---------------------------+
+```
+
+| File | Modifica |
+|---|---|
+| Migration SQL | Creare tabella `clienti_anagrafica` + inserire dati dal file Excel |
+| `src/pages/ClienteDettaglio.tsx` | Aggiungere query anagrafica, layout a griglia con le due card affiancate |
+

@@ -1,39 +1,32 @@
-## Modifiche alla pagina Marchi del Cliente
 
-### 1. Font piu' grande (+20%)
 
-Il font della tabella passera' da `text-[0.9375rem]` (15px) a `text-[1.125rem]` (18px, +20%).
+## Modifiche alla tabella Marchi
 
-### 2. Colonne piu' vicine (-15%)
+### 1. Riordino colonne
 
-Il padding orizzontale delle celle passera' da `px-2` (8px) a `px-1.5` (6px), una riduzione del 25% che avvicina le colonne.
+L'ordine attuale: Marchio | 2026 | Progr. 2025 | Totale 2025 | Var. %
 
-### 3. Riordino colonne
+Nuovo ordine: **Marchio | 2026 | Progr. 2025 | Var. % | Totale 2025**
 
-L'ordine attuale e': Marchio | Anno Precedente | Anno Corrente | Var. %
+La colonna "Totale 2025" viene spostata all'ultimo posto.
 
-Il nuovo ordine sara': **Marchio | Anno Corrente | Progr. Anno Prec. (nuova) | Anno Precedente | Var. %**
+### 2. Calcolo Var. % basato sul progressivo
 
-La colonna del fatturato corrente (es. 2026) viene spostata subito dopo il marchio.
+Attualmente il delta viene calcolato come differenza percentuale tra fatturato corrente e **totale** anno precedente. Verra' modificato per confrontare il fatturato corrente con il **progressivo** dell'anno precedente (stesso periodo YTD), per un confronto piu' equo.
 
-### 4. Nuova colonna "Progressivo Anno Precedente"
-
-Tra le due colonne di fatturato viene aggiunta una colonna che mostra il **fatturato progressivo del 2025** calcolato fino allo stesso mese massimo disponibile nei dati dell'anno corrente. Ad esempio, se i dati 2026 arrivano fino a marzo, la colonna mostrera' il totale 2025 solo per gennaio-febbraio-marzo.
-
-Questo permette un confronto piu' equo tra i due anni.
+Formula: `((corrente - progressivo) / |progressivo|) * 100`
 
 ### Dettagli tecnici
 
+| File | Modifica |
+|---|---|
+| `src/pages/ClienteMarchi.tsx` | Riga 69: cambiare `delta: pct(v.corrente, v.precedente)` in `delta: pct(v.corrente, v.progressivo)`; righe 127-161: riordinare colonne spostando "Totale anno prec." dopo "Var. %" sia in thead, tbody che tfoot; aggiornare anche il totale footer da `pct(totCorr, totPrec)` a `pct(totCorr, totProg)` |
 
-| File                          | Modifica                                                                                                                                                                                                                                                                                                                                         |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/pages/ClienteMarchi.tsx` | Calcolare il mese massimo dell'anno corrente dai dati; nel `useMemo` dei marchi aggiungere il campo `progressivo` (somma anno precedente filtrata per mesi <= meseMax); aggiungere `"progressivo"` al tipo `SortKey`; riordinare le colonne nella tabella (header, body, footer); aumentare font a `text-[1.125rem]`; ridurre padding a `px-1.5` |
-
-
-### Esempio layout tabella
+### Layout finale
 
 ```text
-Marchio | 2026      | Progr. 2025 | totale 2025 | Var. %
-LEG     | € 2.500   | € 1.800     | € 3.200     | +12.5%
-BEG     | € 900     | € 600       | € 1.100     | -8.2%
+Marchio | 2026      | Progr. 2025 | Var. %  | Totale 2025
+LEG     | € 2.500   | € 1.800    | +38.9%  | € 3.200
+BEG     | € 900     | € 600      | +50.0%  | € 1.100
 ```
+

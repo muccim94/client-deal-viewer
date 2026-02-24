@@ -162,6 +162,34 @@ export default function ClienteDettaglio() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
+            <CardTitle className="text-base">Riepilogo Fatturato</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
+              <p className="text-2xl md:text-3xl font-bold">{fmt(fattCorrente)}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {fattCorrente >= fattPrecYTD
+                ? <TrendingUp className="h-4 w-4 text-emerald-500" />
+                : <TrendingDown className="h-4 w-4 text-red-500" />}
+              <span className="text-sm">
+                vs {annoPrecedente} YTD: {fmt(fattPrecYTD)}
+              </span>
+              <span className={`text-sm font-medium ${
+                fattCorrente >= fattPrecYTD ? 'text-emerald-600' : 'text-red-600'
+              }`}>
+                ({pct(fattCorrente, fattPrecYTD).toFixed(1)}%)
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Fatt. {annoPrecedente}: {fmt(fattPrecTotale)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
             <CardTitle className="text-base">Scheda Anagrafica</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -191,34 +219,6 @@ export default function ClienteDettaglio() {
             )}
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Riepilogo Fatturato</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div>
-              <p className="text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
-              <p className="text-2xl md:text-3xl font-bold">{fmt(fattCorrente)}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {fattCorrente >= fattPrecYTD
-                ? <TrendingUp className="h-4 w-4 text-emerald-500" />
-                : <TrendingDown className="h-4 w-4 text-red-500" />}
-              <span className="text-sm">
-                vs {annoPrecedente} YTD: {fmt(fattPrecYTD)}
-              </span>
-              <span className={`text-sm font-medium ${
-                fattCorrente >= fattPrecYTD ? 'text-emerald-600' : 'text-red-600'
-              }`}>
-                ({pct(fattCorrente, fattPrecYTD).toFixed(1)}%)
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Fatt. {annoPrecedente}: {fmt(fattPrecTotale)}
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Tabelle mensili */}
@@ -233,22 +233,22 @@ export default function ClienteDettaglio() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-auto">
-              <table className="w-full text-[0.96rem]">
+              <table className="w-full text-[1.056rem]">
                   <thead>
                     <tr className="border-b bg-muted/40">
-                      <th className="text-left py-2 px-2 font-medium">Mese</th>
-                      <th className="text-right py-2 px-2 font-medium">{annoCorrente}</th>
-                      <th className="text-right py-2 px-2 font-medium">{annoPrecedente}</th>
-                      <th className="text-right py-2 px-2 font-medium">Δ %</th>
+                      <th className="text-left py-2 px-1.5 font-medium">Mese</th>
+                      <th className="text-right py-2 px-1.5 font-medium">{annoCorrente}</th>
+                      <th className="text-right py-2 px-1.5 font-medium">{annoPrecedente}</th>
+                      <th className="text-right py-2 px-1.5 font-medium">Δ %</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((r, i) => (
                       <tr key={r.mese} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
-                        <td className="py-2 px-2">{r.meseNome}</td>
-                        <td className="py-2 px-2 text-right font-medium">{fmt(r.corrente)}</td>
-                        <td className="py-2 px-2 text-right">{fmt(r.precedente)}</td>
-                        <td className="py-2 px-2 text-right">
+                        <td className="py-2 px-1.5">{r.meseNome}</td>
+                        <td className="py-2 px-1.5 text-right font-medium">{fmt(r.corrente)}</td>
+                        <td className="py-2 px-1.5 text-right">{fmt(r.precedente)}</td>
+                        <td className="py-2 px-1.5 text-right">
                           <DeltaIcon val={r.delta} />{" "}
                           <span className={r.delta > 1 ? "text-emerald-600" : r.delta < -1 ? "text-red-600" : "text-muted-foreground"}>
                             {r.delta.toFixed(1)}%
@@ -258,11 +258,11 @@ export default function ClienteDettaglio() {
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t bg-muted/50 font-semibold text-[0.96rem]">
-                      <td className="py-2.5 px-2">Totale</td>
-                      <td className="py-2.5 px-2 text-right">{fmt(totCorr)}</td>
-                      <td className="py-2.5 px-2 text-right">{fmt(totPrec)}</td>
-                      <td className="py-2.5 px-2 text-right">
+                    <tr className="border-t bg-muted/50 font-semibold text-[1.056rem]">
+                      <td className="py-2.5 px-1.5">Totale</td>
+                      <td className="py-2.5 px-1.5 text-right">{fmt(totCorr)}</td>
+                      <td className="py-2.5 px-1.5 text-right">{fmt(totPrec)}</td>
+                      <td className="py-2.5 px-1.5 text-right">
                         <DeltaIcon val={totDelta} />{" "}
                         <span className={totDelta > 1 ? "text-emerald-600" : totDelta < -1 ? "text-red-600" : "text-muted-foreground"}>
                           {totDelta.toFixed(1)}%

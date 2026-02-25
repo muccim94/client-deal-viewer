@@ -6,6 +6,7 @@ import { parseExcelFile } from "@/lib/parseExcel";
 import { parseAnagraficaExcel, AnagraficaRecord } from "@/lib/parseAnagraficaExcel";
 import { SalesRecord, getMeseNome } from "@/types/data";
 import { supabase } from "@/integrations/supabase/client";
+import * as XLSX from "xlsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -469,6 +470,21 @@ export default function UploadExcel() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Colonne attese: Nome Cliente, Partita IVA, Indirizzo, Provincia, Telefono, Email
                 </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const headers = [["Nome Cliente", "Partita IVA", "Indirizzo", "Provincia", "Telefono", "Email"]];
+                    const ws = XLSX.utils.aoa_to_sheet(headers);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Template");
+                    XLSX.writeFile(wb, "template_anagrafiche.xlsx");
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-1" /> Scarica Template
+                </Button>
                 <input
                   id="anag-file-input"
                   type="file"

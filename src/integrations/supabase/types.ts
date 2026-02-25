@@ -58,19 +58,28 @@ export type Database = {
       }
       clienti_anagrafica: {
         Row: {
+          email: string | null
           indirizzo: string | null
           nome_cliente: string
+          partita_iva: string | null
           provincia: string | null
+          telefono: string | null
         }
         Insert: {
+          email?: string | null
           indirizzo?: string | null
           nome_cliente: string
+          partita_iva?: string | null
           provincia?: string | null
+          telefono?: string | null
         }
         Update: {
+          email?: string | null
           indirizzo?: string | null
           nome_cliente?: string
+          partita_iva?: string | null
           provincia?: string | null
+          telefono?: string | null
         }
         Relationships: []
       }

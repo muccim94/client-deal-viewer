@@ -3,7 +3,9 @@ import { useData, DbRecord, FetchFilters } from "@/contexts/DataContext";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { parseExcelFile } from "@/lib/parseExcel";
+import { parseAnagraficaExcel, AnagraficaRecord } from "@/lib/parseAnagraficaExcel";
 import { SalesRecord, getMeseNome } from "@/types/data";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,8 +68,13 @@ export default function UploadExcel() {
   const clienteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const agenteDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isAdmin = role === "admin";
+  // --- anagrafica upload state ---
+  const [anagPreview, setAnagPreview] = useState<AnagraficaRecord[] | null>(null);
+  const [anagFileName, setAnagFileName] = useState("");
+  const [anagDragging, setAnagDragging] = useState(false);
+  const [anagImporting, setAnagImporting] = useState(false);
 
+  const isAdmin = role === "admin";
 
   // Load editor rows whenever filters or page change
   const loadEditor = useCallback(async (f: FetchFilters, page: number) => {
@@ -422,6 +429,145 @@ export default function UploadExcel() {
                 </TableBody>
               </Table>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── IMPORTA ANAGRAFICHE (solo admin) ── */}
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Importa Anagrafiche</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!anagPreview ? (
+              <div
+                onDragOver={(e) => { e.preventDefault(); setAnagDragging(true); }}
+                onDragLeave={() => setAnagDragging(false)}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  setAnagDragging(false);
+                  const file = e.dataTransfer.files[0];
+                  if (!file) return;
+                  try {
+                    const data = await parseAnagraficaExcel(file);
+                    setAnagPreview(data);
+                    setAnagFileName(file.name);
+                  } catch (err: any) {
+                    toast.error(err.message || "Errore nel parsing del file");
+                  }
+                }}
+                className={`border-2 border-dashed rounded-lg p-6 md:p-12 text-center transition-colors cursor-pointer ${
+                  anagDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                }`}
+                onClick={() => document.getElementById("anag-file-input")?.click()}
+              >
+                <UploadIcon className="h-8 w-8 md:h-10 md:w-10 mx-auto mb-3 md:mb-4 text-muted-foreground" />
+                <p className="text-sm font-medium text-foreground">
+                  Trascina qui un file Excel con i dati anagrafici
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Colonne attese: Nome Cliente, Partita IVA, Indirizzo, Provincia, Telefono, Email
+                </p>
+                <input
+                  id="anag-file-input"
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const data = await parseAnagraficaExcel(file);
+                      setAnagPreview(data);
+                      setAnagFileName(file.name);
+                    } catch (err: any) {
+                      toast.error(err.message || "Errore nel parsing del file");
+                    }
+                  }}
+                />
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <FileSpreadsheet className="h-5 w-5 text-primary" />
+                    <span className="text-sm font-medium">{anagFileName} — {anagPreview.length} record</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => { setAnagPreview(null); setAnagFileName(""); }}>
+                      <X className="h-4 w-4 mr-1" /> Annulla
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={anagImporting}
+                      onClick={async () => {
+                        setAnagImporting(true);
+                        try {
+                          const { error } = await supabase
+                            .from("clienti_anagrafica")
+                            .upsert(
+                              anagPreview.map((r) => ({
+                                nome_cliente: r.nome_cliente,
+                                partita_iva: r.partita_iva || null,
+                                indirizzo: r.indirizzo || null,
+                                provincia: r.provincia || null,
+                                telefono: r.telefono || null,
+                                email: r.email || null,
+                              })),
+                              { onConflict: "nome_cliente" }
+                            );
+                          if (error) throw error;
+                          toast.success(`${anagPreview.length} anagrafiche importate/aggiornate`);
+                          setAnagPreview(null);
+                          setAnagFileName("");
+                          queryClient.invalidateQueries();
+                        } catch (err: any) {
+                          toast.error(err.message || "Errore durante l'importazione");
+                        } finally {
+                          setAnagImporting(false);
+                        }
+                      }}
+                    >
+                      <Check className="h-4 w-4 mr-1" /> {anagImporting ? "Importazione..." : "Importa"}
+                    </Button>
+                  </div>
+                </div>
+                <div className="max-h-72 overflow-auto border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome Cliente</TableHead>
+                        <TableHead className="hidden sm:table-cell">P.IVA</TableHead>
+                        <TableHead className="hidden sm:table-cell">Telefono</TableHead>
+                        <TableHead className="hidden sm:table-cell">Email</TableHead>
+                        <TableHead className="hidden md:table-cell">Indirizzo</TableHead>
+                        <TableHead className="hidden md:table-cell">Prov.</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {anagPreview.slice(0, 50).map((r, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="text-sm">{r.nome_cliente}</TableCell>
+                          <TableCell className="text-sm hidden sm:table-cell">{r.partita_iva || "—"}</TableCell>
+                          <TableCell className="text-sm hidden sm:table-cell">{r.telefono || "—"}</TableCell>
+                          <TableCell className="text-sm hidden sm:table-cell">{r.email || "—"}</TableCell>
+                          <TableCell className="text-sm hidden md:table-cell">{r.indirizzo || "—"}</TableCell>
+                          <TableCell className="text-sm hidden md:table-cell">{r.provincia || "—"}</TableCell>
+                        </TableRow>
+                      ))}
+                      {anagPreview.length > 50 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground text-sm">
+                            ...e altri {anagPreview.length - 50} record
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       )}

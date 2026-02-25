@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import ProgressBarLettera from "@/components/incentivazioni/ProgressBarLettera";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -174,11 +175,12 @@ const pdfStyles = `
     }
   </style>`;
 
-function openPdfWindow(lettere: Lettera[]) {
+function openPdfWindow(lettere: Lettera[], title?: string) {
   const html = lettere.map((l, i) => generateLetteraHtml(l, i < lettere.length - 1)).join("");
+  const pdfTitle = title ?? "Incentivazioni";
   const win = window.open("", "_blank");
   if (!win) return;
-  win.document.write(`<html><head><title>Incentivazioni</title>${pdfStyles}</head><body>${html}</body></html>`);
+  win.document.write(`<html><head><title>${pdfTitle}</title>${pdfStyles}</head><body>${html}</body></html>`);
   win.document.close();
   win.focus();
   setTimeout(() => win.print(), 500);
@@ -192,6 +194,7 @@ export default function IncentivazioniBrowser() {
   const [filterAnno, setFilterAnno] = useState<string>("__all__");
   const [filterCliente, setFilterCliente] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data: rows = [], isLoading } = useQuery<Lettera[]>({
     queryKey: ["all-incentivazioni"],
@@ -205,6 +208,23 @@ export default function IncentivazioniBrowser() {
       return (data ?? []) as unknown as Lettera[];
     },
     enabled: isAdmin,
+  });
+
+  // Fetch current year revenue for the expanded letter's client
+  const expandedLettera = rows.find((r) => r.id === expandedId);
+  const { data: fatturatoAttuale, isLoading: isLoadingFatt } = useQuery({
+    queryKey: ["fatt-incentivazione", expandedLettera?.codice_cliente, expandedLettera?.anno],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sales_records")
+        .select("imponibile")
+        .eq("codice_cliente", expandedLettera!.codice_cliente)
+        .eq("anno", expandedLettera!.anno)
+        .eq("azienda", "FO");
+      if (error) throw error;
+      return (data ?? []).reduce((sum, r) => sum + Number(r.imponibile), 0);
+    },
+    enabled: !!expandedLettera,
   });
 
   // Available years for filter
@@ -269,7 +289,8 @@ export default function IncentivazioniBrowser() {
   };
 
   const handleDownloadSingle = (l: Lettera) => {
-    openPdfWindow([l]);
+    const title = `${l.nome_cliente} - ${l.codice_cliente} - ${l.anno} - 01-01_31-12`;
+    openPdfWindow([l], title);
   };
 
   if (!isAdmin) {
@@ -378,48 +399,70 @@ export default function IncentivazioniBrowser() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((l) => (
-                    <TableRow key={l.id} className={selected.has(l.id) ? "bg-primary/5" : ""}>
-                      <TableCell className="px-3">
-                        <Checkbox
-                          checked={selected.has(l.id)}
-                          onCheckedChange={() => toggleOne(l.id)}
-                          aria-label={`Seleziona ${l.nome_cliente}`}
-                        />
-                      </TableCell>
-                      <TableCell className="px-3">
-                        <Link
-                          to={`/anagrafiche/${l.codice_cliente}`}
-                          className="font-medium text-primary hover:underline text-sm"
-                        >
-                          {l.nome_cliente}
-                        </Link>
-                        <div className="text-xs text-muted-foreground sm:hidden">{l.codice_cliente}</div>
-                      </TableCell>
-                      <TableCell className="px-3 hidden sm:table-cell text-sm text-muted-foreground">
-                        {l.codice_cliente}
-                      </TableCell>
-                      <TableCell className="px-3 text-center text-sm font-medium">{l.anno}</TableCell>
-                      <TableCell className="px-3 text-right tabular-nums text-sm hidden md:table-cell">
-                        {fmt(l.totale_fatturato)}
-                      </TableCell>
-                      <TableCell className="px-3 text-right tabular-nums text-sm font-semibold text-primary">
-                        {fmt(l.totale_premi)}
-                      </TableCell>
-                      <TableCell className="px-3 text-right tabular-nums text-sm hidden sm:table-cell text-muted-foreground">
-                        {fmtPct(l.incidenza)}
-                      </TableCell>
-                      <TableCell className="px-3 text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-primary"
-                          onClick={() => handleDownloadSingle(l)}
-                          title="Esporta PDF"
-                        >
-                          <FileDown className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                    <>
+                      <TableRow
+                        key={l.id}
+                        className={`cursor-pointer ${selected.has(l.id) ? "bg-primary/5" : ""} ${expandedId === l.id ? "border-b-0" : ""}`}
+                        onClick={(e) => {
+                          // Don't toggle on checkbox or PDF button clicks
+                          const target = e.target as HTMLElement;
+                          if (target.closest('button') || target.closest('[role="checkbox"]') || target.closest('a')) return;
+                          setExpandedId((prev) => (prev === l.id ? null : l.id));
+                        }}
+                      >
+                        <TableCell className="px-3">
+                          <Checkbox
+                            checked={selected.has(l.id)}
+                            onCheckedChange={() => toggleOne(l.id)}
+                            aria-label={`Seleziona ${l.nome_cliente}`}
+                          />
+                        </TableCell>
+                        <TableCell className="px-3">
+                          <Link
+                            to={`/anagrafiche/${l.codice_cliente}`}
+                            className="font-medium text-primary hover:underline text-sm"
+                          >
+                            {l.nome_cliente}
+                          </Link>
+                          <div className="text-xs text-muted-foreground sm:hidden">{l.codice_cliente}</div>
+                        </TableCell>
+                        <TableCell className="px-3 hidden sm:table-cell text-sm text-muted-foreground">
+                          {l.codice_cliente}
+                        </TableCell>
+                        <TableCell className="px-3 text-center text-sm font-medium">{l.anno}</TableCell>
+                        <TableCell className="px-3 text-right tabular-nums text-sm hidden md:table-cell">
+                          {fmt(l.totale_fatturato)}
+                        </TableCell>
+                        <TableCell className="px-3 text-right tabular-nums text-sm font-semibold text-primary">
+                          {fmt(l.totale_premi)}
+                        </TableCell>
+                        <TableCell className="px-3 text-right tabular-nums text-sm hidden sm:table-cell text-muted-foreground">
+                          {fmtPct(l.incidenza)}
+                        </TableCell>
+                        <TableCell className="px-3 text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary"
+                            onClick={() => handleDownloadSingle(l)}
+                            title="Esporta PDF"
+                          >
+                            <FileDown className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      {expandedId === l.id && (
+                        <TableRow key={`${l.id}-progress`} className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell colSpan={8} className="p-0">
+                            <ProgressBarLettera
+                              righe={Array.isArray(l.righe) ? (l.righe as Riga[]) : []}
+                              fatturatoAttuale={expandedId === l.id ? (fatturatoAttuale ?? null) : null}
+                              isLoading={isLoadingFatt}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   ))}
                 </TableBody>
               </Table>

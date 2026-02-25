@@ -1,8 +1,10 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, Building2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { MapPin, Building2, Pencil } from "lucide-react";
+import AnagraficaEditDialog from "@/components/cliente/AnagraficaEditDialog";
 import { getMeseNome } from "@/types/data";
 import { SalesRecord } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +31,8 @@ const COLORS = [
 export default function ClienteDettaglio() {
   const { codice } = useParams<{ codice: string }>();
   const navigate = useNavigate();
+  const { role } = useAuth();
+  const [editOpen, setEditOpen] = useState(false);
   const isMobile = useIsMobile();
   const { data: clientRecords = [], isLoading } = useQuery({
     queryKey: ["cliente-detail", codice],
@@ -190,7 +194,15 @@ export default function ClienteDettaglio() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Scheda Anagrafica</CardTitle>
+            <CardTitle className="text-base flex items-center justify-between">
+              Scheda Anagrafica
+              {role === "admin" && (
+                <Pencil
+                  className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setEditOpen(true)}
+                />
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {anagrafica && (anagrafica.indirizzo || anagrafica.provincia) ? (
@@ -319,6 +331,14 @@ export default function ClienteDettaglio() {
 
       {/* Incentivazioni */}
       <Incentivazioni codice={codice!} nomeCliente={clientName} />
+
+      <AnagraficaEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        nomeCliente={clientName}
+        indirizzo={anagrafica?.indirizzo ?? null}
+        provincia={anagrafica?.provincia ?? null}
+      />
     </div>
   );
 }

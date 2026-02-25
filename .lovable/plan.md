@@ -1,31 +1,44 @@
 
 
-## Scheda Anagrafica modificabile (solo admin)
+## Importazione dati anagrafici da Excel
 
-Aggiungere la possibilita' per gli amministratori di modificare i dati anagrafici (indirizzo e provincia) direttamente dalla card "Scheda Anagrafica", tramite un dialog modale attivato da un'icona di modifica.
+Aggiungere una funzionalita' per gli amministratori che permetta di importare in blocco i dati anagrafici dei clienti (telefono, email, partita IVA, indirizzo, provincia) da un file Excel.
+
+### Dove si trova
+
+Una nuova sezione nella pagina "Gestione Dati" (UploadExcel), visibile solo agli admin, con un'area di upload dedicata alle anagrafiche, separata dall'upload del fatturato.
 
 ### Funzionamento
 
-- Nella card "Scheda Anagrafica", in alto a destra, comparira' una piccola icona matita (Pencil) visibile **solo agli admin**
-- Cliccando l'icona si apre un dialog modale con:
-  - Campo "Indirizzo" (input testuale, modificabile a mano)
-  - Campo "Provincia" (input testuale)
-  - Un link/pulsante "Cerca su Google Maps" che apre Maps con l'indirizzo corrente per verificarlo
-  - Pulsanti "Annulla" e "Salva"
-- Al salvataggio, i dati vengono scritti/aggiornati nella tabella `clienti_anagrafica` (upsert per `nome_cliente`)
-- Il dialog si chiude e i dati vengono ricaricati automaticamente
+1. L'admin carica un file Excel con colonne come: **Nome Cliente**, **Partita IVA**, **Indirizzo**, **Provincia**, **Telefono**, **Email**
+2. Il sistema mostra un'anteprima dei dati trovati (nome, P.IVA, telefono, email, indirizzo)
+3. L'admin conferma l'importazione
+4. I dati vengono inseriti/aggiornati nella tabella `clienti_anagrafica` tramite upsert su `nome_cliente`
+5. Toast di conferma con il numero di record aggiornati
+
+### Formato Excel atteso
+
+Il parser sara' flessibile e cerchera' colonne con nomi simili (case-insensitive):
+- "Nome Cliente" / "Ragione Sociale" / "Cliente" -> `nome_cliente`
+- "Partita IVA" / "P.IVA" / "P. IVA" -> `partita_iva`
+- "Indirizzo" / "Sede" -> `indirizzo`
+- "Provincia" / "Prov" -> `provincia`
+- "Telefono" / "Tel" / "Phone" -> `telefono`
+- "Email" / "E-mail" / "Mail" -> `email`
+
+La colonna "Nome Cliente" e' obbligatoria. Le altre sono facoltative: verranno importate solo se presenti.
 
 ### Modifiche tecniche
 
-**File: `src/pages/ClienteDettaglio.tsx`**
+**Nuovo file: `src/lib/parseAnagraficaExcel.ts`**
+- Funzione `parseAnagraficaExcel(file: File)` che restituisce un array di oggetti con i campi anagrafici
+- Mapping flessibile dei nomi colonna (case-insensitive, con alias)
+- Validazione: almeno la colonna "Nome Cliente" deve essere presente, righe senza nome vengono ignorate
 
-- Importare `useAuth` da `@/contexts/AuthContext`
-- Importare `Pencil` da lucide-react e componenti Dialog
-- Aggiungere stato locale per il dialog (open/close) e i campi editabili (indirizzo, provincia)
-- Nella CardHeader della "Scheda Anagrafica", aggiungere l'icona Pencil condizionata a `role === "admin"`
-- Creare il Dialog con form di modifica contenente:
-  - Input per indirizzo
-  - Input per provincia
-  - Link esterno a Google Maps per verifica
-  - Logica di upsert su `clienti_anagrafica` al salvataggio
-  - Invalidazione della query `cliente-anagrafica` dopo il salvataggio per aggiornare i dati visualizzati
+**File: `src/pages/UploadExcel.tsx`**
+- Aggiungere una nuova Card "Importa Anagrafiche" sotto la card di upload fatturato, visibile solo agli admin
+- Area drag-and-drop dedicata (stile coerente con l'upload esistente)
+- Anteprima tabellare dei dati trovati con conteggio record
+- Pulsanti Annulla/Importa
+- Al conferma: upsert batch sulla tabella `clienti_anagrafica` e invalidazione delle query correlate
+

@@ -1,44 +1,19 @@
 
 
-## Importazione dati anagrafici da Excel
+## Download Template Excel per Anagrafiche
 
-Aggiungere una funzionalita' per gli amministratori che permetta di importare in blocco i dati anagrafici dei clienti (telefono, email, partita IVA, indirizzo, provincia) da un file Excel.
-
-### Dove si trova
-
-Una nuova sezione nella pagina "Gestione Dati" (UploadExcel), visibile solo agli admin, con un'area di upload dedicata alle anagrafiche, separata dall'upload del fatturato.
+Aggiungere un pulsante "Scarica Template" nella sezione "Importa Anagrafiche" che genera e scarica un file Excel vuoto con le colonne corrette.
 
 ### Funzionamento
 
-1. L'admin carica un file Excel con colonne come: **Nome Cliente**, **Partita IVA**, **Indirizzo**, **Provincia**, **Telefono**, **Email**
-2. Il sistema mostra un'anteprima dei dati trovati (nome, P.IVA, telefono, email, indirizzo)
-3. L'admin conferma l'importazione
-4. I dati vengono inseriti/aggiornati nella tabella `clienti_anagrafica` tramite upsert su `nome_cliente`
-5. Toast di conferma con il numero di record aggiornati
-
-### Formato Excel atteso
-
-Il parser sara' flessibile e cerchera' colonne con nomi simili (case-insensitive):
-- "Nome Cliente" / "Ragione Sociale" / "Cliente" -> `nome_cliente`
-- "Partita IVA" / "P.IVA" / "P. IVA" -> `partita_iva`
-- "Indirizzo" / "Sede" -> `indirizzo`
-- "Provincia" / "Prov" -> `provincia`
-- "Telefono" / "Tel" / "Phone" -> `telefono`
-- "Email" / "E-mail" / "Mail" -> `email`
-
-La colonna "Nome Cliente" e' obbligatoria. Le altre sono facoltative: verranno importate solo se presenti.
+- Un pulsante "Scarica Template" apparira' nella card "Importa Anagrafiche", visibile nella zona di upload (prima di caricare un file)
+- Cliccando il pulsante, viene generato e scaricato un file `template_anagrafiche.xlsx` con le colonne: **Nome Cliente**, **Partita IVA**, **Indirizzo**, **Provincia**, **Telefono**, **Email**
+- Il file conterra' solo l'intestazione, senza dati
 
 ### Modifiche tecniche
 
-**Nuovo file: `src/lib/parseAnagraficaExcel.ts`**
-- Funzione `parseAnagraficaExcel(file: File)` che restituisce un array di oggetti con i campi anagrafici
-- Mapping flessibile dei nomi colonna (case-insensitive, con alias)
-- Validazione: almeno la colonna "Nome Cliente" deve essere presente, righe senza nome vengono ignorate
-
 **File: `src/pages/UploadExcel.tsx`**
-- Aggiungere una nuova Card "Importa Anagrafiche" sotto la card di upload fatturato, visibile solo agli admin
-- Area drag-and-drop dedicata (stile coerente con l'upload esistente)
-- Anteprima tabellare dei dati trovati con conteggio record
-- Pulsanti Annulla/Importa
-- Al conferma: upsert batch sulla tabella `clienti_anagrafica` e invalidazione delle query correlate
+
+- Aggiungere una funzione `downloadAnagraficaTemplate` che usa la libreria `xlsx` (gia' installata) per creare un workbook con un foglio contenente solo le intestazioni e avviare il download
+- Aggiungere un pulsante `Download` sotto il testo descrittivo nella drop zone delle anagrafiche, con `e.stopPropagation()` per non attivare il file picker
 

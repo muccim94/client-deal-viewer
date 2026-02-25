@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { MapPin, Building2, Pencil } from "lucide-react";
+import { MapPin, Building2, Pencil, Phone, Mail } from "lucide-react";
 import AnagraficaEditDialog from "@/components/cliente/AnagraficaEditDialog";
 import { getMeseNome } from "@/types/data";
 import { SalesRecord } from "@/types/data";
@@ -53,11 +53,11 @@ export default function ClienteDettaglio() {
       if (!nome) return null;
       const { data, error } = await supabase
         .from("clienti_anagrafica" as any)
-        .select("nome_cliente, indirizzo, provincia")
+        .select("nome_cliente, indirizzo, provincia, telefono, email, partita_iva")
         .eq("nome_cliente", nome)
         .maybeSingle();
       if (error) throw error;
-      return data as unknown as { nome_cliente: string; indirizzo: string | null; provincia: string | null } | null;
+      return data as unknown as { nome_cliente: string; indirizzo: string | null; provincia: string | null; telefono: string | null; email: string | null; partita_iva: string | null } | null;
     },
     enabled: !!clientRecords[0]?.nomeCliente,
   });
@@ -205,8 +205,17 @@ export default function ClienteDettaglio() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {anagrafica && (anagrafica.indirizzo || anagrafica.provincia) ? (
+            {anagrafica && (anagrafica.indirizzo || anagrafica.provincia || anagrafica.telefono || anagrafica.email || anagrafica.partita_iva) ? (
               <>
+                {anagrafica.partita_iva && (
+                  <div className="flex items-start gap-2">
+                    <Building2 className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Partita IVA</p>
+                      <p className="text-sm font-medium">{anagrafica.partita_iva}</p>
+                    </div>
+                  </div>
+                )}
                 {anagrafica.indirizzo && (
                   <div className="flex items-start gap-2">
                     <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
@@ -229,6 +238,28 @@ export default function ClienteDettaglio() {
                     <div>
                       <p className="text-xs text-muted-foreground">Provincia</p>
                       <p className="text-sm font-medium">{anagrafica.provincia}</p>
+                    </div>
+                  </div>
+                )}
+                {anagrafica.telefono && (
+                  <div className="flex items-start gap-2">
+                    <Phone className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Telefono</p>
+                      <a href={`tel:${anagrafica.telefono}`} className="text-sm font-medium text-primary hover:underline">
+                        {anagrafica.telefono}
+                      </a>
+                    </div>
+                  </div>
+                )}
+                {anagrafica.email && (
+                  <div className="flex items-start gap-2">
+                    <Mail className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Email</p>
+                      <a href={`mailto:${anagrafica.email}`} className="text-sm font-medium text-primary hover:underline">
+                        {anagrafica.email}
+                      </a>
                     </div>
                   </div>
                 )}
@@ -338,6 +369,9 @@ export default function ClienteDettaglio() {
         nomeCliente={clientName}
         indirizzo={anagrafica?.indirizzo ?? null}
         provincia={anagrafica?.provincia ?? null}
+        telefono={anagrafica?.telefono ?? null}
+        email={anagrafica?.email ?? null}
+        partitaIva={anagrafica?.partita_iva ?? null}
       />
     </div>
   );

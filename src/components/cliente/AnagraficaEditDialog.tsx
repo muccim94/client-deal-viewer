@@ -14,11 +14,17 @@ interface Props {
   nomeCliente: string;
   indirizzo: string | null;
   provincia: string | null;
+  telefono: string | null;
+  email: string | null;
+  partitaIva: string | null;
 }
 
-export default function AnagraficaEditDialog({ open, onOpenChange, nomeCliente, indirizzo, provincia }: Props) {
+export default function AnagraficaEditDialog({ open, onOpenChange, nomeCliente, indirizzo, provincia, telefono, email, partitaIva }: Props) {
   const [addr, setAddr] = useState(indirizzo ?? "");
   const [prov, setProv] = useState(provincia ?? "");
+  const [tel, setTel] = useState(telefono ?? "");
+  const [mail, setMail] = useState(email ?? "");
+  const [piva, setPiva] = useState(partitaIva ?? "");
   const [saving, setSaving] = useState(false);
   const qc = useQueryClient();
 
@@ -26,15 +32,25 @@ export default function AnagraficaEditDialog({ open, onOpenChange, nomeCliente, 
     if (open) {
       setAddr(indirizzo ?? "");
       setProv(provincia ?? "");
+      setTel(telefono ?? "");
+      setMail(email ?? "");
+      setPiva(partitaIva ?? "");
     }
-  }, [open, indirizzo, provincia]);
+  }, [open, indirizzo, provincia, telefono, email, partitaIva]);
 
   const handleSave = async () => {
     setSaving(true);
     const { error } = await supabase
       .from("clienti_anagrafica" as any)
       .upsert(
-        { nome_cliente: nomeCliente, indirizzo: addr || null, provincia: prov || null } as any,
+        {
+          nome_cliente: nomeCliente,
+          indirizzo: addr || null,
+          provincia: prov || null,
+          telefono: tel || null,
+          email: mail || null,
+          partita_iva: piva || null,
+        } as any,
         { onConflict: "nome_cliente" }
       );
     setSaving(false);
@@ -59,6 +75,10 @@ export default function AnagraficaEditDialog({ open, onOpenChange, nomeCliente, 
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
+            <Label htmlFor="partita-iva">Partita IVA</Label>
+            <Input id="partita-iva" value={piva} onChange={(e) => setPiva(e.target.value)} placeholder="Es. IT01234567890" />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="indirizzo">Indirizzo</Label>
             <Input id="indirizzo" value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="Via, numero, città..." />
             {mapsUrl && (
@@ -70,6 +90,14 @@ export default function AnagraficaEditDialog({ open, onOpenChange, nomeCliente, 
           <div className="space-y-2">
             <Label htmlFor="provincia">Provincia</Label>
             <Input id="provincia" value={prov} onChange={(e) => setProv(e.target.value)} placeholder="Es. MI, RM..." />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="telefono">Telefono</Label>
+            <Input id="telefono" type="tel" value={tel} onChange={(e) => setTel(e.target.value)} placeholder="Es. +39 02 1234567" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" value={mail} onChange={(e) => setMail(e.target.value)} placeholder="Es. info@azienda.it" />
           </div>
         </div>
         <DialogFooter>

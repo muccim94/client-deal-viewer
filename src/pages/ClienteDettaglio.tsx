@@ -236,19 +236,19 @@ export default function ClienteDettaglio() {
               <table className="w-full text-[1.056rem]">
                   <thead>
                     <tr className="border-b bg-muted/40">
-                      <th className="text-left py-2 px-1.5 font-medium">Mese</th>
-                      <th className="text-right py-2 px-1.5 font-medium">{annoCorrente}</th>
-                      <th className="text-right py-2 px-1.5 font-medium">{annoPrecedente}</th>
-                      <th className="text-right py-2 px-1.5 font-medium">Δ %</th>
+                      <th className="text-left py-2 px-1 font-medium">Mese</th>
+                      <th className="text-right py-2 px-1 font-medium">{annoCorrente}</th>
+                      <th className="text-right py-2 px-1 font-medium">{annoPrecedente}</th>
+                      <th className="text-right py-2 px-1 font-medium">Δ %</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((r, i) => (
                       <tr key={r.mese} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
-                        <td className="py-2 px-1.5">{r.meseNome}</td>
-                        <td className="py-2 px-1.5 text-right font-medium">{fmt(r.corrente)}</td>
-                        <td className="py-2 px-1.5 text-right">{fmt(r.precedente)}</td>
-                        <td className="py-2 px-1.5 text-right">
+                        <td className="py-2 px-1">{r.meseNome}</td>
+                        <td className="py-2 px-1 text-right font-medium">{fmt(r.corrente)}</td>
+                        <td className="py-2 px-1 text-right">{fmt(r.precedente)}</td>
+                        <td className="py-2 px-1 text-right">
                           <DeltaIcon val={r.delta} />{" "}
                           <span className={r.delta > 1 ? "text-emerald-600" : r.delta < -1 ? "text-red-600" : "text-muted-foreground"}>
                             {r.delta.toFixed(1)}%
@@ -259,10 +259,10 @@ export default function ClienteDettaglio() {
                   </tbody>
                   <tfoot>
                     <tr className="border-t bg-muted/50 font-semibold text-[1.056rem]">
-                      <td className="py-2.5 px-1.5">Totale</td>
-                      <td className="py-2.5 px-1.5 text-right">{fmt(totCorr)}</td>
-                      <td className="py-2.5 px-1.5 text-right">{fmt(totPrec)}</td>
-                      <td className="py-2.5 px-1.5 text-right">
+                      <td className="py-2.5 px-1">Totale</td>
+                      <td className="py-2.5 px-1 text-right">{fmt(totCorr)}</td>
+                      <td className="py-2.5 px-1 text-right">{fmt(totPrec)}</td>
+                      <td className="py-2.5 px-1 text-right">
                         <DeltaIcon val={totDelta} />{" "}
                         <span className={totDelta > 1 ? "text-emerald-600" : totDelta < -1 ? "text-red-600" : "text-muted-foreground"}>
                           {totDelta.toFixed(1)}%

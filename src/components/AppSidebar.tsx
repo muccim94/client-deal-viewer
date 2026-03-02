@@ -1,4 +1,4 @@
-import { BarChart3, Table2, Upload, Coins, LogOut, Users, Tag } from "lucide-react";
+import { BarChart3, Table2, Upload, Coins, LogOut, Users, Tag, Target } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -19,6 +19,7 @@ const allItems = [
   { title: "Anagrafiche", url: "/anagrafiche", icon: Table2 },
   { title: "Marchi", url: "/marchi", icon: Tag },
   { title: "Provvigioni", url: "/provvigioni", icon: Coins },
+  { title: "Budget", url: "/budget", icon: Target },
   { title: "Upload Excel", url: "/upload", icon: Upload, adminOnly: true },
   { title: "Gestione Utenti", url: "/gestione-utenti", icon: Users, adminOnly: true },
 ];

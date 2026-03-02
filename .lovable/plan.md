@@ -1,47 +1,54 @@
-## Miglioramenti Incentivazioni: Titolo PDF e Barra Progresso
 
-### 1. Titolo file PDF personalizzato
 
-Attualmente il titolo della finestra PDF e' generico ("Incentivazioni"). Verra' cambiato per includere i dati del cliente.
+## Nuova Pagina "Budget" - Target Annuali vs Fatturato Effettivo
 
-**Formato nuovo titolo**: `LAMINAM SPA - C009327 - 2026 - 01-01_31-12`
+### Panoramica
 
-La durata di default sara' "01-01/31-12" (tutto l'anno). Nel titolo del file si usera' l'underscore per compatibilita'.
+Creazione di una nuova sezione "Budget" accessibile dalla sidebar, che mostra i target mensili di fatturato per agente confrontati con il fatturato effettivo caricato nel sistema. I dati di budget per FO75 e FO77 verranno salvati nel database e visualizzati sia separatamente (per agente) sia come totale combinato.
 
-**Modifica in `src/pages/IncentivazioniBrowser.tsx**`:
+### Dati Budget dalle immagini
 
-- La funzione `openPdfWindow` ricevera' il titolo dal contesto della lettera
-- Per singolo download: `{nome_cliente} - {codice_cliente} - {anno} - 01-01_31-12`
-- Per download multiplo: si manterra' un titolo generico "Incentivazioni"
-- Il titolo della pagina HTML (`<title>`) verra' impostato di conseguenza (alcuni browser lo usano come nome file suggerito nel salvataggio PDF)
+**FO75**: GEN 374.374, FEB 436.070, MAR 425.142, APR 478.601, MAG 481.141, GIU 443.277, LUG 635.743, AGO 342.263, SET 452.474, OTT 427.109, NOV 518.841, DIC 484.966 -- Totale 5.500.001
 
-### 2. Barra di progresso dinamica al click sulla riga
-
-Quando l'utente clicca su una riga nella tabella delle incentivazioni, si espandera' una sezione sotto la riga che mostra una **barra orizzontale segmentata** con i vari scaglioni della lettera e il fatturato attuale del cliente sovrapposto.
-
-**Comportamento**:
-
-- Click sulla riga (esclusi checkbox e pulsante PDF) -> toggle della barra
-- La barra mostra gli step (scaglioni) come segmenti colorati proporzionali
-- Una linea o indicatore mostra dove si trova il fatturato attuale del cliente
-- Sotto la barra: label con i valori degli scaglioni e il fatturato corrente
-
-**Dati necessari**: il fatturato corrente del cliente per l'anno della lettera. Verra' recuperato tramite una query dedicata usando `get_clienti_list` (gia' filtrato per azienda FO) oppure una query diretta sulla tabella `sales_records`.
+**FO77**: GEN 333.533, FEB 388.499, MAR 378.763, APR 426.390, MAG 428.653, GIU 394.919, LUG 566.389, AGO 304.925, SET 403.114, OTT 380.515, NOV 462.240, DIC 432.060 -- Totale 4.900.000
 
 ### Modifiche tecniche
 
-**File: `src/pages/IncentivazioniBrowser.tsx**`
+#### 1. Database: Nuova tabella `budget_targets`
 
-1. **Titolo PDF**: Modificare `openPdfWindow` per accettare un titolo personalizzato. Aggiornare `handleDownloadSingle` per passare il titolo formattato con nome cliente, codice, anno e durata.
-2. **Barra progresso espandibile**:
-  - Aggiungere uno stato `expandedId` per tracciare quale riga e' espansa
-  - Per ogni riga espansa, fare una query per ottenere il fatturato corrente del cliente (anno della lettera, solo azienda FO) tramite una query diretta su `sales_records` con `supabase.rpc` o query filtrata
-  - Renderizzare sotto la `TableRow` una riga aggiuntiva con `colSpan` pieno contenente la barra segmentata
-  - La barra sara' composta da segmenti colorati (uno per scaglione) con larghezza proporzionale al fatturato dello scaglione
-  - Un indicatore (linea verticale o riempimento parziale) mostra il punto attuale del fatturato
-  - Etichette sotto la barra con i valori degli scaglioni raggiunti e non ancora raggiunti
-3. **Componente barra**: Creare un sotto-componente `ProgressBarLettera` che riceve le righe della lettera e il fatturato attuale, e visualizza la barra segmentata orizzontale con:
-  - Segmenti colorati con gradiente (verde per raggiunti, grigio per non raggiunti)
-  - Etichette degli importi sotto ogni segmento
-  - Indicatore del fatturato attuale con valore numerico
-  - Percentuale di completamento rispetto all'ultimo scaglione
+Creare una tabella per memorizzare i target mensili per agente:
+
+```text
+budget_targets
+- id (uuid, PK)
+- agente (text, NOT NULL) -- es. "FO_FO75", "FO_FO77"
+- anno (integer, NOT NULL)
+- mese (integer, NOT NULL, 1-12)
+- importo (numeric, NOT NULL)
+- created_at (timestamptz, DEFAULT now())
+- UNIQUE(agente, anno, mese)
+```
+
+RLS: lettura per utenti autenticati (admin + agenti assegnati), scrittura solo admin.
+
+Migrazione che inserisce i dati di FO75 e FO77 per il 2026.
+
+#### 2. Database: Funzione RPC `get_budget_data`
+
+Funzione che restituisce per ogni agente e mese: il budget target e il fatturato effettivo (da `sales_records`, filtrato per azienda FO). Accetta parametri `p_anno` e `p_agente` (opzionale). Rispetta la visibilita' degli agenti (admin vede tutto, utente vede solo i propri agenti).
+
+#### 3. Nuova pagina `src/pages/Budget.tsx`
+
+- Filtro anno (default 2026) e filtro agente (FO75, FO77, Tutti)
+- Quando "Tutti" e' selezionato: mostra una tabella unica con la somma dei budget e dei fatturati
+- Quando un agente specifico e' selezionato: mostra solo i dati di quell'agente
+- Tabella con colonne: Mese | Budget | Fatturato Effettivo | Delta (EUR) | Delta %
+- Riga di totale in fondo
+- Colori: verde se il fatturato supera il budget, rosso se inferiore
+- Barra di progresso visiva per ogni mese (percentuale fatturato/budget)
+
+#### 4. Routing e Sidebar
+
+- **`src/App.tsx`**: Aggiungere route `/budget` con il componente Budget
+- **`src/components/AppSidebar.tsx`**: Aggiungere voce "Budget" nel menu con icona `Target` da lucide-react
+

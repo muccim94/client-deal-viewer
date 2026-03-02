@@ -86,16 +86,16 @@ export default function Budget() {
       {isLoading ? (
         <p className="text-muted-foreground">Caricamento…</p>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-md border text-[1.05rem]">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Mese</TableHead>
-                <TableHead className="text-right">Budget</TableHead>
-                <TableHead className="text-right">Fatturato</TableHead>
-                <TableHead className="text-right">Delta €</TableHead>
-                <TableHead className="text-right">Delta %</TableHead>
-                <TableHead className="w-[160px]">Progresso</TableHead>
+                <TableHead className="px-1.5">Mese</TableHead>
+                <TableHead className="text-right px-1.5">Budget</TableHead>
+                <TableHead className="text-right px-1.5">Fatturato</TableHead>
+                <TableHead className="text-right px-1.5">Delta €</TableHead>
+                <TableHead className="text-right px-1.5">Delta %</TableHead>
+                <TableHead className="w-[160px] px-1.5">Progresso</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -104,19 +104,19 @@ export default function Budget() {
                 const pct = r.budget > 0 ? (r.fatturato / r.budget) * 100 : 0;
                 return (
                   <TableRow key={r.mese}>
-                    <TableCell className="font-medium">{getMeseNome(r.mese)}</TableCell>
-                    <TableCell className="text-right">{fmt(r.budget)}</TableCell>
-                    <TableCell className="text-right">{fmt(r.fatturato)}</TableCell>
-                    <TableCell className={`text-right ${deltaColor(delta)}`}>
+                    <TableCell className="font-medium px-1.5">{getMeseNome(r.mese)}</TableCell>
+                    <TableCell className="text-right px-1.5">{fmt(r.budget)}</TableCell>
+                    <TableCell className="text-right px-1.5">{fmt(r.fatturato)}</TableCell>
+                    <TableCell className={`text-right px-1.5 ${deltaColor(delta)}`}>
                       {delta >= 0 ? "+" : ""}
                       {fmt(delta)}
                     </TableCell>
-                    <TableCell className={`text-right ${deltaColor(delta)}`}>
+                    <TableCell className={`text-right px-1.5 ${deltaColor(delta)}`}>
                       {r.budget > 0
                         ? `${delta >= 0 ? "+" : ""}${((delta / r.budget) * 100).toFixed(1)}%`
                         : "—"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-1.5">
                       <Progress
                         value={Math.min(pct, 100)}
                         className="h-2"
@@ -128,19 +128,19 @@ export default function Budget() {
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell className="font-bold">Totale</TableCell>
-                <TableCell className="text-right font-bold">{fmt(totals.budget)}</TableCell>
-                <TableCell className="text-right font-bold">{fmt(totals.fatturato)}</TableCell>
-                <TableCell className={`text-right font-bold ${deltaColor(totals.fatturato - totals.budget)}`}>
+                <TableCell className="font-bold px-1.5">Totale</TableCell>
+                <TableCell className="text-right font-bold px-1.5">{fmt(totals.budget)}</TableCell>
+                <TableCell className="text-right font-bold px-1.5">{fmt(totals.fatturato)}</TableCell>
+                <TableCell className={`text-right font-bold px-1.5 ${deltaColor(totals.fatturato - totals.budget)}`}>
                   {totals.fatturato - totals.budget >= 0 ? "+" : ""}
                   {fmt(totals.fatturato - totals.budget)}
                 </TableCell>
-                <TableCell className={`text-right font-bold ${deltaColor(totals.fatturato - totals.budget)}`}>
+                <TableCell className={`text-right font-bold px-1.5 ${deltaColor(totals.fatturato - totals.budget)}`}>
                   {totals.budget > 0
                     ? `${totals.fatturato - totals.budget >= 0 ? "+" : ""}${(((totals.fatturato - totals.budget) / totals.budget) * 100).toFixed(1)}%`
                     : "—"}
                 </TableCell>
-                <TableCell />
+                <TableCell className="px-1.5" />
               </TableRow>
             </TableFooter>
           </Table>

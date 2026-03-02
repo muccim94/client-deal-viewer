@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      budget_targets: {
+        Row: {
+          agente: string
+          anno: number
+          created_at: string
+          id: string
+          importo: number
+          mese: number
+        }
+        Insert: {
+          agente: string
+          anno: number
+          created_at?: string
+          id?: string
+          importo: number
+          mese: number
+        }
+        Update: {
+          agente?: string
+          anno?: number
+          created_at?: string
+          id?: string
+          importo?: number
+          mese?: number
+        }
+        Relationships: []
+      }
       cliente_incentivazioni: {
         Row: {
           anno: number
@@ -184,6 +211,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_budget_data: {
+        Args: { p_agente?: string; p_anno: number }
+        Returns: Json
+      }
       get_cliente_detail: { Args: { p_codice_cliente: string }; Returns: Json }
       get_clienti_list: { Args: { p_agente?: string }; Returns: Json }
       get_dashboard_stats: {

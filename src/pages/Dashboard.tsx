@@ -243,48 +243,44 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Mobile FAB + Search Dialog */}
-      {isMobile && (
-        <>
-          <Button
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-full w-12 h-12 shadow-lg"
-            size="icon"
-            onClick={() => { setSearchOpen(true); setSearchQuery(""); }}
-          >
-            <Search className="h-5 w-5" />
-          </Button>
+      {/* FAB + Search Dialog */}
+      <Button
+        className="fixed bottom-6 right-6 z-50 rounded-full w-12 h-12 shadow-lg"
+        size="icon"
+        onClick={() => { setSearchOpen(true); setSearchQuery(""); }}
+      >
+        <Search className="h-5 w-5" />
+      </Button>
 
-          <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Cerca cliente</DialogTitle>
-              </DialogHeader>
-              <Input
-                placeholder="Digita nome cliente..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                autoFocus
-              />
-              <ScrollArea className="max-h-64">
-                <div className="space-y-1">
-                  {filteredClienti.map((c) => (
-                    <button
-                      key={c.codiceCliente}
-                      className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
-                      onClick={() => {
-                        setSearchOpen(false);
-                        navigate(`/anagrafiche/${c.codiceCliente}`);
-                      }}
-                    >
-                      {c.nomeCliente}
-                    </button>
-                  ))}
-                </div>
-              </ScrollArea>
-            </DialogContent>
-          </Dialog>
-        </>
-      )}
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="sm:max-w-md flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Cerca cliente</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-64">
+            <div className="space-y-1">
+              {filteredClienti.map((c) => (
+                <button
+                  key={c.codiceCliente}
+                  className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                  onClick={() => {
+                    setSearchOpen(false);
+                    navigate(`/anagrafiche/${c.codiceCliente}`);
+                  }}
+                >
+                  {c.nomeCliente}
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+          <Input
+            placeholder="Digita nome cliente..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoFocus
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

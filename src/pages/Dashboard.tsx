@@ -245,7 +245,7 @@ export default function Dashboard() {
 
       {/* FAB + Search Dialog */}
       <Button
-        className="fixed bottom-6 right-6 z-50 rounded-full w-12 h-12 shadow-lg"
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-6 z-50 rounded-full w-12 h-12 shadow-lg"
         size="icon"
         onClick={() => { setSearchOpen(true); setSearchQuery(""); }}
       >
@@ -253,7 +253,7 @@ export default function Dashboard() {
       </Button>
 
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <DialogContent className="sm:max-w-md flex flex-col">
+        <DialogContent className="sm:max-w-md flex flex-col top-[30%] translate-y-[-30%] sm:top-[50%] sm:translate-y-[-50%]">
           <DialogHeader>
             <DialogTitle>Cerca cliente</DialogTitle>
           </DialogHeader>

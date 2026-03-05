@@ -8,7 +8,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { Euro, Users, Tag, TrendingUp, TrendingDown, BarChart3, Loader2, Search } from "lucide-react";
+import { Euro, Users, Tag, TrendingUp, TrendingDown, BarChart3, Loader2, Search, X } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -252,35 +252,73 @@ export default function Dashboard() {
         <Search className="h-5 w-5" />
       </Button>
 
-      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <DialogContent className="sm:max-w-md flex flex-col top-[30%] translate-y-[-30%] sm:top-[50%] sm:translate-y-[-50%]">
-          <DialogHeader>
-            <DialogTitle>Cerca cliente</DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="max-h-64">
-            <div className="space-y-1">
-              {filteredClienti.map((c) => (
-                <button
-                  key={c.codiceCliente}
-                  className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
-                  onClick={() => {
-                    setSearchOpen(false);
-                    navigate(`/anagrafiche/${c.codiceCliente}`);
-                  }}
-                >
-                  {c.nomeCliente}
-                </button>
-              ))}
+      {isMobile ? (
+        searchOpen && (
+          <>
+            <div className="fixed inset-0 z-50 bg-black/80 animate-in fade-in-0" onClick={() => setSearchOpen(false)} />
+            <div className="fixed inset-x-0 top-0 z-50 bg-background rounded-b-lg shadow-lg max-h-[70vh] flex flex-col animate-in slide-in-from-top duration-300">
+              <div className="flex items-center gap-2 p-3 border-b">
+                <Input
+                  placeholder="Digita nome cliente..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoFocus
+                  className="flex-1"
+                />
+                <Button variant="ghost" size="icon" onClick={() => setSearchOpen(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <ScrollArea className="flex-1 p-2">
+                <div className="space-y-1">
+                  {filteredClienti.map((c) => (
+                    <button
+                      key={c.codiceCliente}
+                      className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                      onClick={() => {
+                        setSearchOpen(false);
+                        navigate(`/anagrafiche/${c.codiceCliente}`);
+                      }}
+                    >
+                      {c.nomeCliente}
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
-          </ScrollArea>
-          <Input
-            placeholder="Digita nome cliente..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            autoFocus
-          />
-        </DialogContent>
-      </Dialog>
+          </>
+        )
+      ) : (
+        <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+          <DialogContent className="sm:max-w-md flex flex-col top-[30%] translate-y-[-30%] sm:top-[50%] sm:translate-y-[-50%]">
+            <DialogHeader>
+              <DialogTitle>Cerca cliente</DialogTitle>
+            </DialogHeader>
+            <ScrollArea className="max-h-64">
+              <div className="space-y-1">
+                {filteredClienti.map((c) => (
+                  <button
+                    key={c.codiceCliente}
+                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                    onClick={() => {
+                      setSearchOpen(false);
+                      navigate(`/anagrafiche/${c.codiceCliente}`);
+                    }}
+                  >
+                    {c.nomeCliente}
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+            <Input
+              placeholder="Digita nome cliente..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

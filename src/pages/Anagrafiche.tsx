@@ -69,8 +69,9 @@ export default function Anagrafiche() {
   const filtered = useMemo(() => {
     let data = clienti;
     if (search) {
-      const q = search.toLowerCase();
-      data = data.filter((r) => r.nomeCliente.toLowerCase().includes(q) || r.codiceCliente.includes(q));
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, "");
+      const q = normalize(search);
+      data = data.filter((r) => normalize(r.nomeCliente).includes(q) || r.codiceCliente.includes(q));
     }
     // Apply quick filter
     if (activeFilter === "perdita") {

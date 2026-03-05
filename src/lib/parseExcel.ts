@@ -250,6 +250,14 @@ function parseAsStandard(json: Record<string, unknown>[]): SalesRecord[] {
   return records;
 }
 
+function extractMeseFromFilename(name: string): number | undefined {
+  const lower = name.toLowerCase();
+  for (const [mese, num] of Object.entries(MESE_TEXT_MAP)) {
+    if (lower.includes(mese)) return num;
+  }
+  return undefined;
+}
+
 export function parseExcelFile(file: File): Promise<SalesRecord[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -265,7 +273,8 @@ export function parseExcelFile(file: File): Promise<SalesRecord[]> {
         }
 
         if (isRiepilogoFormat(json[0])) {
-          resolve(parseAsRiepilogo(json));
+          const filenameMese = extractMeseFromFilename(file.name);
+          resolve(parseAsRiepilogo(json, filenameMese));
         } else {
           resolve(parseAsStandard(json));
         }

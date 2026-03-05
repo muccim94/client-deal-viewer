@@ -83,8 +83,9 @@ export default function Dashboard() {
 
   const filteredClienti = useMemo(() => {
     if (!clientiList || !searchQuery.trim()) return clientiList?.slice(0, 20) ?? [];
-    const q = searchQuery.toLowerCase();
-    return clientiList.filter((c) => c.nomeCliente.toLowerCase().includes(q)).slice(0, 20);
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, "");
+    const q = normalize(searchQuery);
+    return clientiList.filter((c) => normalize(c.nomeCliente).includes(q)).slice(0, 20);
   }, [clientiList, searchQuery]);
 
   const topClientiWithPrev = stats?.topClienti ?? [];

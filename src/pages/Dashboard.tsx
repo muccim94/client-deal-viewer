@@ -8,7 +8,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { Euro, Users, Tag, TrendingUp, TrendingDown, BarChart3, Loader2, Search } from "lucide-react";
+import { Euro, Users, Tag, TrendingUp, TrendingDown, BarChart3, Loader2, Search, X } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";

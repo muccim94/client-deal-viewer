@@ -95,7 +95,8 @@ export default function ClienteDettaglio() {
   }, [clientRecords, annoCorrente, annoPrecedente]);
 
   const { fattCorrente, fattPrecYTD, fattPrecTotale } = useMemo(() => {
-    const meseCorrente = new Date().getMonth() + 1;
+    const mesiAnnoCorrente = clientRecords.filter(r => r.anno === annoCorrente).map(r => r.mese);
+    const meseCorrente = mesiAnnoCorrente.length ? Math.max(...mesiAnnoCorrente) : new Date().getMonth() + 1;
     let fattCorrente = 0, fattPrecYTD = 0, fattPrecTotale = 0;
     clientRecords.forEach((r) => {
       if (r.anno === annoCorrente) fattCorrente += r.imponibile;

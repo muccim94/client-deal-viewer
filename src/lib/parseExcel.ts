@@ -54,7 +54,19 @@ function findFatturatoColumn(row: Record<string, unknown>): string | null {
   return match ?? null;
 }
 
-function parseAsRiepilogo(json: Record<string, unknown>[]): SalesRecord[] {
+function extractAnnoFromColumn(colName: string): number {
+  const match = colName.match(/(\d{4})/);
+  return match ? Number(match[1]) : 0;
+}
+
+function extractAziendaFromPrefix(value: string): string {
+  // "FO_FO75 Stefano Bondi" → "FO"
+  const underIdx = value.indexOf("_");
+  if (underIdx > 0) return value.substring(0, underIdx).toUpperCase();
+  return value.substring(0, 2).toUpperCase();
+}
+
+function parseAsRiepilogo(json: Record<string, unknown>[], filenameMese?: number): SalesRecord[] {
   const errors: string[] = [];
   const records: SalesRecord[] = [];
 
@@ -64,17 +76,36 @@ function parseAsRiepilogo(json: Record<string, unknown>[]): SalesRecord[] {
     throw new Error("Colonna 'Fatturato' non trovata nel file Riepilogo");
   }
 
+  // Check if AZIENDA/ANNO/MESE columns exist
+  const hasAziendaCol = ["AZIENDA", "Azienda", "azienda"].some((k) => k in json[0]);
+  const hasAnnoCol = ["ANNO", "Anno", "anno"].some((k) => k in json[0]);
+  const hasMeseCol = ["MESE", "Mese", "mese"].some((k) => k in json[0]);
+
+  // Infer anno from fatturato column name when missing
+  const inferredAnno = !hasAnnoCol ? extractAnnoFromColumn(fatturatoCol) : 0;
+
   for (let i = 0; i < json.length; i++) {
     const row = json[i];
 
-    const aziendaRaw = String(row["AZIENDA"] ?? row["Azienda"] ?? row["azienda"] ?? "").toLowerCase().trim();
-    const azienda = AZIENDA_REVERSE[aziendaRaw] ?? aziendaRaw.substring(0, 2).toUpperCase();
+    let azienda: string;
+    if (hasAziendaCol) {
+      const aziendaRaw = String(row["AZIENDA"] ?? row["Azienda"] ?? row["azienda"] ?? "").toLowerCase().trim();
+      azienda = AZIENDA_REVERSE[aziendaRaw] ?? aziendaRaw.substring(0, 2).toUpperCase();
+    } else {
+      // Infer from Agente or Cliente column prefix
+      const agenteRaw = String(row["Agente (Anagrafico)"] ?? row["Agente"] ?? "").trim();
+      azienda = extractAziendaFromPrefix(agenteRaw);
+    }
 
-    const annoRaw = row["ANNO"] ?? row["Anno"] ?? row["anno"] ?? 0;
-    const anno = Number(annoRaw);
+    const anno = hasAnnoCol ? Number(row["ANNO"] ?? row["Anno"] ?? row["anno"] ?? 0) : inferredAnno;
 
-    const meseRaw = String(row["MESE"] ?? row["Mese"] ?? row["mese"] ?? "").toLowerCase().trim();
-    const mese = MESE_TEXT_MAP[meseRaw] ?? (Number(meseRaw) >= 1 && Number(meseRaw) <= 12 ? Number(meseRaw) : 0);
+    let mese: number;
+    if (hasMeseCol) {
+      const meseRaw = String(row["MESE"] ?? row["Mese"] ?? row["mese"] ?? "").toLowerCase().trim();
+      mese = MESE_TEXT_MAP[meseRaw] ?? (Number(meseRaw) >= 1 && Number(meseRaw) <= 12 ? Number(meseRaw) : 0);
+    } else {
+      mese = filenameMese ?? 0;
+    }
 
     const agenteRaw = String(row["Agente (Anagrafico)"] ?? row["Agente"] ?? "").trim();
     const agente = agenteRaw.split(" ")[0];

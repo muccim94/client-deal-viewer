@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { MapPin, Building2, Pencil, Phone, Mail } from "lucide-react";
+import { MapPin, Building2, Pencil, Phone, Mail, ChevronDown, ChevronRight } from "lucide-react";
 import AnagraficaEditDialog from "@/components/cliente/AnagraficaEditDialog";
 import { getMeseNome } from "@/types/data";
 import { SalesRecord } from "@/types/data";
@@ -33,6 +33,7 @@ export default function ClienteDettaglio() {
   const navigate = useNavigate();
   const { role } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
+  const [expandedRow, setExpandedRow] = useState<{ azienda: string; mese: number } | null>(null);
   const isMobile = useIsMobile();
   const { data: clientRecords = [], isLoading } = useQuery({
     queryKey: ["cliente-detail", codice],
@@ -294,19 +295,76 @@ export default function ClienteDettaglio() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((r, i) => (
-                      <tr key={r.mese} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}>
-                        <td className="py-2 px-1">{r.meseNome}</td>
-                        <td className="py-2 px-1 text-right font-medium">{fmt(r.corrente)}</td>
-                        <td className="py-2 px-1 text-right">{fmt(r.precedente)}</td>
-                        <td className="py-2 px-1 text-right">
-                          <DeltaIcon val={r.delta} />{" "}
-                          <span className={r.delta > 1 ? "text-emerald-600" : r.delta < -1 ? "text-red-600" : "text-muted-foreground"}>
-                            {r.delta.toFixed(1)}%
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {rows.map((r, i) => {
+                      const isExpanded = expandedRow?.azienda === name && expandedRow?.mese === r.mese;
+                      const toggleExpand = () => setExpandedRow(isExpanded ? null : { azienda: name, mese: r.mese });
+                      
+                      // Calcola dettaglio marchi per il mese espanso
+                      const marchiDetail = isExpanded ? (() => {
+                        const mapCorr = new Map<string, number>();
+                        const mapPrec = new Map<string, number>();
+                        clientRecords.forEach((rec) => {
+                          if (rec.aziendaNome !== name || rec.mese !== r.mese) return;
+                          if (rec.anno === annoCorrente) mapCorr.set(rec.marchio, (mapCorr.get(rec.marchio) ?? 0) + rec.imponibile);
+                          if (rec.anno === annoPrecedente) mapPrec.set(rec.marchio, (mapPrec.get(rec.marchio) ?? 0) + rec.imponibile);
+                        });
+                        const allMarchi = new Set([...mapCorr.keys(), ...mapPrec.keys()]);
+                        return [...allMarchi].map((m) => ({
+                          marchio: m,
+                          corrente: mapCorr.get(m) ?? 0,
+                          precedente: mapPrec.get(m) ?? 0,
+                        })).sort((a, b) => b.corrente - a.corrente);
+                      })() : [];
+
+                      return (
+                        <>
+                          <tr
+                            key={r.mese}
+                            className={`border-b last:border-0 cursor-pointer hover:bg-muted/40 transition-colors ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}
+                            onClick={toggleExpand}
+                          >
+                            <td className="py-2 px-1 flex items-center gap-1">
+                              {isExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                              {r.meseNome}
+                            </td>
+                            <td className="py-2 px-1 text-right font-medium">{fmt(r.corrente)}</td>
+                            <td className="py-2 px-1 text-right">{fmt(r.precedente)}</td>
+                            <td className="py-2 px-1 text-right">
+                              <DeltaIcon val={r.delta} />{" "}
+                              <span className={r.delta > 1 ? "text-emerald-600" : r.delta < -1 ? "text-red-600" : "text-muted-foreground"}>
+                                {r.delta.toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                          {isExpanded && marchiDetail.length > 0 && (
+                            <tr key={`detail-${r.mese}`}>
+                              <td colSpan={4} className="p-0">
+                                <div className="bg-muted/30 border-y px-3 py-2">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="text-muted-foreground">
+                                        <th className="text-left py-1 px-1 font-medium text-xs">Marchio</th>
+                                        <th className="text-right py-1 px-1 font-medium text-xs">{annoCorrente}</th>
+                                        <th className="text-right py-1 px-1 font-medium text-xs">{annoPrecedente}</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {marchiDetail.map((md) => (
+                                        <tr key={md.marchio} className="border-t border-border/50">
+                                          <td className="py-1 px-1 text-xs">{md.marchio}</td>
+                                          <td className="py-1 px-1 text-right text-xs font-medium">{fmt(md.corrente)}</td>
+                                          <td className="py-1 px-1 text-right text-xs">{fmt(md.precedente)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })}
                   </tbody>
                   <tfoot>
                     <tr className="border-t bg-muted/50 font-semibold text-[1.056rem]">

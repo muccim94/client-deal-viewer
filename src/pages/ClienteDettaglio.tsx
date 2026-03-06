@@ -308,8 +308,9 @@ export default function ClienteDettaglio() {
                         const mapPrec = new Map<string, number>();
                         clientRecords.forEach((rec) => {
                           if (rec.aziendaNome !== name || rec.mese !== r.mese) return;
-                          if (rec.anno === annoCorrente) mapCorr.set(rec.marchio, (mapCorr.get(rec.marchio) ?? 0) + rec.imponibile);
-                          if (rec.anno === annoPrecedente) mapPrec.set(rec.marchio, (mapPrec.get(rec.marchio) ?? 0) + rec.imponibile);
+                          const fam = getFamiglia(rec.marchio);
+                          if (rec.anno === annoCorrente) mapCorr.set(fam, (mapCorr.get(fam) ?? 0) + rec.imponibile);
+                          if (rec.anno === annoPrecedente) mapPrec.set(fam, (mapPrec.get(fam) ?? 0) + rec.imponibile);
                         });
                         const allMarchi = new Set([...mapCorr.keys(), ...mapPrec.keys()]);
                         return [...allMarchi].map((m) => ({

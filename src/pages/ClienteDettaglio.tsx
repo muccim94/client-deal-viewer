@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { MapPin, Building2, Pencil, Phone, Mail } from "lucide-react";
+import { MapPin, Building2, Pencil, Phone, Mail, ChevronDown, ChevronRight } from "lucide-react";
 import AnagraficaEditDialog from "@/components/cliente/AnagraficaEditDialog";
 import { getMeseNome } from "@/types/data";
 import { SalesRecord } from "@/types/data";

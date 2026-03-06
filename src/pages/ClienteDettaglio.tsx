@@ -33,6 +33,7 @@ export default function ClienteDettaglio() {
   const navigate = useNavigate();
   const { role } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
+  const [expandedRow, setExpandedRow] = useState<{ azienda: string; mese: number } | null>(null);
   const isMobile = useIsMobile();
   const { data: clientRecords = [], isLoading } = useQuery({
     queryKey: ["cliente-detail", codice],

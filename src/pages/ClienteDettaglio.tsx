@@ -340,20 +340,20 @@ export default function ClienteDettaglio() {
                             <tr key={`detail-${r.mese}`}>
                               <td colSpan={4} className="p-0">
                                 <div className="bg-muted/30 border-y px-3 py-2">
-                                  <table className="w-full text-sm">
+                                  <table className="w-full text-[1.05rem]">
                                     <thead>
                                       <tr className="text-muted-foreground">
-                                        <th className="text-left py-1 px-1 font-medium text-xs">Marchio</th>
-                                        <th className="text-right py-1 px-1 font-medium text-xs">{annoCorrente}</th>
-                                        <th className="text-right py-1 px-1 font-medium text-xs">{annoPrecedente}</th>
+                                        <th className="text-left py-1 px-0.5 font-medium text-[1.05rem]">Marchio</th>
+                                        <th className="text-right py-1 px-0.5 font-medium text-[1.05rem]">{annoCorrente}</th>
+                                        <th className="text-right py-1 px-0.5 font-medium text-[1.05rem]">{annoPrecedente}</th>
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {marchiDetail.map((md) => (
                                         <tr key={md.marchio} className="border-t border-border/50">
-                                          <td className="py-1 px-1 text-xs">{md.marchio}</td>
-                                          <td className="py-1 px-1 text-right text-xs font-medium">{fmt(md.corrente)}</td>
-                                          <td className="py-1 px-1 text-right text-xs">{fmt(md.precedente)}</td>
+                                          <td className="py-1 px-0.5 text-[1.05rem]">{md.marchio}</td>
+                                          <td className="py-1 px-0.5 text-right text-[1.05rem] font-medium">{fmt(md.corrente)}</td>
+                                          <td className="py-1 px-0.5 text-right text-[1.05rem]">{fmt(md.precedente)}</td>
                                         </tr>
                                       ))}
                                     </tbody>

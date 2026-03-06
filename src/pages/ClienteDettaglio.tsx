@@ -22,6 +22,8 @@ const pct = (curr: number, prev: number) => {
   return ((curr - prev) / Math.abs(prev)) * 100;
 };
 
+const getFamiglia = (marchio: string) => marchio.match(/^[A-Za-z.*]+/)?.[0] ?? marchio;
+
 const COLORS = [
   "hsl(221, 83%, 53%)", "hsl(142, 71%, 45%)", "hsl(38, 92%, 50%)",
   "hsl(0, 72%, 51%)", "hsl(262, 83%, 58%)", "hsl(187, 85%, 43%)",

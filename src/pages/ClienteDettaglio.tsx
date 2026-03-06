@@ -75,9 +75,10 @@ export default function ClienteDettaglio() {
     const mapPrec = new Map<string, number>();
     const mapTotal = new Map<string, number>();
     clientRecords.forEach((r) => {
-      mapTotal.set(r.marchio, (mapTotal.get(r.marchio) ?? 0) + r.imponibile);
-      if (r.anno === annoCorrente) mapCorr.set(r.marchio, (mapCorr.get(r.marchio) ?? 0) + r.imponibile);
-      if (r.anno === annoPrecedente) mapPrec.set(r.marchio, (mapPrec.get(r.marchio) ?? 0) + r.imponibile);
+      const fam = getFamiglia(r.marchio);
+      mapTotal.set(fam, (mapTotal.get(fam) ?? 0) + r.imponibile);
+      if (r.anno === annoCorrente) mapCorr.set(fam, (mapCorr.get(fam) ?? 0) + r.imponibile);
+      if (r.anno === annoPrecedente) mapPrec.set(fam, (mapPrec.get(fam) ?? 0) + r.imponibile);
     });
     const sorted = [...mapTotal.entries()].sort((a, b) => b[1] - a[1]);
     const topNames = sorted.slice(0, 8).map(([name]) => name);

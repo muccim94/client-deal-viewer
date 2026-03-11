@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import {
   ArrowUpDown, Search, Tag, Loader2, TrendingUp, TrendingDown, Trophy,
+  Zap, Cable, Sun, Wrench,
 } from "lucide-react";
 import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid,

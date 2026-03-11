@@ -361,21 +361,22 @@ export default function Marchi() {
       {/* Brands Table */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-base">{filtered.length} famiglie marchio</CardTitle>
-            <button
-              onClick={() => setFilterTop(v => !v)}
-              className={cn(
-                "px-2 py-0.5 rounded-full text-xs font-bold border transition-all",
-                filterTop
-                  ? "bg-yellow-500 text-white border-yellow-500"
-                  : "bg-transparent text-yellow-600 border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-500/10"
-              )}
-            >
-              TOP
-            </button>
-          </div>
-            <div className="relative w-full sm:w-64">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">{filtered.length} famiglie marchio</CardTitle>
+              <button
+                onClick={() => setFilterTop(v => !v)}
+                className={cn(
+                  "px-2 py-0.5 rounded-full text-xs font-bold border transition-all",
+                  filterTop
+                    ? "bg-yellow-500 text-white border-yellow-500"
+                    : "bg-transparent text-yellow-600 border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-500/10"
+                )}
+              >
+                TOP
+              </button>
+            </div>
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Cerca marchio..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
             </div>

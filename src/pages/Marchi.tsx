@@ -64,6 +64,7 @@ function MiniSparkline({ data, color = "hsl(142, 71%, 45%)" }: { data: { mese: n
 }
 
 export default function Marchi() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("fattCurrentYear");
   const [sortDir, setSortDir] = useState<SortDir>("desc");

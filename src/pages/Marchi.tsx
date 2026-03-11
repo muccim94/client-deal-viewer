@@ -12,9 +12,18 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowUpDown, Search, Tag, Zap, Sun, Cable, Wrench, Loader2 } from "lucide-react";
+import {
+  ArrowUpDown, Search, Tag, Loader2, TrendingUp, TrendingDown, Trophy,
+} from "lucide-react";
+import {
+  AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer,
+} from "recharts";
 
-type SortKey = "marchio" | "fattCurrentYear" | "fattPrevYearYTD" | "fattPrevYear" | "var";
+// Marchi premianti from Excel
+const MARCHI_PREMIANTI = ["VIW", "DIS", "IBO", "INS", "BTI", "GEW", "LEG", "PHL", "LDV", "SNR", "FOS", "SIE", "ABB", "HAG", "PHA"];
+
+type SortKey = "marchio" | "fattCurrentYear" | "fattPrevYearYTD" | "var";
 type SortDir = "asc" | "desc";
 
 interface BrandRow {
@@ -23,9 +32,34 @@ interface BrandRow {
   fattPrevYear: number;
   fattPrevYearYTD: number;
   var: number | null;
+  sparkline: { mese: number; value: number }[];
+}
+
+interface MonthlyTotal {
+  mese: number;
+  fatt_current: number;
+  fatt_prev: number;
+}
+
+interface BrandMonthly {
+  marchio: string;
+  mese: number;
+  fatt_current: number;
+  fatt_prev: number;
 }
 
 const getFamiglia = (marchio: string) => marchio.slice(0, 3).toUpperCase();
+
+const MESI_SHORT = ["", "Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
+
+function MiniSparkline({ data, color = "hsl(142, 71%, 45%)" }: { data: { mese: number; value: number }[]; color?: string }) {
+  if (!data.length) return null;
+  return (
+    <LineChart width={40} height={18} data={data}>
+      <Line type="monotone" dataKey="value" stroke={color} dot={false} strokeWidth={1.5} />
+    </LineChart>
+  );
+}
 
 export default function Marchi() {
   const [search, setSearch] = useState("");
@@ -65,13 +99,30 @@ export default function Marchi() {
       return data as unknown as {
         kpi: { mat_elettrico: number; fotovoltaico: number; cavo: number; ricambi: number };
         brands: { marchio: string; fattCurrentYear: number; fattPrevYear: number; fattPrevYearYTD: number }[];
+        monthly_totals: MonthlyTotal[];
+        brand_monthly: BrandMonthly[];
       };
     },
   });
 
-  const kpi = marchiData?.kpi ?? { mat_elettrico: 0, fotovoltaico: 0, cavo: 0, ricambi: 0 };
+  // Build brand monthly map for sparklines
+  const brandMonthlyMap = useMemo(() => {
+    const map = new Map<string, { mese: number; value: number }[]>();
+    if (!marchiData?.brand_monthly) return map;
+    for (const bm of marchiData.brand_monthly) {
+      const fam = getFamiglia(bm.marchio);
+      if (!map.has(fam)) map.set(fam, []);
+      const arr = map.get(fam)!;
+      const existing = arr.find(e => e.mese === bm.mese);
+      if (existing) existing.value += bm.fatt_current;
+      else arr.push({ mese: bm.mese, value: bm.fatt_current });
+    }
+    // Sort each by mese
+    for (const [, arr] of map) arr.sort((a, b) => a.mese - b.mese);
+    return map;
+  }, [marchiData?.brand_monthly]);
 
-  // Group brands by family (first 3 chars) and compute var %
+  // Group brands by family
   const brands: BrandRow[] = useMemo(() => {
     if (!marchiData?.brands) return [];
     const familyMap = new Map<string, { fattCurrentYear: number; fattPrevYear: number; fattPrevYearYTD: number }>();
@@ -83,25 +134,52 @@ export default function Marchi() {
         existing.fattPrevYear += b.fattPrevYear;
         existing.fattPrevYearYTD += b.fattPrevYearYTD;
       } else {
-        familyMap.set(fam, {
-          fattCurrentYear: b.fattCurrentYear,
-          fattPrevYear: b.fattPrevYear,
-          fattPrevYearYTD: b.fattPrevYearYTD,
-        });
+        familyMap.set(fam, { fattCurrentYear: b.fattCurrentYear, fattPrevYear: b.fattPrevYear, fattPrevYearYTD: b.fattPrevYearYTD });
       }
     }
     return Array.from(familyMap.entries()).map(([marchio, v]) => ({
       marchio,
       ...v,
       var: v.fattPrevYearYTD > 0 ? ((v.fattCurrentYear - v.fattPrevYearYTD) / v.fattPrevYearYTD) * 100 : null,
+      sparkline: brandMonthlyMap.get(marchio) ?? [],
     }));
-  }, [marchiData]);
+  }, [marchiData?.brands, brandMonthlyMap]);
 
+  // Totals for header card
+  const totalCurrent = useMemo(() => brands.reduce((s, b) => s + b.fattCurrentYear, 0), [brands]);
+  const totalPrevYTD = useMemo(() => brands.reduce((s, b) => s + b.fattPrevYearYTD, 0), [brands]);
+  const totalVar = totalPrevYTD > 0 ? ((totalCurrent - totalPrevYTD) / totalPrevYTD) * 100 : null;
+
+  // Monthly totals for area chart
+  const chartData = useMemo(() => {
+    if (!marchiData?.monthly_totals) return [];
+    return marchiData.monthly_totals.map(m => ({
+      name: MESI_SHORT[m.mese] || String(m.mese),
+      current: m.fatt_current,
+      prev: m.fatt_prev,
+    }));
+  }, [marchiData?.monthly_totals]);
+
+  // Top 3 growing, declining, premianti
+  const top3Growing = useMemo(() =>
+    [...brands].filter(b => b.var !== null && b.var > 0).sort((a, b) => b.var! - a.var!).slice(0, 3),
+    [brands]
+  );
+  const top3Declining = useMemo(() =>
+    [...brands].filter(b => b.var !== null && b.var < 0).sort((a, b) => a.var! - b.var!).slice(0, 3),
+    [brands]
+  );
+  const top3Premianti = useMemo(() =>
+    [...brands].filter(b => MARCHI_PREMIANTI.includes(b.marchio)).sort((a, b) => b.fattCurrentYear - a.fattCurrentYear).slice(0, 3),
+    [brands]
+  );
+
+  // Filtered & sorted table
   const filtered = useMemo(() => {
     let data = brands;
     if (search) {
       const q = search.toLowerCase();
-      data = data.filter((r) => r.marchio.toLowerCase().includes(q));
+      data = data.filter(r => r.marchio.toLowerCase().includes(q));
     }
     return [...data].sort((a, b) => {
       const av = a[sortKey];
@@ -115,12 +193,18 @@ export default function Marchi() {
   }, [brands, search, sortKey, sortDir]);
 
   const toggleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
     else { setSortKey(key); setSortDir("desc"); }
   };
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
+
+  const fmtCompact = (n: number) => {
+    if (Math.abs(n) >= 1_000_000) return `€ ${(n / 1_000_000).toFixed(2)}M`;
+    if (Math.abs(n) >= 1_000) return `€ ${(n / 1_000).toFixed(0)}K`;
+    return fmt(n);
+  };
 
   const fmtPct = (n: number | null) => {
     if (n == null) return null;
@@ -147,9 +231,10 @@ export default function Marchi() {
 
   return (
     <div className="space-y-4">
+      {/* Filters */}
       <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
         <div className="inline-flex rounded-lg border bg-muted p-1 mr-auto">
-          {["Fogliani", "Futurtec"].map((az) => (
+          {["Fogliani", "Futurtec"].map(az => (
             <button
               key={az}
               onClick={() => setFilterAzienda(az)}
@@ -168,72 +253,86 @@ export default function Marchi() {
           <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Anno" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti gli anni</SelectItem>
-            {anni.map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
+            {anni.map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterMese} onValueChange={setFilterMese}>
           <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Mese" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti i mesi</SelectItem>
-            {mesi.map((m) => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
+            {mesi.map(m => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterAgente} onValueChange={setFilterAgente}>
           <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="Tutti gli agenti" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti gli agenti</SelectItem>
-            {agenti.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+            {agenti.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Zap className="h-4 w-4" /> Materiale Elettrico
-            </CardTitle>
-          </CardHeader>
-          <CardContent><p className="text-lg md:text-2xl font-bold">{fmt(kpi.mat_elettrico)}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Sun className="h-4 w-4" /> Fotovoltaico
-            </CardTitle>
-          </CardHeader>
-          <CardContent><p className="text-lg md:text-2xl font-bold">{fmt(kpi.fotovoltaico)}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Cable className="h-4 w-4" /> Cavo
-            </CardTitle>
-          </CardHeader>
-          <CardContent><p className="text-lg md:text-2xl font-bold">{fmt(kpi.cavo)}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Wrench className="h-4 w-4" /> Risorsa spesa
-            </CardTitle>
-          </CardHeader>
-          <CardContent><p className="text-lg md:text-2xl font-bold">{fmt(kpi.ricambi)}</p></CardContent>
-        </Card>
-      </div>
+      {/* Total Revenue Card with Area Chart */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Totale Fatturato</p>
+              <div className="flex items-center gap-3 mt-1">
+                <span className="text-3xl font-bold">{fmtCompact(totalCurrent)}</span>
+                {totalVar != null && (
+                  <Badge
+                    variant={totalVar >= 0 ? "default" : "destructive"}
+                    className={cn("text-sm", totalVar >= 0 ? "bg-green-600 hover:bg-green-700" : "")}
+                  >
+                    {totalVar >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                    {fmtPct(totalVar)}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">vs {fmtCompact(totalPrevYTD)} prog. {prevYear}</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[200px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => fmtCompact(v)} className="fill-muted-foreground" />
+                <Tooltip
+                  formatter={(value: number) => fmt(value)}
+                  labelFormatter={l => `Mese: ${l}`}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
+                />
+                <Area type="monotone" dataKey="current" stroke="hsl(142, 71%, 45%)" fill="url(#colorCurrent)" strokeWidth={2} name={String(currentYear)} />
+                <Area type="monotone" dataKey="prev" stroke="hsl(var(--muted-foreground))" fill="transparent" strokeWidth={1.5} strokeDasharray="5 5" name={String(prevYear)} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
+      {/* Brands Table */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <CardTitle className="text-base">{filtered.length} famiglie marchio</CardTitle>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Cerca marchio..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+              <Input placeholder="Cerca marchio..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="max-h-[600px] overflow-auto">
+          <div className="max-h-[500px] overflow-auto">
             <Table className="text-[1.05rem]">
               <TableHeader>
                 <TableRow>
@@ -249,18 +348,27 @@ export default function Marchi() {
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("var")}>
                     <span className="flex items-center gap-1">Var. %<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 hidden sm:table-cell" onClick={() => toggleSort("fattPrevYear")}>
-                    <span className="flex items-center gap-1">{`Totale ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
-                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r) => {
+                {filtered.map(r => {
                   const pctVal = fmtPct(r.var);
                   return (
                     <TableRow key={r.marchio}>
-                      <TableCell className="font-medium py-2 px-2">{r.marchio}</TableCell>
-                      <TableCell className="text-right tabular-nums py-2 px-2">{fmt(r.fattCurrentYear)}</TableCell>
+                      <TableCell className="font-medium py-2 px-2">
+                        <div className="flex items-center gap-2">
+                          {r.marchio}
+                          {MARCHI_PREMIANTI.includes(r.marchio) && (
+                            <Trophy className="h-3.5 w-3.5 text-yellow-500" />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right py-2 px-2">
+                        <div className="flex items-center justify-end gap-2">
+                          <MiniSparkline data={r.sparkline} color={r.var != null && r.var >= 0 ? "hsl(142, 71%, 45%)" : "hsl(0, 84%, 60%)"} />
+                          <span className="tabular-nums">{fmt(r.fattCurrentYear)}</span>
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right tabular-nums py-2 px-2">{fmt(r.fattPrevYearYTD)}</TableCell>
                       <TableCell className="text-right py-2 px-2">
                         {pctVal != null ? (
@@ -271,7 +379,6 @@ export default function Marchi() {
                           <Badge variant="outline" className="text-muted-foreground">N/A</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums hidden sm:table-cell py-2 px-2">{fmt(r.fattPrevYear)}</TableCell>
                     </TableRow>
                   );
                 })}
@@ -280,6 +387,75 @@ export default function Marchi() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Bottom 3 Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Growing */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+              <TrendingUp className="h-4 w-4 text-green-500" /> Marchi in crescita
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {top3Growing.map(b => (
+              <div key={b.marchio} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MiniSparkline data={b.sparkline} color="hsl(142, 71%, 45%)" />
+                  <span className="font-medium text-sm">{b.marchio}</span>
+                </div>
+                <span className="text-sm font-semibold text-green-600">{fmtPct(b.var)}</span>
+              </div>
+            ))}
+            {!top3Growing.length && <p className="text-sm text-muted-foreground">Nessun dato</p>}
+          </CardContent>
+        </Card>
+
+        {/* Declining */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+              <TrendingDown className="h-4 w-4 text-red-500" /> Marchi in calo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {top3Declining.map(b => (
+              <div key={b.marchio} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MiniSparkline data={b.sparkline} color="hsl(0, 84%, 60%)" />
+                  <span className="font-medium text-sm">{b.marchio}</span>
+                </div>
+                <span className="text-sm font-semibold text-red-600">{fmtPct(b.var)}</span>
+              </div>
+            ))}
+            {!top3Declining.length && <p className="text-sm text-muted-foreground">Nessun dato</p>}
+          </CardContent>
+        </Card>
+
+        {/* Premianti */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+              <Trophy className="h-4 w-4 text-yellow-500" /> Marchi TOP (Premianti)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {top3Premianti.map(b => (
+              <div key={b.marchio} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MiniSparkline data={b.sparkline} color="hsl(45, 93%, 47%)" />
+                  <span className="font-medium text-sm">{b.marchio}</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold">{fmtCompact(b.fattCurrentYear)}</p>
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">{fmtCompact(b.fattPrevYearYTD)}</p>
+                </div>
+              </div>
+            ))}
+            {!top3Premianti.length && <p className="text-sm text-muted-foreground">Nessun dato</p>}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -245,13 +245,13 @@ export default function Marchi() {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
-        <div className="inline-flex rounded-lg border bg-muted p-1 mr-auto">
+        <div className="inline-flex rounded-lg border bg-muted p-0.5 sm:p-1 mr-auto">
           {["Fogliani", "Futurtec"].map(az => (
             <button
               key={az}
               onClick={() => setFilterAzienda(az)}
               className={cn(
-                "px-4 py-2 rounded-md text-sm font-semibold transition-all",
+                "px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-semibold transition-all",
                 filterAzienda === az
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -261,27 +261,29 @@ export default function Marchi() {
             </button>
           ))}
         </div>
-        <Select value={filterAnno} onValueChange={setFilterAnno}>
-          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Anno" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Tutti gli anni</SelectItem>
-            {anni.map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterMese} onValueChange={setFilterMese}>
-          <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Mese" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Tutti i mesi</SelectItem>
-            {mesi.map(m => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterAgente} onValueChange={setFilterAgente}>
-          <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="Tutti gli agenti" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Tutti gli agenti</SelectItem>
-            {agenti.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-3 sm:flex gap-2">
+          <Select value={filterAnno} onValueChange={setFilterAnno}>
+            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm sm:w-40"><SelectValue placeholder="Anno" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Tutti gli anni</SelectItem>
+              {anni.map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterMese} onValueChange={setFilterMese}>
+            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm sm:w-48"><SelectValue placeholder="Mese" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Tutti i mesi</SelectItem>
+              {mesi.map(m => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterAgente} onValueChange={setFilterAgente}>
+            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm sm:w-56"><SelectValue placeholder="Agenti" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Tutti gli agenti</SelectItem>
+              {agenti.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Total Revenue Card with Area Chart */}

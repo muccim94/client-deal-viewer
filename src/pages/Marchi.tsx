@@ -176,18 +176,6 @@ export default function Marchi() {
   }, [marchiData?.monthly_totals, lastMonthWithData]);
 
   // Top 3 growing, declining, premianti
-  const top3Growing = useMemo(() =>
-    [...brands].filter(b => b.var !== null && b.var > 0).sort((a, b) => b.var! - a.var!).slice(0, 3),
-    [brands]
-  );
-  const top3Declining = useMemo(() =>
-    [...brands].filter(b => b.var !== null && b.var < 0).sort((a, b) => a.var! - b.var!).slice(0, 3),
-    [brands]
-  );
-  const top3Premianti = useMemo(() =>
-    [...brands].filter(b => MARCHI_PREMIANTI.includes(b.marchio)).sort((a, b) => b.fattCurrentYear - a.fattCurrentYear).slice(0, 3),
-    [brands]
-  );
 
   // Filtered & sorted table
   const filtered = useMemo(() => {

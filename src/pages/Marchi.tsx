@@ -245,13 +245,13 @@ export default function Marchi() {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
-        <div className="inline-flex rounded-lg border bg-muted p-1 mr-auto">
+        <div className="inline-flex rounded-lg border bg-muted p-0.5 sm:p-1 mr-auto">
           {["Fogliani", "Futurtec"].map(az => (
             <button
               key={az}
               onClick={() => setFilterAzienda(az)}
               className={cn(
-                "px-4 py-2 rounded-md text-sm font-semibold transition-all",
+                "px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-semibold transition-all",
                 filterAzienda === az
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -261,27 +261,29 @@ export default function Marchi() {
             </button>
           ))}
         </div>
-        <Select value={filterAnno} onValueChange={setFilterAnno}>
-          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Anno" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Tutti gli anni</SelectItem>
-            {anni.map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterMese} onValueChange={setFilterMese}>
-          <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Mese" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Tutti i mesi</SelectItem>
-            {mesi.map(m => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterAgente} onValueChange={setFilterAgente}>
-          <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="Tutti gli agenti" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Tutti gli agenti</SelectItem>
-            {agenti.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-3 sm:flex gap-2">
+          <Select value={filterAnno} onValueChange={setFilterAnno}>
+            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm sm:w-40"><SelectValue placeholder="Anno" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Tutti gli anni</SelectItem>
+              {anni.map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterMese} onValueChange={setFilterMese}>
+            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm sm:w-48"><SelectValue placeholder="Mese" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Tutti i mesi</SelectItem>
+              {mesi.map(m => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterAgente} onValueChange={setFilterAgente}>
+            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm sm:w-56"><SelectValue placeholder="Agenti" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Tutti gli agenti</SelectItem>
+              {agenti.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Total Revenue Card with Area Chart */}
@@ -291,7 +293,7 @@ export default function Marchi() {
             <div>
               <p className="text-sm font-medium text-muted-foreground">Totale Fatturato</p>
               <div className="flex items-center gap-3 mt-1">
-                <span className="text-3xl font-bold">{fmtCompact(totalCurrent)}</span>
+                <span className="text-2xl sm:text-3xl font-bold">{fmtCompact(totalCurrent)}</span>
                 {totalVar != null && (
                   <Badge
                     variant={totalVar >= 0 ? "default" : "destructive"}
@@ -307,9 +309,9 @@ export default function Marchi() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] w-full">
+          <div className="h-[140px] sm:h-[200px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.3} />
@@ -317,8 +319,8 @@ export default function Marchi() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => fmtCompact(v)} className="fill-muted-foreground" />
+                <XAxis dataKey="name" tick={{ fontSize: 9 }} className="fill-muted-foreground" />
+                <YAxis tick={{ fontSize: 9 }} tickFormatter={v => fmtCompact(v)} className="fill-muted-foreground" hide />
                 <Tooltip
                   formatter={(value: number) => fmt(value)}
                   labelFormatter={l => `Mese: ${l}`}
@@ -333,22 +335,22 @@ export default function Marchi() {
       </Card>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
         {[
-          { label: "Materiale Elettrico", value: marchiData?.kpi?.mat_elettrico ?? 0, icon: Zap, color: "text-blue-500" },
+          { label: "Mat. Elettrico", value: marchiData?.kpi?.mat_elettrico ?? 0, icon: Zap, color: "text-blue-500" },
           { label: "Cavo", value: marchiData?.kpi?.cavo ?? 0, icon: Cable, color: "text-orange-500" },
           { label: "Fotovoltaico", value: marchiData?.kpi?.fotovoltaico ?? 0, icon: Sun, color: "text-yellow-500" },
           { label: "Ricambi", value: marchiData?.kpi?.ricambi ?? 0, icon: Wrench, color: "text-muted-foreground" },
         ].map(kpi => (
           <Card key={kpi.label}>
-            <CardHeader className="pb-2">
+            <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-muted-foreground">{kpi.label}</p>
-                <kpi.icon className={cn("h-4 w-4", kpi.color)} />
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">{kpi.label}</p>
+                <kpi.icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", kpi.color)} />
               </div>
             </CardHeader>
-            <CardContent>
-              <span className="text-2xl font-bold">{fmtCompact(kpi.value)}</span>
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <span className="text-lg sm:text-2xl font-bold">{fmtCompact(kpi.value)}</span>
             </CardContent>
           </Card>
         ))}
@@ -367,20 +369,20 @@ export default function Marchi() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-auto">
-            <Table className="text-[1.05rem]">
+            <Table className="text-sm sm:text-[1.05rem]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("marchio")}>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px]" onClick={() => toggleSort("marchio")}>
                     <span className="flex items-center gap-1">Marchio<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattCurrentYear")}>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px]" onClick={() => toggleSort("fattCurrentYear")}>
                     <span className="flex items-center gap-1">{`Fatt. ${currentYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattPrevYearYTD")}>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px] hidden sm:table-cell" onClick={() => toggleSort("fattPrevYearYTD")}>
                     <span className="flex items-center gap-1">{`Progr. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("var")}>
-                    <span className="flex items-center gap-1">Var. %<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px]" onClick={() => toggleSort("var")}>
+                    <span className="flex items-center gap-1">Var.&nbsp;%<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -389,22 +391,22 @@ export default function Marchi() {
                   const pctVal = fmtPct(r.var);
                   return (
                     <TableRow key={r.marchio}>
-                      <TableCell className="font-medium py-2 px-2">
-                        <div className="flex items-center gap-2">
+                      <TableCell className="font-medium py-1.5 px-1.5 sm:py-2 sm:px-2">
+                        <div className="flex items-center gap-1.5">
                           {r.marchio}
                           {MARCHI_PREMIANTI.includes(r.marchio) && (
-                            <Trophy className="h-3.5 w-3.5 text-yellow-500" />
+                            <Trophy className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-yellow-500" />
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right py-2 px-2">
-                        <div className="flex items-center justify-end gap-2">
-                          <MiniSparkline data={r.sparkline} color={r.var != null && r.var >= 0 ? "hsl(142, 71%, 45%)" : "hsl(0, 84%, 60%)"} />
+                      <TableCell className="text-right py-1.5 px-1.5 sm:py-2 sm:px-2">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="hidden sm:inline"><MiniSparkline data={r.sparkline} color={r.var != null && r.var >= 0 ? "hsl(142, 71%, 45%)" : "hsl(0, 84%, 60%)"} /></span>
                           <span className="tabular-nums">{fmt(r.fattCurrentYear)}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums py-2 px-2">{fmt(r.fattPrevYearYTD)}</TableCell>
-                      <TableCell className="text-right py-2 px-2">
+                      <TableCell className="text-right tabular-nums py-1.5 px-1.5 sm:py-2 sm:px-2 hidden sm:table-cell">{fmt(r.fattPrevYearYTD)}</TableCell>
+                      <TableCell className="text-right py-1.5 px-1.5 sm:py-2 sm:px-2">
                         {pctVal != null ? (
                           <Badge variant={r.var! >= 0 ? "default" : "destructive"} className={r.var! >= 0 ? "bg-green-600 hover:bg-green-700" : ""}>
                             {pctVal}
@@ -423,7 +425,7 @@ export default function Marchi() {
       </Card>
 
       {/* Bottom 3 Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4">
         {/* Growing */}
         <Card>
           <CardHeader className="pb-3">

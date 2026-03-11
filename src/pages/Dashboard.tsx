@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import {
   PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer,
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -76,6 +76,19 @@ export default function Dashboard() {
     },
   });
 
+  const budgetAnno = filterAnno === "__all__" ? new Date().getFullYear() : Number(filterAnno);
+  const { data: budgetData } = useQuery({
+    queryKey: ["dashboard-budget", budgetAnno, filterAgente],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_budget_data", {
+        p_anno: budgetAnno,
+        p_agente: filterAgente === "__all__" ? null : filterAgente,
+      });
+      if (error) throw error;
+      return data as unknown as { mese: number; budget: number; fatturato: number }[];
+    },
+  });
+
   const { data: clientiList } = useQuery({
     queryKey: ["clienti-search"],
     queryFn: async () => {
@@ -99,13 +112,24 @@ export default function Dashboard() {
     return Array.from({ length: 12 }, (_, i) => {
       const m = i + 1;
       const entry = stats.monthlyTotals.find(d => d.mese === m);
+      const budgetEntry = budgetData?.find(b => b.mese === m);
       return {
         name: monthNames[i],
         current: m <= lastMonthWithData ? (entry?.fatt_current ?? 0) : undefined,
         prev: entry?.fatt_prev ?? 0,
+        budget: budgetEntry?.budget ?? 0,
       };
     });
-  }, [stats?.monthlyTotals]);
+  }, [stats?.monthlyTotals, budgetData]);
+
+  const renderEndDot = (props: any) => {
+    const { cx, cy, index, payload } = props;
+    if (cx == null || cy == null) return null;
+    if (payload.current !== undefined && (index === chartData.length - 1 || chartData[index + 1]?.current === undefined)) {
+      return <circle cx={cx} cy={cy} r={5} fill="hsl(160, 60%, 45%)" stroke="hsl(var(--background))" strokeWidth={2} />;
+    }
+    return null;
+  };
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
@@ -217,7 +241,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(160, 60%, 45%)" stopOpacity={0.3} />
@@ -250,8 +274,19 @@ export default function Dashboard() {
                     strokeWidth={2}
                     name="Anno Corrente"
                     connectNulls={false}
+                    dot={renderEndDot}
                   />
-                </AreaChart>
+                  <Line
+                    type="monotone"
+                    dataKey="budget"
+                    stroke="hsl(35, 85%, 55%)"
+                    strokeWidth={1.5}
+                    strokeDasharray="4 3"
+                    dot={false}
+                    name="Budget"
+                    connectNulls={true}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>

@@ -49,6 +49,7 @@ const App = () => (
               <Route path="/anagrafiche/:codice" element={<ClienteDettaglio />} />
               <Route path="/anagrafiche/:codice/marchi" element={<ClienteMarchi />} />
               <Route path="/marchi" element={<Marchi />} />
+              <Route path="/marchi/:famiglia" element={<MarchioDettaglio />} />
               <Route path="/provvigioni" element={<Provvigioni />} />
               <Route path="/budget" element={<Budget />} />
               <Route path="/upload" element={<UploadExcel />} />

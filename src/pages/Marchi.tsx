@@ -204,7 +204,7 @@ export default function Marchi() {
       const cmp = typeof av === "number" ? av - (bv as number) : String(av).localeCompare(String(bv));
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [brands, search, sortKey, sortDir]);
+  }, [brands, search, sortKey, sortDir, filterTop]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));

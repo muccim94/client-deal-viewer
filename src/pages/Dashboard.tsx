@@ -243,14 +243,24 @@ export default function Dashboard() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm md:text-base">Totale Fatturato</CardTitle>
-                <Badge variant={isPositive ? "default" : "destructive"} className="text-xs">
-                  {isPositive ? "+" : ""}{varPercent.toFixed(1)}%
-                </Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant={isBudgetPositive ? "default" : "destructive"} className="text-xs">
+                    {isBudgetPositive ? "+" : ""}{varBudgetPercent.toFixed(1)}% vs Budget
+                  </Badge>
+                  <Badge variant={isPositive ? "default" : "destructive"} className="text-xs">
+                    {isPositive ? "+" : ""}{varPercent.toFixed(1)}% YoY
+                  </Badge>
+                </div>
               </div>
               <div className="text-2xl md:text-3xl font-bold mt-1">{fmtCompact(stats.totale)}</div>
-              <p className="text-xs text-muted-foreground">
-                vs {fmtCompact(stats.totalePrevYtd)} prog. anno prec.
-              </p>
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">
+                  vs {fmtCompact(budgetYtd)} budget prog.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  vs {fmtCompact(stats.totalePrevYtd)} prog. anno prec.
+                </p>
+              </div>
             </CardHeader>
             <CardContent className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">

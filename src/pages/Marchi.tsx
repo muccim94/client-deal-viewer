@@ -190,6 +190,7 @@ export default function Marchi() {
   // Filtered & sorted table
   const filtered = useMemo(() => {
     let data = brands;
+    if (filterTop) data = data.filter(r => MARCHI_PREMIANTI.includes(r.marchio));
     if (search) {
       const q = search.toLowerCase();
       data = data.filter(r => r.marchio.toLowerCase().includes(q));

@@ -1,54 +1,26 @@
 
 
-## Nuova Pagina "Budget" - Target Annuali vs Fatturato Effettivo
+## Modifiche alla Dashboard Marchi
 
-### Panoramica
+### 1. Grafico area — linea anno corrente termina all'ultimo mese con dati
 
-Creazione di una nuova sezione "Budget" accessibile dalla sidebar, che mostra i target mensili di fatturato per agente confrontati con il fatturato effettivo caricato nel sistema. I dati di budget per FO75 e FO77 verranno salvati nel database e visualizzati sia separatamente (per agente) sia come totale combinato.
+Nel `chartData`, filtrare i punti dell'anno corrente (`current`) impostando a `null` i mesi senza dati caricati. Recharts non disegna la linea oltre i punti `null`. Si usa il `v_max_month` già calcolato dall'RPC: i `monthly_totals` restituiti contengono solo mesi con dati per l'anno corrente, quindi basta impostare `current: null` per i mesi dove `fatt_current === 0` e il mese è > ultimo mese con dati. In alternativa, usare `connectNulls={false}` sulla serie `current`.
 
-### Dati Budget dalle immagini
+Approccio concreto: nel `useMemo` di `chartData`, per ogni mese controllare se `fatt_current > 0`; se no, impostare `current` a `undefined` (recharts non disegnerà quel punto). La serie `prev` resta completa per tutti i 12 mesi.
 
-**FO75**: GEN 374.374, FEB 436.070, MAR 425.142, APR 478.601, MAG 481.141, GIU 443.277, LUG 635.743, AGO 342.263, SET 452.474, OTT 427.109, NOV 518.841, DIC 484.966 -- Totale 5.500.001
+### 2. Aggiunta 4 KPI Cards sotto il grafico fatturato
 
-**FO77**: GEN 333.533, FEB 388.499, MAR 378.763, APR 426.390, MAG 428.653, GIU 394.919, LUG 566.389, AGO 304.925, SET 403.114, OTT 380.515, NOV 462.240, DIC 432.060 -- Totale 4.900.000
+Dopo la card "Totale Fatturato", aggiungere una griglia `grid-cols-2 md:grid-cols-4` con 4 card KPI nell'ordine richiesto:
 
-### Modifiche tecniche
+1. **Fatturato Materiale Elettrico** — `kpi.mat_elettrico`
+2. **Fatturato Cavo** — `kpi.cavo`
+3. **Fatturato Fotovoltaico** — `kpi.fotovoltaico`
+4. **Ricambi** — `kpi.ricambi`
 
-#### 1. Database: Nuova tabella `budget_targets`
+Ogni card mostra il valore formattato con `fmtCompact` e un'icona appropriata (Zap, Cable, Sun, Wrench da lucide-react).
 
-Creare una tabella per memorizzare i target mensili per agente:
+### File coinvolti
+- `src/pages/Marchi.tsx` — modifica chartData + aggiunta sezione KPI
 
-```text
-budget_targets
-- id (uuid, PK)
-- agente (text, NOT NULL) -- es. "FO_FO75", "FO_FO77"
-- anno (integer, NOT NULL)
-- mese (integer, NOT NULL, 1-12)
-- importo (numeric, NOT NULL)
-- created_at (timestamptz, DEFAULT now())
-- UNIQUE(agente, anno, mese)
-```
-
-RLS: lettura per utenti autenticati (admin + agenti assegnati), scrittura solo admin.
-
-Migrazione che inserisce i dati di FO75 e FO77 per il 2026.
-
-#### 2. Database: Funzione RPC `get_budget_data`
-
-Funzione che restituisce per ogni agente e mese: il budget target e il fatturato effettivo (da `sales_records`, filtrato per azienda FO). Accetta parametri `p_anno` e `p_agente` (opzionale). Rispetta la visibilita' degli agenti (admin vede tutto, utente vede solo i propri agenti).
-
-#### 3. Nuova pagina `src/pages/Budget.tsx`
-
-- Filtro anno (default 2026) e filtro agente (FO75, FO77, Tutti)
-- Quando "Tutti" e' selezionato: mostra una tabella unica con la somma dei budget e dei fatturati
-- Quando un agente specifico e' selezionato: mostra solo i dati di quell'agente
-- Tabella con colonne: Mese | Budget | Fatturato Effettivo | Delta (EUR) | Delta %
-- Riga di totale in fondo
-- Colori: verde se il fatturato supera il budget, rosso se inferiore
-- Barra di progresso visiva per ogni mese (percentuale fatturato/budget)
-
-#### 4. Routing e Sidebar
-
-- **`src/App.tsx`**: Aggiungere route `/budget` con il componente Budget
-- **`src/components/AppSidebar.tsx`**: Aggiungere voce "Budget" nel menu con icona `Target` da lucide-react
+### Nessuna modifica al database
 

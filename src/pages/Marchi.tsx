@@ -410,7 +410,7 @@ export default function Marchi() {
                         <div className="flex items-center gap-1.5">
                           {r.marchio}
                           {MARCHI_PREMIANTI.includes(r.marchio) && (
-                            <Trophy className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-yellow-500" />
+                            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white text-[10px] px-1.5 py-0 leading-tight">TOP</Badge>
                           )}
                         </div>
                       </TableCell>

@@ -309,9 +309,9 @@ export default function Marchi() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] w-full">
+          <div className="h-[140px] sm:h-[200px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.3} />
@@ -319,8 +319,8 @@ export default function Marchi() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => fmtCompact(v)} className="fill-muted-foreground" />
+                <XAxis dataKey="name" tick={{ fontSize: 9 }} className="fill-muted-foreground" />
+                <YAxis tick={{ fontSize: 9 }} tickFormatter={v => fmtCompact(v)} className="fill-muted-foreground" hide />
                 <Tooltip
                   formatter={(value: number) => fmt(value)}
                   labelFormatter={l => `Mese: ${l}`}

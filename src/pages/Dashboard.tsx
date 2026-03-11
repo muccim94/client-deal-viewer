@@ -241,7 +241,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(160, 60%, 45%)" stopOpacity={0.3} />
@@ -274,8 +274,19 @@ export default function Dashboard() {
                     strokeWidth={2}
                     name="Anno Corrente"
                     connectNulls={false}
+                    dot={renderEndDot}
                   />
-                </AreaChart>
+                  <Line
+                    type="monotone"
+                    dataKey="budget"
+                    stroke="hsl(35, 85%, 55%)"
+                    strokeWidth={1.5}
+                    strokeDasharray="4 3"
+                    dot={false}
+                    name="Budget"
+                    connectNulls={true}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>

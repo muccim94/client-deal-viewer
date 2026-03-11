@@ -106,9 +106,13 @@ export default function Dashboard() {
     return clientiList.filter((c) => normalize(c.nomeCliente).includes(q)).slice(0, 20);
   }, [clientiList, searchQuery]);
 
+  const lastMonthWithData = useMemo(() => {
+    if (!stats?.monthlyTotals) return 0;
+    return Math.max(0, ...stats.monthlyTotals.filter(m => m.fatt_current > 0).map(m => m.mese));
+  }, [stats?.monthlyTotals]);
+
   const chartData = useMemo(() => {
     if (!stats?.monthlyTotals) return [];
-    const lastMonthWithData = Math.max(0, ...stats.monthlyTotals.filter(m => m.fatt_current > 0).map(m => m.mese));
     return Array.from({ length: 12 }, (_, i) => {
       const m = i + 1;
       const entry = stats.monthlyTotals.find(d => d.mese === m);
@@ -120,7 +124,16 @@ export default function Dashboard() {
         budget: budgetEntry?.budget ?? 0,
       };
     });
-  }, [stats?.monthlyTotals, budgetData]);
+  }, [stats?.monthlyTotals, budgetData, lastMonthWithData]);
+
+  const budgetYtd = useMemo(() => {
+    return budgetData?.filter(b => b.mese <= lastMonthWithData).reduce((sum, b) => sum + b.budget, 0) ?? 0;
+  }, [budgetData, lastMonthWithData]);
+
+  const varBudgetPercent = budgetYtd > 0
+    ? ((stats?.totale ?? 0) - budgetYtd) / budgetYtd * 100
+    : 0;
+  const isBudgetPositive = varBudgetPercent >= 0;
 
   const renderEndDot = (props: any) => {
     const { cx, cy, index, payload } = props;

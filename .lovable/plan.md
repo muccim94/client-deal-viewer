@@ -1,48 +1,54 @@
-## Riprogettazione Dashboard
 
-### Layout a 2 colonne (desktop)
 
-**Colonna sinistra (~50%)**:
+## Nuova Pagina "Budget" - Target Annuali vs Fatturato Effettivo
 
-1. **Card "Totale Fatturato"** — importo grande (€1.47M), badge var% YoY, sottotitolo "vs € X prog. anno prec.", grafico `AreaChart` con anno corrente (solido verde, termina all'ultimo mese con dati) e anno precedente (tratteggiato grigio)
-2. **Card "Top 10 Clienti per Fatturato"** — tabella invariata con trend icons
+### Panoramica
 
-**Colonna destra (~50%)**:
+Creazione di una nuova sezione "Budget" accessibile dalla sidebar, che mostra i target mensili di fatturato per agente confrontati con il fatturato effettivo caricato nel sistema. I dati di budget per FO75 e FO77 verranno salvati nel database e visualizzati sia separatamente (per agente) sia come totale combinato.
 
-1. **3 KPI cards** in riga — Fatturato Totale (€), Clienti Unici, Marchi (rimossa "Media per Cliente")
-2. **Card "Distribuzione Vendite per Marchio"** — PieChart (invariato)
+### Dati Budget dalle immagini
 
-Su mobile: layout single-column con ordine KPI → Fatturato chart → Clienti → Pie → Bar.
+**FO75**: GEN 374.374, FEB 436.070, MAR 425.142, APR 478.601, MAG 481.141, GIU 443.277, LUG 635.743, AGO 342.263, SET 452.474, OTT 427.109, NOV 518.841, DIC 484.966 -- Totale 5.500.001
 
-### Modifiche backend (RPC)
+**FO77**: GEN 333.533, FEB 388.499, MAR 378.763, APR 426.390, MAG 428.653, GIU 394.919, LUG 566.389, AGO 304.925, SET 403.114, OTT 380.515, NOV 462.240, DIC 432.060 -- Totale 4.900.000
 
-Aggiornare `get_dashboard_stats` per restituire `monthly_totals`:
+### Modifiche tecniche
 
-```sql
-monthly_totals AS (
-  SELECT mese,
-    SUM(CASE WHEN anno = v_anno THEN imponibile ELSE 0 END) as fatt_current,
-    SUM(CASE WHEN anno = v_prev_anno THEN imponibile ELSE 0 END) as fatt_prev
-  FROM sales_records
-  WHERE ... filters ...
-    AND anno IN (v_anno, v_prev_anno)
-  GROUP BY mese ORDER BY mese
-)
+#### 1. Database: Nuova tabella `budget_targets`
+
+Creare una tabella per memorizzare i target mensili per agente:
+
+```text
+budget_targets
+- id (uuid, PK)
+- agente (text, NOT NULL) -- es. "FO_FO75", "FO_FO77"
+- anno (integer, NOT NULL)
+- mese (integer, NOT NULL, 1-12)
+- importo (numeric, NOT NULL)
+- created_at (timestamptz, DEFAULT now())
+- UNIQUE(agente, anno, mese)
 ```
 
-Aggiungere al JSON: `'monthly_totals', (SELECT json_agg(...) FROM monthly_totals)` e `'totale_prev_ytd'` per il sottotitolo "vs prog. anno prec."
+RLS: lettura per utenti autenticati (admin + agenti assegnati), scrittura solo admin.
 
-### Modifiche frontend
+Migrazione che inserisce i dati di FO75 e FO77 per il 2026.
 
-**File: `src/pages/Dashboard.tsx**`:
+#### 2. Database: Funzione RPC `get_budget_data`
 
-- Import `AreaChart, Area, BarChart, Bar, LineChart, XAxis, YAxis, CartesianGrid` da recharts
-- Layout: `lg:grid-cols-2` con colonna sinistra (Fatturato + Top10) e destra (KPI + Pie + Bar)
-- `useMemo` per `chartData` con logica "current = undefined per mesi > ultimo con dati" (stessa di Marchi.tsx)
-- Componente BarChart orizzontale per i dati `marchiPie`
-- KPI ridotte a 3 cards in riga `grid-cols-3`
+Funzione che restituisce per ogni agente e mese: il budget target e il fatturato effettivo (da `sales_records`, filtrato per azienda FO). Accetta parametri `p_anno` e `p_agente` (opzionale). Rispetta la visibilita' degli agenti (admin vede tutto, utente vede solo i propri agenti).
 
-### File coinvolti
+#### 3. Nuova pagina `src/pages/Budget.tsx`
 
-- `src/pages/Dashboard.tsx` — riscrittura layout
-- Nuova migrazione SQL — aggiornamento `get_dashboard_stats`
+- Filtro anno (default 2026) e filtro agente (FO75, FO77, Tutti)
+- Quando "Tutti" e' selezionato: mostra una tabella unica con la somma dei budget e dei fatturati
+- Quando un agente specifico e' selezionato: mostra solo i dati di quell'agente
+- Tabella con colonne: Mese | Budget | Fatturato Effettivo | Delta (EUR) | Delta %
+- Riga di totale in fondo
+- Colori: verde se il fatturato supera il budget, rosso se inferiore
+- Barra di progresso visiva per ogni mese (percentuale fatturato/budget)
+
+#### 4. Routing e Sidebar
+
+- **`src/App.tsx`**: Aggiungere route `/budget` con il componente Budget
+- **`src/components/AppSidebar.tsx`**: Aggiungere voce "Budget" nel menu con icona `Target` da lucide-react
+

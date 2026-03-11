@@ -335,22 +335,22 @@ export default function Marchi() {
       </Card>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
         {[
-          { label: "Materiale Elettrico", value: marchiData?.kpi?.mat_elettrico ?? 0, icon: Zap, color: "text-blue-500" },
+          { label: "Mat. Elettrico", value: marchiData?.kpi?.mat_elettrico ?? 0, icon: Zap, color: "text-blue-500" },
           { label: "Cavo", value: marchiData?.kpi?.cavo ?? 0, icon: Cable, color: "text-orange-500" },
           { label: "Fotovoltaico", value: marchiData?.kpi?.fotovoltaico ?? 0, icon: Sun, color: "text-yellow-500" },
           { label: "Ricambi", value: marchiData?.kpi?.ricambi ?? 0, icon: Wrench, color: "text-muted-foreground" },
         ].map(kpi => (
           <Card key={kpi.label}>
-            <CardHeader className="pb-2">
+            <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-muted-foreground">{kpi.label}</p>
-                <kpi.icon className={cn("h-4 w-4", kpi.color)} />
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">{kpi.label}</p>
+                <kpi.icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", kpi.color)} />
               </div>
             </CardHeader>
-            <CardContent>
-              <span className="text-2xl font-bold">{fmtCompact(kpi.value)}</span>
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <span className="text-lg sm:text-2xl font-bold">{fmtCompact(kpi.value)}</span>
             </CardContent>
           </Card>
         ))}

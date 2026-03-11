@@ -243,22 +243,24 @@ export default function Dashboard() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm md:text-base">Totale Fatturato</CardTitle>
-                <div className="flex flex-col items-end gap-1">
-                  <Badge variant={isBudgetPositive ? "default" : "destructive"} className="text-xs">
+              </div>
+              <div className="flex items-end justify-between gap-2 mt-1">
+                <div className="text-2xl md:text-3xl font-bold px-[10px]">{fmtCompact(stats.totale)}</div>
+                <div className="flex flex-col items-end gap-0.5 pb-0.5">
+                  <Badge variant={isBudgetPositive ? "default" : "destructive"} className="text-[10px] leading-tight px-1.5 py-0.5">
                     {isBudgetPositive ? "+" : ""}{varBudgetPercent.toFixed(1)}% vs Budget
                   </Badge>
-                  <Badge variant={isPositive ? "default" : "destructive"} className="text-xs">
+                  <Badge variant={isPositive ? "default" : "destructive"} className="text-[10px] leading-tight px-1.5 py-0.5">
                     {isPositive ? "+" : ""}{varPercent.toFixed(1)}% YoY
                   </Badge>
                 </div>
               </div>
-              <div className="text-2xl md:text-3xl font-bold mt-1 px-[10px] my-0">{fmtCompact(stats.totale)}</div>
-              <div className="space-y-0.5">
-                <p className="text-muted-foreground px-0 ml-[10px] mr-0 text-sm">
-                  vs {fmtCompact(budgetYtd)} budget prog.
+              <div className="flex gap-3 ml-[10px] mt-0.5">
+                <p className="text-muted-foreground text-xs">
+                  vs {fmtCompact(budgetYtd)} budget
                 </p>
-                <p className="text-muted-foreground ml-[10px] text-sm">
-                  vs {fmtCompact(stats.totalePrevYtd)} prog. anno prec.
+                <p className="text-muted-foreground text-xs">
+                  vs {fmtCompact(stats.totalePrevYtd)} anno prec.
                 </p>
               </div>
             </CardHeader>

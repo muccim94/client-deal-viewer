@@ -407,7 +407,7 @@ export default function Marchi() {
                 {filtered.map(r => {
                   const pctVal = fmtPct(r.var);
                   return (
-                    <TableRow key={r.marchio}>
+                    <TableRow key={r.marchio} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/marchi/${encodeURIComponent(r.marchio)}`)}>
                       <TableCell className="font-medium py-1.5 px-1.5 sm:py-2 sm:px-2">
                         <div className="flex items-center gap-1.5">
                           {r.marchio}

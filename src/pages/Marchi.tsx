@@ -363,7 +363,7 @@ export default function Marchi() {
         <CardHeader className="pb-3">
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">{filtered.length} famiglie marchio</CardTitle>
+              <CardTitle className="text-base">{filtered.length} Marchi</CardTitle>
               <button
                 onClick={() => setFilterTop(v => !v)}
                 className={cn(

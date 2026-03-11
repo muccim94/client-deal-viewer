@@ -369,20 +369,20 @@ export default function Marchi() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="max-h-[500px] overflow-auto">
-            <Table className="text-[1.05rem]">
+            <Table className="text-sm sm:text-[1.05rem]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("marchio")}>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px]" onClick={() => toggleSort("marchio")}>
                     <span className="flex items-center gap-1">Marchio<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattCurrentYear")}>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px]" onClick={() => toggleSort("fattCurrentYear")}>
                     <span className="flex items-center gap-1">{`Fatt. ${currentYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("fattPrevYearYTD")}>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px] hidden sm:table-cell" onClick={() => toggleSort("fattPrevYearYTD")}>
                     <span className="flex items-center gap-1">{`Progr. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("var")}>
-                    <span className="flex items-center gap-1">Var. %<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px]" onClick={() => toggleSort("var")}>
+                    <span className="flex items-center gap-1">Var.&nbsp;%<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -391,22 +391,22 @@ export default function Marchi() {
                   const pctVal = fmtPct(r.var);
                   return (
                     <TableRow key={r.marchio}>
-                      <TableCell className="font-medium py-2 px-2">
-                        <div className="flex items-center gap-2">
+                      <TableCell className="font-medium py-1.5 px-1.5 sm:py-2 sm:px-2">
+                        <div className="flex items-center gap-1.5">
                           {r.marchio}
                           {MARCHI_PREMIANTI.includes(r.marchio) && (
-                            <Trophy className="h-3.5 w-3.5 text-yellow-500" />
+                            <Trophy className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-yellow-500" />
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right py-2 px-2">
-                        <div className="flex items-center justify-end gap-2">
-                          <MiniSparkline data={r.sparkline} color={r.var != null && r.var >= 0 ? "hsl(142, 71%, 45%)" : "hsl(0, 84%, 60%)"} />
+                      <TableCell className="text-right py-1.5 px-1.5 sm:py-2 sm:px-2">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="hidden sm:inline"><MiniSparkline data={r.sparkline} color={r.var != null && r.var >= 0 ? "hsl(142, 71%, 45%)" : "hsl(0, 84%, 60%)"} /></span>
                           <span className="tabular-nums">{fmt(r.fattCurrentYear)}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums py-2 px-2">{fmt(r.fattPrevYearYTD)}</TableCell>
-                      <TableCell className="text-right py-2 px-2">
+                      <TableCell className="text-right tabular-nums py-1.5 px-1.5 sm:py-2 sm:px-2 hidden sm:table-cell">{fmt(r.fattPrevYearYTD)}</TableCell>
+                      <TableCell className="text-right py-1.5 px-1.5 sm:py-2 sm:px-2">
                         {pctVal != null ? (
                           <Badge variant={r.var! >= 0 ? "default" : "destructive"} className={r.var! >= 0 ? "bg-green-600 hover:bg-green-700" : ""}>
                             {pctVal}

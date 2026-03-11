@@ -55,7 +55,7 @@ export default function MarchioDettaglio() {
   const { data, isLoading } = useQuery({
     queryKey: ["marchio-clienti", famiglia],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_marchio_clienti_stats", {
+      const { data, error } = await supabase.rpc("get_marchio_clienti_stats" as any, {
         p_famiglia: famiglia!,
       });
       if (error) throw error;

@@ -15,6 +15,7 @@ import ClienteDettaglio from "@/pages/ClienteDettaglio";
 import ClienteMarchi from "@/pages/ClienteMarchi";
 import UploadExcel from "@/pages/UploadExcel";
 import Marchi from "@/pages/Marchi";
+import MarchioDettaglio from "@/pages/MarchioDettaglio";
 import Provvigioni from "@/pages/Provvigioni";
 import Budget from "@/pages/Budget";
 import GestioneUtenti from "@/pages/GestioneUtenti";

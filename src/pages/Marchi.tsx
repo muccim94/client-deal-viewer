@@ -67,6 +67,7 @@ export default function Marchi() {
   const [sortKey, setSortKey] = useState<SortKey>("fattCurrentYear");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filterAgente, setFilterAgente] = useState("__all__");
+  const [filterTop, setFilterTop] = useState(false);
   const [filterAnno, setFilterAnno] = useState<string>(String(new Date().getFullYear()));
   const [filterMese, setFilterMese] = useState("__all__");
   const [filterAzienda, setFilterAzienda] = useState("Fogliani");

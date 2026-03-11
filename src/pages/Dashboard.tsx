@@ -5,16 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { getMeseNome } from "@/types/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from
+"@/components/ui/select";
 import { Euro, Users, Tag, TrendingUp, TrendingDown, BarChart3, Loader2, Search, X } from "lucide-react";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from
+"@/components/ui/table";
 import {
   PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer,
-  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
-} from "recharts";
+  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid } from
+"recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -23,11 +23,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
 const COLORS = [
-  "hsl(215, 70%, 50%)", "hsl(160, 60%, 45%)", "hsl(35, 85%, 55%)",
-  "hsl(0, 65%, 55%)", "hsl(270, 55%, 55%)", "hsl(190, 65%, 45%)",
-  "hsl(330, 60%, 55%)", "hsl(50, 75%, 50%)", "hsl(120, 45%, 50%)",
-  "hsl(200, 70%, 60%)",
-];
+"hsl(215, 70%, 50%)", "hsl(160, 60%, 45%)", "hsl(35, 85%, 55%)",
+"hsl(0, 65%, 55%)", "hsl(270, 55%, 55%)", "hsl(190, 65%, 45%)",
+"hsl(330, 60%, 55%)", "hsl(50, 75%, 50%)", "hsl(120, 45%, 50%)",
+"hsl(200, 70%, 60%)"];
+
 
 const monthNames = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
 
@@ -46,8 +46,8 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_filter_options");
       if (error) throw error;
-      return data as unknown as { anni: number[]; mesi: number[]; agenti: string[] };
-    },
+      return data as unknown as {anni: number[];mesi: number[];agenti: string[];};
+    }
   });
 
   const anni = filterOptions?.anni ?? [];
@@ -61,7 +61,7 @@ export default function Dashboard() {
         p_azienda: filterAzienda === "__all__" ? null : filterAzienda,
         p_anno: filterAnno === "__all__" ? null : Number(filterAnno),
         p_mese: filterMese === "__all__" ? null : Number(filterMese),
-        p_agente: filterAgente === "__all__" ? null : filterAgente,
+        p_agente: filterAgente === "__all__" ? null : filterAgente
       });
       if (error) throw error;
       return data as unknown as {
@@ -69,11 +69,11 @@ export default function Dashboard() {
         clienti: number;
         marchi: number;
         totalePrevYtd: number;
-        topClienti: { name: string; codice: string; value: number; valuePrev: number }[];
-        marchiPie: { name: string; value: number }[];
-        monthlyTotals: { mese: number; fatt_current: number; fatt_prev: number }[];
+        topClienti: {name: string;codice: string;value: number;valuePrev: number;}[];
+        marchiPie: {name: string;value: number;}[];
+        monthlyTotals: {mese: number;fatt_current: number;fatt_prev: number;}[];
       };
-    },
+    }
   });
 
   const budgetAnno = filterAnno === "__all__" ? new Date().getFullYear() : Number(filterAnno);
@@ -82,11 +82,11 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_budget_data", {
         p_anno: budgetAnno,
-        p_agente: filterAgente === "__all__" ? null : filterAgente,
+        p_agente: filterAgente === "__all__" ? null : filterAgente
       });
       if (error) throw error;
-      return data as unknown as { mese: number; budget: number; fatturato: number }[];
-    },
+      return data as unknown as {mese: number;budget: number;fatturato: number;}[];
+    }
   });
 
   const { data: clientiList } = useQuery({
@@ -94,9 +94,9 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_clienti_list");
       if (error) throw error;
-      return data as unknown as { codiceCliente: string; nomeCliente: string }[];
+      return data as unknown as {codiceCliente: string;nomeCliente: string;}[];
     },
-    enabled: searchOpen,
+    enabled: searchOpen
   });
 
   const filteredClienti = useMemo(() => {
@@ -108,31 +108,31 @@ export default function Dashboard() {
 
   const lastMonthWithData = useMemo(() => {
     if (!stats?.monthlyTotals) return 0;
-    return Math.max(0, ...stats.monthlyTotals.filter(m => m.fatt_current > 0).map(m => m.mese));
+    return Math.max(0, ...stats.monthlyTotals.filter((m) => m.fatt_current > 0).map((m) => m.mese));
   }, [stats?.monthlyTotals]);
 
   const chartData = useMemo(() => {
     if (!stats?.monthlyTotals) return [];
     return Array.from({ length: 12 }, (_, i) => {
       const m = i + 1;
-      const entry = stats.monthlyTotals.find(d => d.mese === m);
-      const budgetEntry = budgetData?.find(b => b.mese === m);
+      const entry = stats.monthlyTotals.find((d) => d.mese === m);
+      const budgetEntry = budgetData?.find((b) => b.mese === m);
       return {
         name: monthNames[i],
-        current: m <= lastMonthWithData ? (entry?.fatt_current ?? 0) : undefined,
+        current: m <= lastMonthWithData ? entry?.fatt_current ?? 0 : undefined,
         prev: entry?.fatt_prev ?? 0,
-        budget: budgetEntry?.budget ?? 0,
+        budget: budgetEntry?.budget ?? 0
       };
     });
   }, [stats?.monthlyTotals, budgetData, lastMonthWithData]);
 
   const budgetYtd = useMemo(() => {
-    return budgetData?.filter(b => b.mese <= lastMonthWithData).reduce((sum, b) => sum + b.budget, 0) ?? 0;
+    return budgetData?.filter((b) => b.mese <= lastMonthWithData).reduce((sum, b) => sum + b.budget, 0) ?? 0;
   }, [budgetData, lastMonthWithData]);
 
-  const varBudgetPercent = budgetYtd > 0
-    ? ((stats?.totale ?? 0) - budgetYtd) / budgetYtd * 100
-    : 0;
+  const varBudgetPercent = budgetYtd > 0 ?
+  ((stats?.totale ?? 0) - budgetYtd) / budgetYtd * 100 :
+  0;
   const isBudgetPositive = varBudgetPercent >= 0;
 
   const renderEndDot = (props: any) => {
@@ -145,7 +145,7 @@ export default function Dashboard() {
   };
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
+  new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
   const fmtCompact = (n: number) => {
     if (Math.abs(n) >= 1_000_000) return `€${(n / 1_000_000).toFixed(2)}M`;
@@ -157,30 +157,30 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+      </div>);
+
   }
 
-  if (!stats || (stats.totale === 0 && stats.clienti === 0)) {
+  if (!stats || stats.totale === 0 && stats.clienti === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
         <BarChart3 className="h-16 w-16 mb-4 opacity-40" />
         <p className="text-lg font-medium">Nessun dato disponibile</p>
         <p className="text-sm">Carica un file Excel dalla sezione Upload per iniziare.</p>
-      </div>
-    );
+      </div>);
+
   }
 
-  const varPercent = stats.totalePrevYtd > 0
-    ? ((stats.totale - stats.totalePrevYtd) / stats.totalePrevYtd) * 100
-    : 0;
+  const varPercent = stats.totalePrevYtd > 0 ?
+  (stats.totale - stats.totalePrevYtd) / stats.totalePrevYtd * 100 :
+  0;
   const isPositive = varPercent >= 0;
 
   const kpis = [
-    { label: "Fatturato Totale", value: fmtCompact(stats.totale), icon: Euro, to: "/fatturato" },
-    { label: "Clienti Unici", value: stats.clienti, icon: Users, to: "/anagrafiche" },
-    { label: "Marchi", value: stats.marchi, icon: Tag, to: "/marchi" },
-  ];
+  { label: "Fatturato Totale", value: fmtCompact(stats.totale), icon: Euro, to: "/fatturato" },
+  { label: "Clienti Unici", value: stats.clienti, icon: Users, to: "/anagrafiche" },
+  { label: "Marchi", value: stats.marchi, icon: Tag, to: "/marchi" }];
+
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -219,19 +219,19 @@ export default function Dashboard() {
 
       {/* Mobile: KPI first */}
       <div className="grid grid-cols-3 gap-3 md:hidden">
-        {kpis.map((k) => (
-          <Card
-            key={k.label}
-            className="cursor-pointer transition-shadow hover:shadow-lg"
-            onClick={() => k.to && navigate(k.to)}
-          >
+        {kpis.map((k) =>
+        <Card
+          key={k.label}
+          className="cursor-pointer transition-shadow hover:shadow-lg"
+          onClick={() => k.to && navigate(k.to)}>
+          
             <CardHeader className="flex flex-row items-center justify-between pb-1 p-3">
               <CardTitle className="text-xs font-medium text-muted-foreground">{k.label}</CardTitle>
               <k.icon className="h-3.5 w-3.5 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0"><div className="text-base font-bold">{k.value}</div></CardContent>
           </Card>
-        ))}
+        )}
       </div>
 
       {/* Two-column desktop layout */}
@@ -252,12 +252,12 @@ export default function Dashboard() {
                   </Badge>
                 </div>
               </div>
-              <div className="text-2xl md:text-3xl font-bold mt-1">{fmtCompact(stats.totale)}</div>
+              <div className="text-2xl md:text-3xl font-bold mt-1 px-[10px] my-0">{fmtCompact(stats.totale)}</div>
               <div className="space-y-0.5">
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground px-0 ml-[10px] mr-0 text-sm">
                   vs {fmtCompact(budgetYtd)} budget prog.
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground ml-[10px] text-sm">
                   vs {fmtCompact(stats.totalePrevYtd)} prog. anno prec.
                 </p>
               </div>
@@ -276,8 +276,8 @@ export default function Dashboard() {
                   <YAxis
                     tick={{ fontSize: 11 }}
                     className="fill-muted-foreground"
-                    tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v}
-                  />
+                    tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v} />
+                  
                   <Tooltip formatter={(v: number) => fmt(v)} />
                   <Area
                     type="monotone"
@@ -287,8 +287,8 @@ export default function Dashboard() {
                     fill="none"
                     strokeWidth={1.5}
                     name="Anno Prec."
-                    connectNulls={false}
-                  />
+                    connectNulls={false} />
+                  
                   <Area
                     type="monotone"
                     dataKey="current"
@@ -297,8 +297,8 @@ export default function Dashboard() {
                     strokeWidth={2}
                     name="Anno Corrente"
                     connectNulls={false}
-                    dot={renderEndDot}
-                  />
+                    dot={renderEndDot} />
+                  
                   <Line
                     type="monotone"
                     dataKey="budget"
@@ -307,8 +307,8 @@ export default function Dashboard() {
                     strokeDasharray="4 3"
                     dot={false}
                     name="Budget"
-                    connectNulls={true}
-                  />
+                    connectNulls={true} />
+                  
                 </ComposedChart>
               </ResponsiveContainer>
             </CardContent>
@@ -333,19 +333,19 @@ export default function Dashboard() {
                     return (
                       <TableRow
                         key={c.codice}
-                        className={`border-l-2 ${isUp ? "border-l-green-500" : "border-l-red-500"}`}
-                      >
+                        className={`border-l-2 ${isUp ? "border-l-green-500" : "border-l-red-500"}`}>
+                        
                         <TableCell className="px-3 py-2">
-                          {isUp
-                            ? <TrendingUp className="h-4 w-4 text-green-500" />
-                            : <TrendingDown className="h-4 w-4 text-red-500" />}
+                          {isUp ?
+                          <TrendingUp className="h-4 w-4 text-green-500" /> :
+                          <TrendingDown className="h-4 w-4 text-red-500" />}
                         </TableCell>
                         <TableCell className="px-2 py-2">
                           <Link
                             to={`/anagrafiche/${c.codice}`}
                             className="text-sm font-medium truncate hover:underline hover:text-primary block max-w-[160px] md:max-w-[220px]"
-                            title={c.name}
-                          >
+                            title={c.name}>
+                            
                             {c.name.length > 22 ? c.name.slice(0, 22) + "…" : c.name}
                           </Link>
                         </TableCell>
@@ -355,8 +355,8 @@ export default function Dashboard() {
                         <TableCell className="text-right px-3 py-2 text-sm text-muted-foreground hidden sm:table-cell">
                           {fmt(c.valuePrev)}
                         </TableCell>
-                      </TableRow>
-                    );
+                      </TableRow>);
+
                   })}
                 </TableBody>
               </Table>
@@ -368,19 +368,19 @@ export default function Dashboard() {
         <div className="space-y-4 md:space-y-6">
           {/* KPI cards - desktop only */}
           <div className="hidden md:grid grid-cols-3 gap-3">
-            {kpis.map((k) => (
-              <Card
-                key={k.label}
-                className="cursor-pointer transition-shadow hover:shadow-lg"
-                onClick={() => k.to && navigate(k.to)}
-              >
+            {kpis.map((k) =>
+            <Card
+              key={k.label}
+              className="cursor-pointer transition-shadow hover:shadow-lg"
+              onClick={() => k.to && navigate(k.to)}>
+              
                 <CardHeader className="flex flex-row items-center justify-between pb-1">
                   <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">{k.label}</CardTitle>
                   <k.icon className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent><div className="text-lg md:text-2xl font-bold">{k.value}</div></CardContent>
               </Card>
-            ))}
+            )}
           </div>
 
           {/* Distribuzione per Marchio */}
@@ -393,8 +393,8 @@ export default function Dashboard() {
                     data={stats.marchiPie} dataKey="value" nameKey="name"
                     cx="50%" cy="50%" outerRadius={isMobile ? 70 : 100}
                     label={isMobile ? false : ({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    labelLine={false}
-                  >
+                    labelLine={false}>
+                    
                     {stats.marchiPie.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip formatter={(v: number) => fmt(v)} />
@@ -410,14 +410,14 @@ export default function Dashboard() {
       <Button
         className="fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-6 z-50 rounded-full w-12 h-12 shadow-lg"
         size="icon"
-        onClick={() => { setSearchOpen(true); setSearchQuery(""); }}
-      >
+        onClick={() => {setSearchOpen(true);setSearchQuery("");}}>
+        
         <Search className="h-5 w-5" />
       </Button>
 
-      {isMobile ? (
-        searchOpen && (
-          <>
+      {isMobile ?
+      searchOpen &&
+      <>
             <div className="fixed inset-0 z-50 bg-black/80 animate-in fade-in-0" onClick={() => setSearchOpen(false)} />
             <div className="fixed inset-x-0 top-0 z-50 bg-background rounded-b-lg shadow-lg max-h-[70vh] flex flex-col animate-in slide-in-from-top duration-300">
               <div className="flex items-center gap-2 p-3 border-b">
@@ -426,29 +426,29 @@ export default function Dashboard() {
               </div>
               <ScrollArea className="flex-1 p-2">
                 <div className="space-y-1">
-                  {filteredClienti.map((c) => (
-                    <button key={c.codiceCliente} className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors" onClick={() => { setSearchOpen(false); navigate(`/anagrafiche/${c.codiceCliente}`); }}>{c.nomeCliente}</button>
-                  ))}
+                  {filteredClienti.map((c) =>
+              <button key={c.codiceCliente} className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors" onClick={() => {setSearchOpen(false);navigate(`/anagrafiche/${c.codiceCliente}`);}}>{c.nomeCliente}</button>
+              )}
                 </div>
               </ScrollArea>
             </div>
-          </>
-        )
-      ) : (
-        <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+          </> :
+
+
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
           <DialogContent className="sm:max-w-md flex flex-col top-[30%] translate-y-[-30%] sm:top-[50%] sm:translate-y-[-50%]">
             <DialogHeader><DialogTitle>Cerca cliente</DialogTitle></DialogHeader>
             <ScrollArea className="max-h-64">
               <div className="space-y-1">
-                {filteredClienti.map((c) => (
-                  <button key={c.codiceCliente} className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors" onClick={() => { setSearchOpen(false); navigate(`/anagrafiche/${c.codiceCliente}`); }}>{c.nomeCliente}</button>
-                ))}
+                {filteredClienti.map((c) =>
+              <button key={c.codiceCliente} className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors" onClick={() => {setSearchOpen(false);navigate(`/anagrafiche/${c.codiceCliente}`);}}>{c.nomeCliente}</button>
+              )}
               </div>
             </ScrollArea>
             <Input placeholder="Digita nome cliente..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} autoFocus />
           </DialogContent>
         </Dialog>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }

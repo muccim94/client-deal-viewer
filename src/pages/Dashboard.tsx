@@ -76,6 +76,19 @@ export default function Dashboard() {
     },
   });
 
+  const budgetAnno = filterAnno === "__all__" ? new Date().getFullYear() : Number(filterAnno);
+  const { data: budgetData } = useQuery({
+    queryKey: ["dashboard-budget", budgetAnno, filterAgente],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_budget_data", {
+        p_anno: budgetAnno,
+        p_agente: filterAgente === "__all__" ? null : filterAgente,
+      });
+      if (error) throw error;
+      return data as unknown as { mese: number; budget: number; fatturato: number }[];
+    },
+  });
+
   const { data: clientiList } = useQuery({
     queryKey: ["clienti-search"],
     queryFn: async () => {

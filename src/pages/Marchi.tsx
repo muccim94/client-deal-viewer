@@ -152,14 +152,25 @@ export default function Marchi() {
   const totalVar = totalPrevYTD > 0 ? ((totalCurrent - totalPrevYTD) / totalPrevYTD) * 100 : null;
 
   // Monthly totals for area chart
+  // Find last month with current year data
+  const lastMonthWithData = useMemo(() => {
+    if (!marchiData?.monthly_totals) return 0;
+    return Math.max(0, ...marchiData.monthly_totals.filter(m => m.fatt_current > 0).map(m => m.mese));
+  }, [marchiData?.monthly_totals]);
+
   const chartData = useMemo(() => {
     if (!marchiData?.monthly_totals) return [];
-    return marchiData.monthly_totals.map(m => ({
-      name: MESI_SHORT[m.mese] || String(m.mese),
-      current: m.fatt_current,
-      prev: m.fatt_prev,
-    }));
-  }, [marchiData?.monthly_totals]);
+    // Build all 12 months, current year line stops at lastMonthWithData
+    return Array.from({ length: 12 }, (_, i) => {
+      const m = i + 1;
+      const entry = marchiData.monthly_totals.find((d: MonthlyTotal) => d.mese === m);
+      return {
+        name: MESI_SHORT[m],
+        current: m <= lastMonthWithData ? (entry?.fatt_current ?? 0) : undefined,
+        prev: entry?.fatt_prev ?? 0,
+      };
+    });
+  }, [marchiData?.monthly_totals, lastMonthWithData]);
 
   // Top 3 growing, declining, premianti
   const top3Growing = useMemo(() =>

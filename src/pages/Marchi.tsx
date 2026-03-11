@@ -67,6 +67,7 @@ export default function Marchi() {
   const [sortKey, setSortKey] = useState<SortKey>("fattCurrentYear");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filterAgente, setFilterAgente] = useState("__all__");
+  const [filterTop, setFilterTop] = useState(false);
   const [filterAnno, setFilterAnno] = useState<string>(String(new Date().getFullYear()));
   const [filterMese, setFilterMese] = useState("__all__");
   const [filterAzienda, setFilterAzienda] = useState("Fogliani");
@@ -189,6 +190,7 @@ export default function Marchi() {
   // Filtered & sorted table
   const filtered = useMemo(() => {
     let data = brands;
+    if (filterTop) data = data.filter(r => MARCHI_PREMIANTI.includes(r.marchio));
     if (search) {
       const q = search.toLowerCase();
       data = data.filter(r => r.marchio.toLowerCase().includes(q));
@@ -360,7 +362,20 @@ export default function Marchi() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <CardTitle className="text-base">{filtered.length} famiglie marchio</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">{filtered.length} famiglie marchio</CardTitle>
+              <button
+                onClick={() => setFilterTop(v => !v)}
+                className={cn(
+                  "px-2 py-0.5 rounded-full text-xs font-bold border transition-all",
+                  filterTop
+                    ? "bg-yellow-500 text-white border-yellow-500"
+                    : "bg-transparent text-yellow-600 border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-500/10"
+                )}
+              >
+                TOP
+              </button>
+            </div>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Cerca marchio..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
@@ -395,7 +410,7 @@ export default function Marchi() {
                         <div className="flex items-center gap-1.5">
                           {r.marchio}
                           {MARCHI_PREMIANTI.includes(r.marchio) && (
-                            <Trophy className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-yellow-500" />
+                            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white text-[10px] px-1.5 py-0 leading-tight">TOP</Badge>
                           )}
                         </div>
                       </TableCell>

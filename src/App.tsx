@@ -15,6 +15,7 @@ import ClienteDettaglio from "@/pages/ClienteDettaglio";
 import ClienteMarchi from "@/pages/ClienteMarchi";
 import UploadExcel from "@/pages/UploadExcel";
 import Marchi from "@/pages/Marchi";
+import MarchioDettaglio from "@/pages/MarchioDettaglio";
 import Provvigioni from "@/pages/Provvigioni";
 import Budget from "@/pages/Budget";
 import GestioneUtenti from "@/pages/GestioneUtenti";
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/anagrafiche/:codice" element={<ClienteDettaglio />} />
               <Route path="/anagrafiche/:codice/marchi" element={<ClienteMarchi />} />
               <Route path="/marchi" element={<Marchi />} />
+              <Route path="/marchi/:famiglia" element={<MarchioDettaglio />} />
               <Route path="/provvigioni" element={<Provvigioni />} />
               <Route path="/budget" element={<Budget />} />
               <Route path="/upload" element={<UploadExcel />} />

@@ -238,6 +238,15 @@ export type Database = {
         }
         Returns: Json
       }
+      get_marchio_clienti_stats: {
+        Args: {
+          p_agente?: string
+          p_anno?: number
+          p_azienda_nome?: string
+          p_famiglia: string
+        }
+        Returns: Json
+      }
       get_provvigioni_grouped: {
         Args: { p_anno?: number; p_azienda?: string; p_mese?: number }
         Returns: Json

@@ -204,7 +204,7 @@ export default function Marchi() {
       const cmp = typeof av === "number" ? av - (bv as number) : String(av).localeCompare(String(bv));
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [brands, search, sortKey, sortDir]);
+  }, [brands, search, sortKey, sortDir, filterTop]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
@@ -361,8 +361,8 @@ export default function Marchi() {
       {/* Brands Table */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
               <CardTitle className="text-base">{filtered.length} famiglie marchio</CardTitle>
               <button
                 onClick={() => setFilterTop(v => !v)}
@@ -376,7 +376,7 @@ export default function Marchi() {
                 TOP
               </button>
             </div>
-            <div className="relative w-full sm:w-64">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Cerca marchio..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
             </div>

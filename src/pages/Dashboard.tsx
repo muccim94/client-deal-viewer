@@ -112,13 +112,24 @@ export default function Dashboard() {
     return Array.from({ length: 12 }, (_, i) => {
       const m = i + 1;
       const entry = stats.monthlyTotals.find(d => d.mese === m);
+      const budgetEntry = budgetData?.find(b => b.mese === m);
       return {
         name: monthNames[i],
         current: m <= lastMonthWithData ? (entry?.fatt_current ?? 0) : undefined,
         prev: entry?.fatt_prev ?? 0,
+        budget: budgetEntry?.budget ?? 0,
       };
     });
-  }, [stats?.monthlyTotals]);
+  }, [stats?.monthlyTotals, budgetData]);
+
+  const renderEndDot = (props: any) => {
+    const { cx, cy, index, payload } = props;
+    if (cx == null || cy == null) return null;
+    if (payload.current !== undefined && (index === chartData.length - 1 || chartData[index + 1]?.current === undefined)) {
+      return <circle cx={cx} cy={cy} r={5} fill="hsl(160, 60%, 45%)" stroke="hsl(var(--background))" strokeWidth={2} />;
+    }
+    return null;
+  };
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);

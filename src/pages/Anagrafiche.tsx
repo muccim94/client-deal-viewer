@@ -99,8 +99,8 @@ export default function Anagrafiche() {
 
   const fmtCompact = (n: number) => {
     if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')}M`;
-    if (Math.abs(n) >= 1_000) return `${Math.round(n / 1_000)}k`;
-    return `${n} €`;
+    if (Math.abs(n) >= 100) return `${(n / 1_000).toFixed(1).replace('.', ',')}k`;
+    return `${Math.round(n)} €`;
   };
 
   if (isLoading) {

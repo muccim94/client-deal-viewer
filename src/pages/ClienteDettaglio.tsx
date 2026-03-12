@@ -377,11 +377,11 @@ export default function ClienteDettaglio() {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t bg-muted/50 font-semibold text-[1.056rem]">
-                      <td className="py-2.5 px-1">Totale</td>
-                      <td className="py-2.5 px-1 text-right">{fmt(totCorr)}</td>
-                      <td className="py-2.5 px-1 text-right">{fmt(totPrec)}</td>
-                      <td className="py-2.5 px-1 text-right">
+                    <tr className="border-t bg-muted/50 font-semibold text-xs sm:text-[1.056rem]">
+                      <td className="py-2 sm:py-2.5 px-1">Totale</td>
+                      <td className="py-2 sm:py-2.5 px-1 text-right">{isMobile ? fmtCompact(totCorr) : fmt(totCorr)}</td>
+                      <td className="py-2 sm:py-2.5 px-1 text-right">{isMobile ? fmtCompact(totPrec) : fmt(totPrec)}</td>
+                      <td className="py-2 sm:py-2.5 px-1 text-right">
                         <DeltaIcon val={totDelta} />{" "}
                         <span className={totDelta > 1 ? "text-emerald-600" : totDelta < -1 ? "text-red-600" : "text-muted-foreground"}>
                           {totDelta.toFixed(1)}%

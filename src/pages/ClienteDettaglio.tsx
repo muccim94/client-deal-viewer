@@ -17,6 +17,12 @@ import Incentivazioni from "@/components/cliente/Incentivazioni";
 const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
+const fmtCompact = (n: number) => {
+  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')}M`;
+  if (Math.abs(n) >= 100) return `${(n / 1_000).toFixed(1).replace('.', ',')}k`;
+  return `${Math.round(n)} €`;
+};
+
 const pct = (curr: number, prev: number) => {
   if (!prev) return curr > 0 ? 100 : 0;
   return ((curr - prev) / Math.abs(prev)) * 100;
@@ -155,51 +161,51 @@ export default function ClienteDettaglio() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <Link to="/anagrafiche">
-          <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10"><ArrowLeft className="h-4 w-4" /></Button>
         </Link>
         <div>
-          <h1 className="text-xl md:text-2xl font-bold">{clientName}</h1>
-          <p className="text-xs md:text-sm text-muted-foreground">Codice: {codice}</p>
+          <h1 className="text-base sm:text-xl md:text-2xl font-bold leading-tight">{clientName}</h1>
+          <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground">Codice: {codice}</p>
         </div>
       </div>
 
       {/* Scheda Anagrafica + Riepilogo Fatturato affiancati */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Riepilogo Fatturato</CardTitle>
+          <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-sm sm:text-base">Riepilogo Fatturato</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-1.5 sm:space-y-2 p-3 pt-0 sm:p-6 sm:pt-0">
             <div>
-              <p className="text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
-              <p className="text-2xl md:text-3xl font-bold">{fmt(fattCorrente)}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold">{isMobile ? fmtCompact(fattCorrente) : fmt(fattCorrente)}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {fattCorrente >= fattPrecYTD
-                ? <TrendingUp className="h-4 w-4 text-emerald-500" />
-                : <TrendingDown className="h-4 w-4 text-red-500" />}
-              <span className="text-sm">
-                vs {annoPrecedente} YTD: {fmt(fattPrecYTD)}
+                ? <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500" />
+                : <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />}
+              <span className="text-xs sm:text-sm">
+                vs {annoPrecedente} YTD: {isMobile ? fmtCompact(fattPrecYTD) : fmt(fattPrecYTD)}
               </span>
-              <span className={`text-sm font-medium ${
+              <span className={`text-xs sm:text-sm font-medium ${
                 fattCorrente >= fattPrecYTD ? 'text-emerald-600' : 'text-red-600'
               }`}>
                 ({pct(fattCorrente, fattPrecYTD).toFixed(1)}%)
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Fatt. {annoPrecedente}: {fmt(fattPrecTotale)}
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Fatt. {annoPrecedente}: {isMobile ? fmtCompact(fattPrecTotale) : fmt(fattPrecTotale)}
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center justify-between">
+          <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-sm sm:text-base flex items-center justify-between">
               Scheda Anagrafica
               {role === "admin" && (
                 <Pencil
@@ -209,7 +215,7 @@ export default function ClienteDettaglio() {
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2 sm:space-y-3 p-3 pt-0 sm:p-6 sm:pt-0">
             {anagrafica && (anagrafica.indirizzo || anagrafica.provincia || anagrafica.telefono || anagrafica.email || anagrafica.partita_iva) ? (
               <>
                 {anagrafica.partita_iva && (
@@ -283,18 +289,18 @@ export default function ClienteDettaglio() {
         const totDelta = pct(totCorr, totPrec);
         return (
           <Card key={name}>
-            <CardHeader className="pb-2 px-4 pt-4">
-              <CardTitle className="text-base font-semibold">{name} — {annoCorrente} vs {annoPrecedente}</CardTitle>
+            <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-sm sm:text-base font-semibold">{name} — {annoCorrente} vs {annoPrecedente}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-auto">
-              <table className="w-full text-[1.056rem]">
+              <table className="w-full text-xs sm:text-[1.056rem]">
                   <thead>
                     <tr className="border-b bg-muted/40">
-                      <th className="text-left py-2 px-1 font-medium">Mese</th>
-                      <th className="text-right py-2 px-1 font-medium">{annoCorrente}</th>
-                      <th className="text-right py-2 px-1 font-medium">{annoPrecedente}</th>
-                      <th className="text-right py-2 px-1 font-medium">Δ %</th>
+                      <th className="text-left py-1.5 sm:py-2 px-1 font-medium">Mese</th>
+                      <th className="text-right py-1.5 sm:py-2 px-1 font-medium">{annoCorrente}</th>
+                      <th className="text-right py-1.5 sm:py-2 px-1 font-medium">{annoPrecedente}</th>
+                      <th className="text-right py-1.5 sm:py-2 px-1 font-medium">Δ %</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -327,13 +333,13 @@ export default function ClienteDettaglio() {
                             className={`border-b last:border-0 cursor-pointer hover:bg-muted/40 transition-colors ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}
                             onClick={toggleExpand}
                           >
-                            <td className="py-2 px-1 flex items-center gap-1">
+                            <td className="py-1.5 sm:py-2 px-1 flex items-center gap-1">
                               {isExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-                              {r.meseNome}
+                              {isMobile ? r.meseNome.substring(0, 3) : r.meseNome}
                             </td>
-                            <td className="py-2 px-1 text-right font-medium">{fmt(r.corrente)}</td>
-                            <td className="py-2 px-1 text-right">{fmt(r.precedente)}</td>
-                            <td className="py-2 px-1 text-right">
+                            <td className="py-1.5 sm:py-2 px-1 text-right font-medium">{isMobile ? fmtCompact(r.corrente) : fmt(r.corrente)}</td>
+                            <td className="py-1.5 sm:py-2 px-1 text-right">{isMobile ? fmtCompact(r.precedente) : fmt(r.precedente)}</td>
+                            <td className="py-1.5 sm:py-2 px-1 text-right">
                               <DeltaIcon val={r.delta} />{" "}
                               <span className={r.delta > 1 ? "text-emerald-600" : r.delta < -1 ? "text-red-600" : "text-muted-foreground"}>
                                 {r.delta.toFixed(1)}%
@@ -343,21 +349,21 @@ export default function ClienteDettaglio() {
                           {isExpanded && marchiDetail.length > 0 && (
                             <tr key={`detail-${r.mese}`}>
                               <td colSpan={4} className="p-0">
-                                <div className="bg-muted/30 border-y px-3 py-2">
-                                  <table className="w-full text-[1.05rem]">
-                                    <thead>
-                                      <tr className="text-muted-foreground">
-                                        <th className="text-left py-1 px-0.5 font-medium text-[1.05rem]">Marchio</th>
-                                        <th className="text-right py-1 px-0.5 font-medium text-[1.05rem]">{annoCorrente}</th>
-                                        <th className="text-right py-1 px-0.5 font-medium text-[1.05rem]">{annoPrecedente}</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {marchiDetail.map((md) => (
-                                        <tr key={md.marchio} className="border-t border-border/50">
-                                          <td className="py-1 px-0.5 text-[1.05rem]">{md.marchio}</td>
-                                          <td className="py-1 px-0.5 text-right text-[1.05rem] font-medium">{fmt(md.corrente)}</td>
-                                          <td className="py-1 px-0.5 text-right text-[1.05rem]">{fmt(md.precedente)}</td>
+                                 <div className="bg-muted/30 border-y px-2 sm:px-3 py-1.5 sm:py-2">
+                                   <table className="w-full text-xs sm:text-[1.05rem]">
+                                     <thead>
+                                       <tr className="text-muted-foreground">
+                                         <th className="text-left py-1 px-0.5 font-medium">Marchio</th>
+                                         <th className="text-right py-1 px-0.5 font-medium">{annoCorrente}</th>
+                                         <th className="text-right py-1 px-0.5 font-medium">{annoPrecedente}</th>
+                                       </tr>
+                                     </thead>
+                                     <tbody>
+                                       {marchiDetail.map((md) => (
+                                         <tr key={md.marchio} className="border-t border-border/50">
+                                           <td className="py-1 px-0.5">{md.marchio}</td>
+                                           <td className="py-1 px-0.5 text-right font-medium">{isMobile ? fmtCompact(md.corrente) : fmt(md.corrente)}</td>
+                                           <td className="py-1 px-0.5 text-right">{isMobile ? fmtCompact(md.precedente) : fmt(md.precedente)}</td>
                                         </tr>
                                       ))}
                                     </tbody>
@@ -371,11 +377,11 @@ export default function ClienteDettaglio() {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t bg-muted/50 font-semibold text-[1.056rem]">
-                      <td className="py-2.5 px-1">Totale</td>
-                      <td className="py-2.5 px-1 text-right">{fmt(totCorr)}</td>
-                      <td className="py-2.5 px-1 text-right">{fmt(totPrec)}</td>
-                      <td className="py-2.5 px-1 text-right">
+                    <tr className="border-t bg-muted/50 font-semibold text-xs sm:text-[1.056rem]">
+                      <td className="py-2 sm:py-2.5 px-1">Totale</td>
+                      <td className="py-2 sm:py-2.5 px-1 text-right">{isMobile ? fmtCompact(totCorr) : fmt(totCorr)}</td>
+                      <td className="py-2 sm:py-2.5 px-1 text-right">{isMobile ? fmtCompact(totPrec) : fmt(totPrec)}</td>
+                      <td className="py-2 sm:py-2.5 px-1 text-right">
                         <DeltaIcon val={totDelta} />{" "}
                         <span className={totDelta > 1 ? "text-emerald-600" : totDelta < -1 ? "text-red-600" : "text-muted-foreground"}>
                           {totDelta.toFixed(1)}%
@@ -392,21 +398,21 @@ export default function ClienteDettaglio() {
 
       {/* Grafico Fatturato per Marchio */}
       <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={goToMarchi}>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center justify-between">
+        <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+          <CardTitle className="text-sm sm:text-base flex items-center justify-between">
             Fatturato per Marchio
-            <span className="text-xs font-normal text-muted-foreground">Clicca per dettaglio →</span>
+            <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">Clicca per dettaglio →</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={280}>
+        <CardContent className="p-2 sm:p-6">
+          <ResponsiveContainer width="100%" height={isMobile ? 200 : 280}>
             {isMobile ? (
               <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={45} paddingAngle={2} stroke="none">
+                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={30} paddingAngle={2} stroke="none">
                   {pieData.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
                 </Pie>
-                <Tooltip formatter={(value: number) => fmt(value)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} formatter={(value: string) => <span className="text-foreground">{value}</span>} />
+                <Tooltip formatter={(value: number) => isMobile ? fmtCompact(value) : fmt(value)} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 10 }} formatter={(value: string) => <span className="text-foreground">{value}</span>} />
               </PieChart>
             ) : (
               <BarChart data={barData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>

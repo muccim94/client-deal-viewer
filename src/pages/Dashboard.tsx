@@ -358,6 +358,9 @@ export default function Dashboard() {
                         <TableCell className="text-right px-3 py-2 text-sm text-muted-foreground hidden sm:table-cell">
                           {fmtCompact(c.valuePrev)}
                         </TableCell>
+                        <TableCell className={`text-right px-3 py-2 text-sm font-semibold ${isUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                          {c.valuePrev > 0 ? `${((c.value - c.valuePrev) / c.valuePrev * 100).toFixed(1)}%` : "—"}
+                        </TableCell>
                       </TableRow>);
 
                   })}

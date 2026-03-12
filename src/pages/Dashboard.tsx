@@ -185,9 +185,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Filtri */}
-      <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+      <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
         <Select value={filterAzienda} onValueChange={setFilterAzienda}>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Tutte le aziende" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-44 h-10 sm:h-9 text-sm"><SelectValue placeholder="Tutte le aziende" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutte le aziende</SelectItem>
             <SelectItem value="FO">Fogliani</SelectItem>
@@ -195,21 +195,21 @@ export default function Dashboard() {
           </SelectContent>
         </Select>
         <Select value={filterAnno} onValueChange={setFilterAnno}>
-          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Tutti gli anni" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-36 h-10 sm:h-9 text-sm"><SelectValue placeholder="Tutti gli anni" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti gli anni</SelectItem>
             {anni.map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterMese} onValueChange={setFilterMese}>
-          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Tutti i mesi" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-40 h-10 sm:h-9 text-sm"><SelectValue placeholder="Tutti i mesi" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti i mesi</SelectItem>
             {mesi.map((m) => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterAgente} onValueChange={setFilterAgente}>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Tutti gli agenti" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-44 h-10 sm:h-9 text-sm"><SelectValue placeholder="Tutti gli agenti" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Tutti gli agenti</SelectItem>
             {agenti.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}

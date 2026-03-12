@@ -320,7 +320,6 @@ export default function Marchi() {
           )}
         </div>
       </div>
-      </div>
 
       {/* Total Revenue Card with Area Chart */}
       <Card>

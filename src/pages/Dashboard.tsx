@@ -274,10 +274,11 @@ export default function Dashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                  <XAxis dataKey="name" tick={{ fontSize: isMobile ? 9 : 11 }} className="fill-muted-foreground" />
                   <YAxis
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: isMobile ? 9 : 11 }}
                     className="fill-muted-foreground"
+                    hide={isMobile}
                     tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v} />
                   
                   <Tooltip formatter={(v: number) => fmt(v)} />

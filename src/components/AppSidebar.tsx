@@ -27,6 +27,16 @@ const allItems = [
 
 export function AppSidebar() {
   const { user, role, canViewProvvigioni, signOut } = useAuth();
+  const { isMobile, setOpenMobile, toggleSidebar, state } = useSidebar();
+
+  const handleItemClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    } else if (state === "expanded") {
+      toggleSidebar();
+    }
+  };
+
   const items = allItems.filter((item) => {
     if (item.adminOnly) return role === "admin";
     if (item.url === "/provvigioni") return role === "admin" || canViewProvvigioni;

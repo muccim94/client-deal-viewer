@@ -203,14 +203,13 @@ export default function Marchi() {
     else { setSortKey(key); setSortDir("desc"); }
   };
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
-
-  const fmtCompact = (n: number) => {
-    if (Math.abs(n) >= 1_000_000) return `€ ${(n / 1_000_000).toFixed(2)}M`;
-    if (Math.abs(n) >= 1_000) return `€ ${(n / 1_000).toFixed(0)}K`;
-    return fmt(n);
+  const fmt = (n: number) => {
+    if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(n) >= 1_000) return `${Math.round(n / 1_000)}k`;
+    return `${Math.round(n)}`;
   };
+
+  const fmtCompact = fmt;
 
   const fmtPct = (n: number | null) => {
     if (n == null) return null;

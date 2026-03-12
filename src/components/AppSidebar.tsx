@@ -11,6 +11,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
@@ -26,6 +27,16 @@ const allItems = [
 
 export function AppSidebar() {
   const { user, role, canViewProvvigioni, signOut } = useAuth();
+  const { isMobile, setOpenMobile, toggleSidebar, state } = useSidebar();
+
+  const handleItemClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    } else if (state === "expanded") {
+      toggleSidebar();
+    }
+  };
+
   const items = allItems.filter((item) => {
     if (item.adminOnly) return role === "admin";
     if (item.url === "/provvigioni") return role === "admin" || canViewProvvigioni;
@@ -47,6 +58,7 @@ export function AppSidebar() {
                       end={item.url === "/"}
                       className="hover:bg-sidebar-accent"
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      onClick={handleItemClick}
                     >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>

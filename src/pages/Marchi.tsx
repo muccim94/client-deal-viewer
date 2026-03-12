@@ -323,23 +323,25 @@ export default function Marchi() {
       {/* Total Revenue Card with Area Chart */}
       <Card>
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
               <p className="text-sm font-medium text-muted-foreground">Totale Fatturato</p>
-              <div className="flex items-center gap-3 mt-1">
+              <div className="mt-1">
                 <span className="text-2xl sm:text-3xl font-bold">{fmt(totalCurrent)}</span>
-                {totalVar != null && (
-                  <Badge
-                    variant={totalVar >= 0 ? "default" : "destructive"}
-                    className={cn("text-sm", totalVar >= 0 ? "bg-green-600 hover:bg-green-700" : "")}
-                  >
-                    {totalVar >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                    {fmtPct(totalVar)}
-                  </Badge>
-                )}
               </div>
               <p className="text-xs text-muted-foreground mt-1">vs {fmtCompact(totalPrevYTD)} prog. {prevYear}</p>
             </div>
+            {totalVar != null && (
+              <div className="flex items-start pt-1">
+                <Badge
+                  variant={totalVar >= 0 ? "default" : "destructive"}
+                  className={cn("text-sm", totalVar >= 0 ? "bg-green-600 hover:bg-green-700" : "")}
+                >
+                  {totalVar >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                  {fmtPct(totalVar)}
+                </Badge>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>

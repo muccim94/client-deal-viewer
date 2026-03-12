@@ -352,10 +352,10 @@ export default function Dashboard() {
                           </Link>
                         </TableCell>
                         <TableCell className={`text-right px-3 py-2 text-sm font-semibold ${isUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                          {fmt(c.value)}
+                          {fmtCompact(c.value)}
                         </TableCell>
                         <TableCell className="text-right px-3 py-2 text-sm text-muted-foreground hidden sm:table-cell">
-                          {fmt(c.valuePrev)}
+                          {fmtCompact(c.valuePrev)}
                         </TableCell>
                       </TableRow>);
 

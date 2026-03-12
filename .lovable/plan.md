@@ -1,44 +1,54 @@
 
 
-## Selezione Periodo e Restyling Filtri nella pagina Marchi
+## Nuova Pagina "Budget" - Target Annuali vs Fatturato Effettivo
 
-### Cosa cambia
+### Panoramica
 
-1. **Rimuovere il filtro Anno** (Select "Anno") — non serve più, si lavora sempre sull'anno corrente vs precedente
-2. **Aggiungere selezione Periodo** con due select "Da" e "A" per i mesi (es. Gennaio → Giugno). Default: da Gennaio all'ultimo mese con dati. Il periodo filtra tutto: totale fatturato, KPI cards, tabella marchi, grafico.
-3. **Filtro Agente** diventa un toggle button group con lo stesso stile di Fogliani/Futurtec (rounded-lg, border, bg-muted), allineato a destra sulla stessa riga del toggle azienda.
+Creazione di una nuova sezione "Budget" accessibile dalla sidebar, che mostra i target mensili di fatturato per agente confrontati con il fatturato effettivo caricato nel sistema. I dati di budget per FO75 e FO77 verranno salvati nel database e visualizzati sia separatamente (per agente) sia come totale combinato.
 
-### Layout filtri (una riga)
+### Dati Budget dalle immagini
+
+**FO75**: GEN 374.374, FEB 436.070, MAR 425.142, APR 478.601, MAG 481.141, GIU 443.277, LUG 635.743, AGO 342.263, SET 452.474, OTT 427.109, NOV 518.841, DIC 484.966 -- Totale 5.500.001
+
+**FO77**: GEN 333.533, FEB 388.499, MAR 378.763, APR 426.390, MAG 428.653, GIU 394.919, LUG 566.389, AGO 304.925, SET 403.114, OTT 380.515, NOV 462.240, DIC 432.060 -- Totale 4.900.000
+
+### Modifiche tecniche
+
+#### 1. Database: Nuova tabella `budget_targets`
+
+Creare una tabella per memorizzare i target mensili per agente:
 
 ```text
-[Fogliani | Futurtec]   [Gen→Dic periodo]   [Tutti | Agente1 | Agente2 ...]
- ← sinistra                  centro              destra →
+budget_targets
+- id (uuid, PK)
+- agente (text, NOT NULL) -- es. "FO_FO75", "FO_FO77"
+- anno (integer, NOT NULL)
+- mese (integer, NOT NULL, 1-12)
+- importo (numeric, NOT NULL)
+- created_at (timestamptz, DEFAULT now())
+- UNIQUE(agente, anno, mese)
 ```
 
-In pratica:
-- Riga unica flex con `justify-between`
-- Sinistra: toggle Fogliani/Futurtec
-- Centro: due Select compatti "Da mese" e "A mese"  
-- Destra: toggle agenti (stile identico al toggle azienda), con "Tutti" come prima opzione + lista agenti. Se troppi agenti, usare un Popover/Select con lo stesso stile visivo.
+RLS: lettura per utenti autenticati (admin + agenti assegnati), scrittura solo admin.
 
-### Backend (RPC `get_marchi_stats`)
+Migrazione che inserisce i dati di FO75 e FO77 per il 2026.
 
-Sostituire `p_anno` e `p_mese` con `p_mese_da` e `p_mese_a` (integer). La funzione:
-- Filtra `kpi_filtered` con `mese BETWEEN p_mese_da AND p_mese_a` (se non null)
-- Brands: anno corrente filtra `mese BETWEEN p_mese_da AND p_mese_a`, anno precedente YTD idem
-- Monthly totals: restituisce sempre tutti i 12 mesi (per il grafico) ma con nota visiva sul periodo selezionato
-- Mantiene la logica `v_max_month` per il YTD dell'anno precedente, limitandola anche a `p_mese_a` se specificato
+#### 2. Database: Funzione RPC `get_budget_data`
 
-### Frontend (`src/pages/Marchi.tsx`)
+Funzione che restituisce per ogni agente e mese: il budget target e il fatturato effettivo (da `sales_records`, filtrato per azienda FO). Accetta parametri `p_anno` e `p_agente` (opzionale). Rispetta la visibilita' degli agenti (admin vede tutto, utente vede solo i propri agenti).
 
-- Rimuovere `filterAnno` e `filterMese`
-- Aggiungere `filterMeseDa` (default "1") e `filterMeseA` (default: ultimo mese con dati o "12")
-- Due Select compatti inline: "Da: Gennaio" "A: Giugno"
-- Filtro agente: se pochi agenti (<=5), toggle button group. Se più di 5, Select dropdown con stile simile.
-- Aggiornare la chiamata RPC con i nuovi parametri `p_mese_da`, `p_mese_a`
-- Rimuovere il parametro `p_anno` dalla chiamata
+#### 3. Nuova pagina `src/pages/Budget.tsx`
 
-### File coinvolti
-- **Migration SQL** — `ALTER` della funzione `get_marchi_stats` con nuovi parametri `p_mese_da`/`p_mese_a` al posto di `p_anno`/`p_mese`
-- **`src/pages/Marchi.tsx`** — nuovo layout filtri, nuovi state, aggiornamento chiamata RPC
+- Filtro anno (default 2026) e filtro agente (FO75, FO77, Tutti)
+- Quando "Tutti" e' selezionato: mostra una tabella unica con la somma dei budget e dei fatturati
+- Quando un agente specifico e' selezionato: mostra solo i dati di quell'agente
+- Tabella con colonne: Mese | Budget | Fatturato Effettivo | Delta (EUR) | Delta %
+- Riga di totale in fondo
+- Colori: verde se il fatturato supera il budget, rosso se inferiore
+- Barra di progresso visiva per ogni mese (percentuale fatturato/budget)
+
+#### 4. Routing e Sidebar
+
+- **`src/App.tsx`**: Aggiungere route `/budget` con il componente Budget
+- **`src/components/AppSidebar.tsx`**: Aggiungere voce "Budget" nel menu con icona `Target` da lucide-react
 

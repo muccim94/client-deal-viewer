@@ -319,16 +319,16 @@ export default function Dashboard() {
 
           {/* Top 10 Clienti */}
           <Card>
-            <CardHeader><CardTitle className="text-sm md:text-base">Top 10 Clienti per Fatturato</CardTitle></CardHeader>
+            <CardHeader className="p-3 md:p-6"><CardTitle className="text-sm md:text-base">Top 10 Clienti per Fatturato</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <Table className="text-xs md:text-sm">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-8 px-3"></TableHead>
-                    <TableHead className="px-2">Cliente</TableHead>
-                    <TableHead className="text-right px-3">Progressivo</TableHead>
+                    <TableHead className="w-6 px-1.5 md:w-8 md:px-3"></TableHead>
+                    <TableHead className="px-1.5 md:px-2">Cliente</TableHead>
+                    <TableHead className="text-right px-1.5 md:px-3">Progr.</TableHead>
                     <TableHead className="text-right px-3 hidden sm:table-cell">Anno Prec.</TableHead>
-                    <TableHead className="text-right px-3">Var.%</TableHead>
+                    <TableHead className="text-right px-1.5 md:px-3">Var.%</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

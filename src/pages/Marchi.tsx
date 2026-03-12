@@ -377,14 +377,14 @@ export default function Marchi() {
           { label: "Risorsa Utilizzata", value: marchiData?.kpi?.ricambi ?? 0, icon: Wrench, color: "text-muted-foreground" },
           { label: "Marchi Top", value: brands.filter(b => MARCHI_PREMIANTI.includes(b.marchio)).reduce((s, b) => s + b.fattCurrentYear, 0), icon: Trophy, color: "text-yellow-500" },
         ].map(kpi => (
-          <Card key={kpi.label}>
+          <Card key={kpi.label} className="flex flex-col">
             <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs sm:text-sm font-medium text-muted-foreground">{kpi.label}</p>
                 <kpi.icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", kpi.color)} />
               </div>
             </CardHeader>
-            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0 mt-auto">
               <span className="text-lg sm:text-2xl font-bold">{fmtCompact(kpi.value)}</span>
             </CardContent>
           </Card>

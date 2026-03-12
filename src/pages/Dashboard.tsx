@@ -183,7 +183,7 @@ export default function Dashboard() {
 
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-3 md:space-y-6">
       {/* Filtri */}
       <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
         <Select value={filterAzienda} onValueChange={setFilterAzienda}>

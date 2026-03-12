@@ -327,6 +327,7 @@ export default function Dashboard() {
                     <TableHead className="px-2">Cliente</TableHead>
                     <TableHead className="text-right px-3">Progressivo</TableHead>
                     <TableHead className="text-right px-3 hidden sm:table-cell">Anno Prec.</TableHead>
+                    <TableHead className="text-right px-3">Var.%</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

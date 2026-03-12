@@ -289,18 +289,18 @@ export default function ClienteDettaglio() {
         const totDelta = pct(totCorr, totPrec);
         return (
           <Card key={name}>
-            <CardHeader className="pb-2 px-4 pt-4">
-              <CardTitle className="text-base font-semibold">{name} — {annoCorrente} vs {annoPrecedente}</CardTitle>
+            <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-sm sm:text-base font-semibold">{name} — {annoCorrente} vs {annoPrecedente}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-auto">
-              <table className="w-full text-[1.056rem]">
+              <table className="w-full text-xs sm:text-[1.056rem]">
                   <thead>
                     <tr className="border-b bg-muted/40">
-                      <th className="text-left py-2 px-1 font-medium">Mese</th>
-                      <th className="text-right py-2 px-1 font-medium">{annoCorrente}</th>
-                      <th className="text-right py-2 px-1 font-medium">{annoPrecedente}</th>
-                      <th className="text-right py-2 px-1 font-medium">Δ %</th>
+                      <th className="text-left py-1.5 sm:py-2 px-1 font-medium">Mese</th>
+                      <th className="text-right py-1.5 sm:py-2 px-1 font-medium">{annoCorrente}</th>
+                      <th className="text-right py-1.5 sm:py-2 px-1 font-medium">{annoPrecedente}</th>
+                      <th className="text-right py-1.5 sm:py-2 px-1 font-medium">Δ %</th>
                     </tr>
                   </thead>
                   <tbody>

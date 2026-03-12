@@ -411,8 +411,8 @@ export default function ClienteDettaglio() {
                 <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={30} paddingAngle={2} stroke="none">
                   {pieData.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
                 </Pie>
-                <Tooltip formatter={(value: number) => fmt(value)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} formatter={(value: string) => <span className="text-foreground">{value}</span>} />
+                <Tooltip formatter={(value: number) => isMobile ? fmtCompact(value) : fmt(value)} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 10 }} formatter={(value: string) => <span className="text-foreground">{value}</span>} />
               </PieChart>
             ) : (
               <BarChart data={barData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>

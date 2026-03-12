@@ -339,27 +339,27 @@ export default function Dashboard() {
                         key={c.codice}
                         style={{ borderLeft: `3px solid ${isUp ? "#22c55e" : "#ef4444"}` }}>
                         
-                        <TableCell className="px-3 py-2">
+                        <TableCell className="px-1.5 md:px-3 py-1.5 md:py-2">
                           {isUp ?
-                          <TrendingUp className="h-4 w-4 text-green-500" /> :
-                          <TrendingDown className="h-4 w-4 text-red-500" />}
+                          <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4 text-green-500" /> :
+                          <TrendingDown className="h-3.5 w-3.5 md:h-4 md:w-4 text-red-500" />}
                         </TableCell>
-                        <TableCell className="px-2 py-2">
+                        <TableCell className="px-1.5 md:px-2 py-1.5 md:py-2">
                           <Link
                             to={`/anagrafiche/${c.codice}`}
-                            className="text-sm font-medium truncate hover:underline hover:text-primary block max-w-[160px] md:max-w-[220px]"
+                            className="text-xs md:text-sm font-medium truncate hover:underline hover:text-primary block max-w-[120px] md:max-w-[220px]"
                             title={c.name}>
                             
-                            {c.name.length > 22 ? c.name.slice(0, 22) + "…" : c.name}
+                            {c.name.length > (isMobile ? 16 : 22) ? c.name.slice(0, isMobile ? 16 : 22) + "…" : c.name}
                           </Link>
                         </TableCell>
-                        <TableCell className={`text-right px-3 py-2 text-sm font-semibold ${isUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                        <TableCell className={`text-right px-1.5 md:px-3 py-1.5 md:py-2 font-semibold ${isUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                           {fmtCompact(c.value)}
                         </TableCell>
-                        <TableCell className="text-right px-3 py-2 text-sm text-muted-foreground hidden sm:table-cell">
+                        <TableCell className="text-right px-3 py-2 text-muted-foreground hidden sm:table-cell">
                           {fmtCompact(c.valuePrev)}
                         </TableCell>
-                        <TableCell className={`text-right px-3 py-2 text-sm font-semibold ${isUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                        <TableCell className={`text-right px-1.5 md:px-3 py-1.5 md:py-2 font-semibold ${isUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                           {c.valuePrev > 0 ? `${((c.value - c.valuePrev) / c.valuePrev * 100).toFixed(1)}%` : "—"}
                         </TableCell>
                       </TableRow>);

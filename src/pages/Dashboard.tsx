@@ -264,7 +264,7 @@ export default function Dashboard() {
                 </p>
               </div>
             </CardHeader>
-            <CardContent className="h-48 md:h-64">
+            <CardContent className="h-40 md:h-64 p-2 md:p-6 md:pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                   <defs>

@@ -97,6 +97,12 @@ export default function Anagrafiche() {
   const fmt = (n: number) =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 
+  const fmtCompact = (n: number) => {
+    if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')}M`;
+    if (Math.abs(n) >= 1_000) return `${Math.round(n / 1_000)}k`;
+    return `${n} €`;
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">

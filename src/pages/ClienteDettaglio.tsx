@@ -398,17 +398,17 @@ export default function ClienteDettaglio() {
 
       {/* Grafico Fatturato per Marchio */}
       <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={goToMarchi}>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center justify-between">
+        <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+          <CardTitle className="text-sm sm:text-base flex items-center justify-between">
             Fatturato per Marchio
-            <span className="text-xs font-normal text-muted-foreground">Clicca per dettaglio →</span>
+            <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">Clicca per dettaglio →</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={280}>
+        <CardContent className="p-2 sm:p-6">
+          <ResponsiveContainer width="100%" height={isMobile ? 200 : 280}>
             {isMobile ? (
               <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={45} paddingAngle={2} stroke="none">
+                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={30} paddingAngle={2} stroke="none">
                   {pieData.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
                 </Pie>
                 <Tooltip formatter={(value: number) => fmt(value)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />

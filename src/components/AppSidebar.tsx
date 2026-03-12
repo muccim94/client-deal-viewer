@@ -72,9 +72,17 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         {user?.email && (
-          <div className="px-3 py-1 text-xs text-muted-foreground truncate">
-            {user.email}
-          </div>
+          state === "collapsed" ? (
+            <div className="flex justify-center py-1" title={user.email}>
+              <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium uppercase">
+                {user.email.charAt(0)}
+              </div>
+            </div>
+          ) : (
+            <div className="px-3 py-1 text-xs text-muted-foreground truncate">
+              {user.email}
+            </div>
+          )
         )}
         <Button
           variant="ghost"
@@ -82,8 +90,8 @@ export function AppSidebar() {
           className="w-full justify-start text-muted-foreground hover:text-foreground min-h-[44px]"
           onClick={signOut}
         >
-          <LogOut className="h-4 w-4 mr-2" />
-          <span>Esci</span>
+          <LogOut className="h-4 w-4 mr-2 shrink-0" />
+          {state !== "collapsed" && <span>Esci</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>

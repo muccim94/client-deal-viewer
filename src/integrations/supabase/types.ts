@@ -232,9 +232,9 @@ export type Database = {
       get_marchi_stats: {
         Args: {
           p_agente?: string
-          p_anno?: number
           p_azienda_nome?: string
-          p_mese?: number
+          p_mese_a?: number
+          p_mese_da?: number
         }
         Returns: Json
       }

@@ -174,31 +174,31 @@ export default function ClienteDettaglio() {
       </div>
 
       {/* Scheda Anagrafica + Riepilogo Fatturato affiancati */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Riepilogo Fatturato</CardTitle>
+          <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-sm sm:text-base">Riepilogo Fatturato</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-1.5 sm:space-y-2 p-3 pt-0 sm:p-6 sm:pt-0">
             <div>
-              <p className="text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
-              <p className="text-2xl md:text-3xl font-bold">{fmt(fattCorrente)}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Fatturato {annoCorrente}</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold">{isMobile ? fmtCompact(fattCorrente) : fmt(fattCorrente)}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {fattCorrente >= fattPrecYTD
-                ? <TrendingUp className="h-4 w-4 text-emerald-500" />
-                : <TrendingDown className="h-4 w-4 text-red-500" />}
-              <span className="text-sm">
-                vs {annoPrecedente} YTD: {fmt(fattPrecYTD)}
+                ? <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500" />
+                : <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />}
+              <span className="text-xs sm:text-sm">
+                vs {annoPrecedente} YTD: {isMobile ? fmtCompact(fattPrecYTD) : fmt(fattPrecYTD)}
               </span>
-              <span className={`text-sm font-medium ${
+              <span className={`text-xs sm:text-sm font-medium ${
                 fattCorrente >= fattPrecYTD ? 'text-emerald-600' : 'text-red-600'
               }`}>
                 ({pct(fattCorrente, fattPrecYTD).toFixed(1)}%)
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Fatt. {annoPrecedente}: {fmt(fattPrecTotale)}
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Fatt. {annoPrecedente}: {isMobile ? fmtCompact(fattPrecTotale) : fmt(fattPrecTotale)}
             </p>
           </CardContent>
         </Card>

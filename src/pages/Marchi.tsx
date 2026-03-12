@@ -238,8 +238,9 @@ export default function Marchi() {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
-        <div className="inline-flex rounded-lg border bg-muted p-0.5 sm:p-1 mr-auto">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        {/* Left: Azienda toggle */}
+        <div className="inline-flex rounded-lg border bg-muted p-0.5 sm:p-1">
           {["Fogliani", "Futurtec"].map(az => (
             <button
               key={az}
@@ -255,29 +256,70 @@ export default function Marchi() {
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-3 sm:flex gap-2">
-          <Select value={filterAnno} onValueChange={setFilterAnno}>
-            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm sm:w-40"><SelectValue placeholder="Anno" /></SelectTrigger>
+
+        {/* Center: Period selectors */}
+        <div className="flex items-center gap-1.5 sm:mx-auto">
+          <span className="text-xs text-muted-foreground font-medium">Da</span>
+          <Select value={filterMeseDa} onValueChange={v => { setFilterMeseDa(v); if (Number(v) > effectiveMeseA) setFilterMeseA(v); }}>
+            <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm w-[100px] sm:w-[120px]"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">Tutti gli anni</SelectItem>
-              {anni.map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Select value={filterMese} onValueChange={setFilterMese}>
-            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm sm:w-48"><SelectValue placeholder="Mese" /></SelectTrigger>
+          <span className="text-xs text-muted-foreground font-medium">A</span>
+          <Select value={String(effectiveMeseA)} onValueChange={v => setFilterMeseA(v)}>
+            <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm w-[100px] sm:w-[120px]"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">Tutti i mesi</SelectItem>
-              {mesi.map(m => <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterAgente} onValueChange={setFilterAgente}>
-            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm sm:w-56"><SelectValue placeholder="Agenti" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Tutti gli agenti</SelectItem>
-              {agenti.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                <SelectItem key={m} value={String(m)}>{getMeseNome(m)}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
+
+        {/* Right: Agente toggle */}
+        <div className="inline-flex rounded-lg border bg-muted p-0.5 sm:p-1 sm:ml-auto overflow-x-auto max-w-full">
+          {agenti.length <= 5 ? (
+            <>
+              <button
+                onClick={() => setFilterAgente("__all__")}
+                className={cn(
+                  "px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-semibold transition-all whitespace-nowrap",
+                  filterAgente === "__all__"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Tutti
+              </button>
+              {agenti.map(a => (
+                <button
+                  key={a}
+                  onClick={() => setFilterAgente(a)}
+                  className={cn(
+                    "px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-semibold transition-all whitespace-nowrap",
+                    filterAgente === a
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {a}
+                </button>
+              ))}
+            </>
+          ) : (
+            <Select value={filterAgente} onValueChange={setFilterAgente}>
+              <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm border-0 bg-transparent shadow-none w-[140px]"><SelectValue placeholder="Agente" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Tutti gli agenti</SelectItem>
+                {agenti.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      </div>
       </div>
 
       {/* Total Revenue Card with Area Chart */}

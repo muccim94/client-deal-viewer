@@ -235,9 +235,9 @@ export default function Dashboard() {
       </div>
 
       {/* Two-column desktop layout */}
-      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
+      <div className="grid gap-3 md:gap-6 lg:grid-cols-2">
         {/* Left column */}
-        <div className="space-y-4 md:space-y-6">
+        <div className="space-y-3 md:space-y-6">
           {/* Fatturato Card with AreaChart */}
           <Card>
             <CardHeader className="pb-2">

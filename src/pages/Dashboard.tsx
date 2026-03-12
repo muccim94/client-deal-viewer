@@ -245,7 +245,7 @@ export default function Dashboard() {
                 <CardTitle className="text-sm md:text-base">Totale Fatturato</CardTitle>
               </div>
               <div className="flex items-end justify-between gap-2 mt-1">
-                <div className="text-xl md:text-3xl font-bold">{fmtCompact(stats.totale)}</div>
+                <div className="text-xl md:text-3xl font-bold">{fmt(stats.totale)}</div>
                 <div className="flex flex-col items-end gap-0.5 pb-0.5">
                   <Badge variant={isBudgetPositive ? "default" : "destructive"} className="text-[10px] leading-tight px-1.5 py-0.5">
                     {isBudgetPositive ? "+" : ""}{varBudgetPercent.toFixed(1)}% vs Budget

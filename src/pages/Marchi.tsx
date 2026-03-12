@@ -327,7 +327,7 @@ export default function Marchi() {
             <div>
               <p className="text-sm font-medium text-muted-foreground">Totale Fatturato</p>
               <div className="flex items-center gap-3 mt-1">
-                <span className="text-2xl sm:text-3xl font-bold">{fmtCompact(totalCurrent)}</span>
+                <span className="text-2xl sm:text-3xl font-bold">{fmt(totalCurrent)}</span>
                 {totalVar != null && (
                   <Badge
                     variant={totalVar >= 0 ? "default" : "destructive"}

@@ -333,13 +333,13 @@ export default function ClienteDettaglio() {
                             className={`border-b last:border-0 cursor-pointer hover:bg-muted/40 transition-colors ${i % 2 === 0 ? "bg-background" : "bg-muted/20"}`}
                             onClick={toggleExpand}
                           >
-                            <td className="py-2 px-1 flex items-center gap-1">
+                            <td className="py-1.5 sm:py-2 px-1 flex items-center gap-1">
                               {isExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-                              {r.meseNome}
+                              {isMobile ? r.meseNome.substring(0, 3) : r.meseNome}
                             </td>
-                            <td className="py-2 px-1 text-right font-medium">{fmt(r.corrente)}</td>
-                            <td className="py-2 px-1 text-right">{fmt(r.precedente)}</td>
-                            <td className="py-2 px-1 text-right">
+                            <td className="py-1.5 sm:py-2 px-1 text-right font-medium">{isMobile ? fmtCompact(r.corrente) : fmt(r.corrente)}</td>
+                            <td className="py-1.5 sm:py-2 px-1 text-right">{isMobile ? fmtCompact(r.precedente) : fmt(r.precedente)}</td>
+                            <td className="py-1.5 sm:py-2 px-1 text-right">
                               <DeltaIcon val={r.delta} />{" "}
                               <span className={r.delta > 1 ? "text-emerald-600" : r.delta < -1 ? "text-red-600" : "text-muted-foreground"}>
                                 {r.delta.toFixed(1)}%

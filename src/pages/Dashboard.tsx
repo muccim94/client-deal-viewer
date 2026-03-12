@@ -183,7 +183,7 @@ export default function Dashboard() {
 
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-3 md:space-y-6">
       {/* Filtri */}
       <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
         <Select value={filterAzienda} onValueChange={setFilterAzienda}>
@@ -218,34 +218,34 @@ export default function Dashboard() {
       </div>
 
       {/* Mobile: KPI first */}
-      <div className="grid grid-cols-3 gap-3 md:hidden">
+      <div className="grid grid-cols-3 gap-2 md:hidden">
         {kpis.map((k) =>
         <Card
           key={k.label}
           className="cursor-pointer transition-shadow hover:shadow-lg"
           onClick={() => k.to && navigate(k.to)}>
           
-            <CardHeader className="flex flex-row items-center justify-between pb-1 p-3">
-              <CardTitle className="text-xs font-medium text-muted-foreground">{k.label}</CardTitle>
-              <k.icon className="h-3.5 w-3.5 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between pb-0.5 p-2.5">
+              <CardTitle className="text-[11px] font-medium text-muted-foreground leading-tight">{k.label}</CardTitle>
+              <k.icon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
             </CardHeader>
-            <CardContent className="p-3 pt-0"><div className="text-base font-bold">{k.value}</div></CardContent>
+            <CardContent className="p-2.5 pt-0"><div className="text-lg font-bold">{k.value}</div></CardContent>
           </Card>
         )}
       </div>
 
       {/* Two-column desktop layout */}
-      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
+      <div className="grid gap-3 md:gap-6 lg:grid-cols-2">
         {/* Left column */}
-        <div className="space-y-4 md:space-y-6">
+        <div className="space-y-3 md:space-y-6">
           {/* Fatturato Card with AreaChart */}
           <Card>
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm md:text-base">Totale Fatturato</CardTitle>
               </div>
               <div className="flex items-end justify-between gap-2 mt-1">
-                <div className="text-2xl md:text-3xl font-bold px-[10px]">{fmtCompact(stats.totale)}</div>
+                <div className="text-xl md:text-3xl font-bold">{fmtCompact(stats.totale)}</div>
                 <div className="flex flex-col items-end gap-0.5 pb-0.5">
                   <Badge variant={isBudgetPositive ? "default" : "destructive"} className="text-[10px] leading-tight px-1.5 py-0.5">
                     {isBudgetPositive ? "+" : ""}{varBudgetPercent.toFixed(1)}% vs Budget
@@ -255,16 +255,16 @@ export default function Dashboard() {
                   </Badge>
                 </div>
               </div>
-              <div className="flex gap-3 ml-[10px] mt-0.5">
-                <p className="text-muted-foreground text-xs">
+              <div className="flex gap-3 mt-0.5">
+                <p className="text-muted-foreground text-[11px] md:text-xs">
                   vs {fmtCompact(budgetYtd)} budget
                 </p>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-[11px] md:text-xs">
                   vs {fmtCompact(stats.totalePrevYtd)} anno prec.
                 </p>
               </div>
             </CardHeader>
-            <CardContent className="h-48 md:h-64">
+            <CardContent className="h-40 md:h-64 p-2 md:p-6 md:pt-0">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                   <defs>
@@ -274,10 +274,11 @@ export default function Dashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                  <XAxis dataKey="name" tick={{ fontSize: isMobile ? 9 : 11 }} className="fill-muted-foreground" />
                   <YAxis
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: isMobile ? 9 : 11 }}
                     className="fill-muted-foreground"
+                    hide={isMobile}
                     tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v} />
                   
                   <Tooltip formatter={(v: number) => fmt(v)} />
@@ -318,16 +319,16 @@ export default function Dashboard() {
 
           {/* Top 10 Clienti */}
           <Card>
-            <CardHeader><CardTitle className="text-sm md:text-base">Top 10 Clienti per Fatturato</CardTitle></CardHeader>
+            <CardHeader className="p-3 md:p-6"><CardTitle className="text-sm md:text-base">Top 10 Clienti per Fatturato</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <Table className="text-xs md:text-sm">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-8 px-3"></TableHead>
-                    <TableHead className="px-2">Cliente</TableHead>
-                    <TableHead className="text-right px-3">Progressivo</TableHead>
+                    <TableHead className="w-6 px-1.5 md:w-8 md:px-3"></TableHead>
+                    <TableHead className="px-1.5 md:px-2">Cliente</TableHead>
+                    <TableHead className="text-right px-1.5 md:px-3">Progr.</TableHead>
                     <TableHead className="text-right px-3 hidden sm:table-cell">Anno Prec.</TableHead>
-                    <TableHead className="text-right px-3">Var.%</TableHead>
+                    <TableHead className="text-right px-1.5 md:px-3">Var.%</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -338,27 +339,27 @@ export default function Dashboard() {
                         key={c.codice}
                         style={{ borderLeft: `3px solid ${isUp ? "#22c55e" : "#ef4444"}` }}>
                         
-                        <TableCell className="px-3 py-2">
+                        <TableCell className="px-1.5 md:px-3 py-1.5 md:py-2">
                           {isUp ?
-                          <TrendingUp className="h-4 w-4 text-green-500" /> :
-                          <TrendingDown className="h-4 w-4 text-red-500" />}
+                          <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4 text-green-500" /> :
+                          <TrendingDown className="h-3.5 w-3.5 md:h-4 md:w-4 text-red-500" />}
                         </TableCell>
-                        <TableCell className="px-2 py-2">
+                        <TableCell className="px-1.5 md:px-2 py-1.5 md:py-2">
                           <Link
                             to={`/anagrafiche/${c.codice}`}
-                            className="text-sm font-medium truncate hover:underline hover:text-primary block max-w-[160px] md:max-w-[220px]"
+                            className="text-xs md:text-sm font-medium truncate hover:underline hover:text-primary block max-w-[120px] md:max-w-[220px]"
                             title={c.name}>
                             
-                            {c.name.length > 22 ? c.name.slice(0, 22) + "…" : c.name}
+                            {c.name.length > (isMobile ? 16 : 22) ? c.name.slice(0, isMobile ? 16 : 22) + "…" : c.name}
                           </Link>
                         </TableCell>
-                        <TableCell className={`text-right px-3 py-2 text-sm font-semibold ${isUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                        <TableCell className={`text-right px-1.5 md:px-3 py-1.5 md:py-2 font-semibold ${isUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                           {fmtCompact(c.value)}
                         </TableCell>
-                        <TableCell className="text-right px-3 py-2 text-sm text-muted-foreground hidden sm:table-cell">
+                        <TableCell className="text-right px-3 py-2 text-muted-foreground hidden sm:table-cell">
                           {fmtCompact(c.valuePrev)}
                         </TableCell>
-                        <TableCell className={`text-right px-3 py-2 text-sm font-semibold ${isUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                        <TableCell className={`text-right px-1.5 md:px-3 py-1.5 md:py-2 font-semibold ${isUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                           {c.valuePrev > 0 ? `${((c.value - c.valuePrev) / c.valuePrev * 100).toFixed(1)}%` : "—"}
                         </TableCell>
                       </TableRow>);
@@ -371,7 +372,7 @@ export default function Dashboard() {
         </div>
 
         {/* Right column */}
-        <div className="space-y-4 md:space-y-6">
+        <div className="space-y-3 md:space-y-6">
           {/* KPI cards - desktop only */}
           <div className="hidden md:grid grid-cols-3 gap-3">
             {kpis.map((k) =>

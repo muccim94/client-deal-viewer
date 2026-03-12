@@ -240,12 +240,12 @@ export default function Dashboard() {
         <div className="space-y-3 md:space-y-6">
           {/* Fatturato Card with AreaChart */}
           <Card>
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm md:text-base">Totale Fatturato</CardTitle>
               </div>
               <div className="flex items-end justify-between gap-2 mt-1">
-                <div className="text-2xl md:text-3xl font-bold px-[10px]">{fmtCompact(stats.totale)}</div>
+                <div className="text-xl md:text-3xl font-bold">{fmtCompact(stats.totale)}</div>
                 <div className="flex flex-col items-end gap-0.5 pb-0.5">
                   <Badge variant={isBudgetPositive ? "default" : "destructive"} className="text-[10px] leading-tight px-1.5 py-0.5">
                     {isBudgetPositive ? "+" : ""}{varBudgetPercent.toFixed(1)}% vs Budget
@@ -255,11 +255,11 @@ export default function Dashboard() {
                   </Badge>
                 </div>
               </div>
-              <div className="flex gap-3 ml-[10px] mt-0.5">
-                <p className="text-muted-foreground text-xs">
+              <div className="flex gap-3 mt-0.5">
+                <p className="text-muted-foreground text-[11px] md:text-xs">
                   vs {fmtCompact(budgetYtd)} budget
                 </p>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-[11px] md:text-xs">
                   vs {fmtCompact(stats.totalePrevYtd)} anno prec.
                 </p>
               </div>

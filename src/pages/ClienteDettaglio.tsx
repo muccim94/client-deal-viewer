@@ -17,6 +17,12 @@ import Incentivazioni from "@/components/cliente/Incentivazioni";
 const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
+const fmtCompact = (n: number) => {
+  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')}M`;
+  if (Math.abs(n) >= 100) return `${(n / 1_000).toFixed(1).replace('.', ',')}k`;
+  return `${Math.round(n)} €`;
+};
+
 const pct = (curr: number, prev: number) => {
   if (!prev) return curr > 0 ? 100 : 0;
   return ((curr - prev) / Math.abs(prev)) * 100;

@@ -70,8 +70,8 @@ export default function Marchi() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filterAgente, setFilterAgente] = useState("__all__");
   const [filterTop, setFilterTop] = useState(false);
-  const [filterAnno, setFilterAnno] = useState<string>(String(new Date().getFullYear()));
-  const [filterMese, setFilterMese] = useState("__all__");
+  const [filterMeseDa, setFilterMeseDa] = useState("1");
+  const [filterMeseA, setFilterMeseA] = useState<string | null>(null); // null = auto from data
   const [filterAzienda, setFilterAzienda] = useState("Fogliani");
 
   const currentYear = new Date().getFullYear();
@@ -86,17 +86,15 @@ export default function Marchi() {
     },
   });
 
-  const anni = filterOptions?.anni ?? [];
-  const mesi = filterOptions?.mesi ?? [];
   const agenti = filterOptions?.agenti ?? [];
 
   const { data: marchiData, isLoading } = useQuery({
-    queryKey: ["marchi-stats", filterAzienda, filterAnno, filterMese, filterAgente],
+    queryKey: ["marchi-stats", filterAzienda, filterMeseDa, filterMeseA, filterAgente],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_marchi_stats", {
         p_azienda_nome: filterAzienda || null,
-        p_anno: filterAnno === "__all__" ? null : Number(filterAnno),
-        p_mese: filterMese === "__all__" ? null : Number(filterMese),
+        p_mese_da: Number(filterMeseDa),
+        p_mese_a: filterMeseA ? Number(filterMeseA) : null,
         p_agente: filterAgente === "__all__" ? null : filterAgente,
       });
       if (error) throw error;
@@ -105,9 +103,13 @@ export default function Marchi() {
         brands: { marchio: string; fattCurrentYear: number; fattPrevYear: number; fattPrevYearYTD: number }[];
         monthly_totals: MonthlyTotal[];
         brand_monthly: BrandMonthly[];
+        max_month: number;
       };
     },
   });
+
+  // Set default "A" month from server data
+  const effectiveMeseA = filterMeseA ? Number(filterMeseA) : (marchiData?.max_month ?? new Date().getMonth() + 1);
 
   // Build brand monthly map for sparklines
   const brandMonthlyMap = useMemo(() => {

@@ -213,16 +213,17 @@ export default function Anagrafiche() {
                         <TrendingDown className="h-4 w-4 text-red-500" />
                       )}
                     </TableCell>
-                    <TableCell className="px-1 sm:px-2 md:px-4">
+                    <TableCell className="px-3 sm:px-2 md:px-4">
                       <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-sm md:text-lg" onClick={(e) => e.stopPropagation()}>
                         {r.nomeCliente}
                       </Link>
                     </TableCell>
-                    <TableCell className="font-medium text-right tabular-nums text-sm md:text-base px-1 sm:px-2 md:px-4 whitespace-nowrap">
+                    <TableCell className="font-medium text-right pr-4 sm:pr-2 md:pr-4 tabular-nums text-sm md:text-base px-1 sm:px-2 md:px-4 whitespace-nowrap">
                       <span className={`sm:text-foreground ${
                         r.fattCurrentYear >= r.fattPrevYearYTD ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {fmt(r.fattCurrentYear)}
+                        <span className="sm:hidden">{fmtCompact(r.fattCurrentYear)}</span>
+                        <span className="hidden sm:inline">{fmt(r.fattCurrentYear)}</span>
                       </span>
                     </TableCell>
                     <TableCell className="hidden md:table-cell font-medium text-right tabular-nums px-2 md:px-4">{fmt(r.fattPrevYearYTD)}</TableCell>

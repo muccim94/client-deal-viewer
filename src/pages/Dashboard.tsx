@@ -336,7 +336,7 @@ export default function Dashboard() {
                     return (
                       <TableRow
                         key={c.codice}
-                        className={`border-l-2 ${isUp ? "border-l-green-500" : "border-l-red-500"}`}>
+                        style={{ borderLeft: `3px solid ${isUp ? "#22c55e" : "#ef4444"}` }}>
                         
                         <TableCell className="px-3 py-2">
                           {isUp ?

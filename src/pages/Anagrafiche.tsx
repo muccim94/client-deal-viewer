@@ -97,6 +97,12 @@ export default function Anagrafiche() {
   const fmt = (n: number) =>
     new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 
+  const fmtCompact = (n: number) => {
+    if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')}M`;
+    if (Math.abs(n) >= 1_000) return `${Math.round(n / 1_000)}k`;
+    return `${n} €`;
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -207,16 +213,17 @@ export default function Anagrafiche() {
                         <TrendingDown className="h-4 w-4 text-red-500" />
                       )}
                     </TableCell>
-                    <TableCell className="px-1 sm:px-2 md:px-4">
+                    <TableCell className="px-3 sm:px-2 md:px-4">
                       <Link to={`/anagrafiche/${r.codiceCliente}`} className="font-medium text-primary hover:underline text-sm md:text-lg" onClick={(e) => e.stopPropagation()}>
                         {r.nomeCliente}
                       </Link>
                     </TableCell>
-                    <TableCell className="font-medium text-right tabular-nums text-sm md:text-base px-1 sm:px-2 md:px-4 whitespace-nowrap">
+                    <TableCell className="font-medium text-right pr-4 sm:pr-2 md:pr-4 tabular-nums text-sm md:text-base px-1 sm:px-2 md:px-4 whitespace-nowrap">
                       <span className={`sm:text-foreground ${
                         r.fattCurrentYear >= r.fattPrevYearYTD ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {fmt(r.fattCurrentYear)}
+                        <span className="sm:hidden">{fmtCompact(r.fattCurrentYear)}</span>
+                        <span className="hidden sm:inline">{fmt(r.fattCurrentYear)}</span>
                       </span>
                     </TableCell>
                     <TableCell className="hidden md:table-cell font-medium text-right tabular-nums px-2 md:px-4">{fmt(r.fattPrevYearYTD)}</TableCell>

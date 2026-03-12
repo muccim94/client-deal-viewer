@@ -204,8 +204,8 @@ export default function ClienteDettaglio() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center justify-between">
+          <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-sm sm:text-base flex items-center justify-between">
               Scheda Anagrafica
               {role === "admin" && (
                 <Pencil
@@ -215,7 +215,7 @@ export default function ClienteDettaglio() {
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2 sm:space-y-3 p-3 pt-0 sm:p-6 sm:pt-0">
             {anagrafica && (anagrafica.indirizzo || anagrafica.provincia || anagrafica.telefono || anagrafica.email || anagrafica.partita_iva) ? (
               <>
                 {anagrafica.partita_iva && (

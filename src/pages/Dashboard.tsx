@@ -372,7 +372,7 @@ export default function Dashboard() {
         </div>
 
         {/* Right column */}
-        <div className="space-y-4 md:space-y-6">
+        <div className="space-y-3 md:space-y-6">
           {/* KPI cards - desktop only */}
           <div className="hidden md:grid grid-cols-3 gap-3">
             {kpis.map((k) =>

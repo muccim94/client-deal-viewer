@@ -218,18 +218,18 @@ export default function Dashboard() {
       </div>
 
       {/* Mobile: KPI first */}
-      <div className="grid grid-cols-3 gap-3 md:hidden">
+      <div className="grid grid-cols-3 gap-2 md:hidden">
         {kpis.map((k) =>
         <Card
           key={k.label}
           className="cursor-pointer transition-shadow hover:shadow-lg"
           onClick={() => k.to && navigate(k.to)}>
           
-            <CardHeader className="flex flex-row items-center justify-between pb-1 p-3">
-              <CardTitle className="text-xs font-medium text-muted-foreground">{k.label}</CardTitle>
-              <k.icon className="h-3.5 w-3.5 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between pb-0.5 p-2.5">
+              <CardTitle className="text-[11px] font-medium text-muted-foreground leading-tight">{k.label}</CardTitle>
+              <k.icon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
             </CardHeader>
-            <CardContent className="p-3 pt-0"><div className="text-base font-bold">{k.value}</div></CardContent>
+            <CardContent className="p-2.5 pt-0"><div className="text-lg font-bold">{k.value}</div></CardContent>
           </Card>
         )}
       </div>

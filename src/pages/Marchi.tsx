@@ -390,24 +390,27 @@ export default function Marchi() {
           { label: "Fotovoltaico", value: marchiData?.kpi?.fotovoltaico ?? 0, icon: Sun, color: "text-yellow-500" },
           { label: "Risorsa Utilizzata", value: Math.abs(marchiData?.kpi?.ricambi ?? 0), icon: Wrench, color: "text-muted-foreground", subtitle: totalCurrent > 0 ? `${(Math.abs(( marchiData?.kpi?.ricambi ?? 0) / totalCurrent) * 100).toFixed(2).replace('.', ',')}% del fatt.` : null },
           { label: "Marchi Top", value: brands.filter(b => MARCHI_PREMIANTI.includes(b.marchio)).reduce((s, b) => s + b.fattCurrentYear, 0), icon: Trophy, color: "text-yellow-500" },
-        ].map(kpi => (
-          <Card key={kpi.label} className="flex flex-col">
-            <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs sm:text-sm font-medium text-muted-foreground">{kpi.label}</p>
-                <kpi.icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", kpi.color)} />
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0 mt-auto">
-              <div className="flex items-end justify-between">
-                <span className="text-lg sm:text-2xl font-bold">{fmtCompact(kpi.value)}</span>
-                {'subtitle' in kpi && kpi.subtitle && (
-                  <span className="text-[10px] sm:text-xs font-bold text-red-500">{kpi.subtitle}</span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        ].map(kpi => {
+          const isRisorsa = kpi.label === "Risorsa Utilizzata";
+          return (
+            <Card key={kpi.label} className={cn("flex flex-col", isRisorsa && "bg-red-500/10 border-red-500/30 dark:bg-red-500/15 dark:border-red-500/40")}>
+              <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
+                <div className="flex items-center justify-between">
+                  <p className={cn("text-xs sm:text-sm font-medium", isRisorsa ? "text-red-600 dark:text-red-400" : "text-muted-foreground")}>{kpi.label}</p>
+                  <kpi.icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", isRisorsa ? "text-red-600 dark:text-red-400" : kpi.color)} />
+                </div>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0 mt-auto">
+                <div className="flex items-end justify-between">
+                  <span className={cn("text-lg sm:text-2xl font-bold", isRisorsa && "text-red-600 dark:text-red-400")}>{fmtCompact(kpi.value)}</span>
+                  {'subtitle' in kpi && kpi.subtitle && (
+                    <span className="text-[10px] sm:text-xs font-bold text-red-500">{kpi.subtitle}</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Brands Table */}

@@ -216,7 +216,7 @@ export default function Marchi() {
   };
 
   const fmt = (n: number) => {
-    if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(3).replace('.', ',')}M`;
+    if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
     if (Math.abs(n) >= 1_000) return `${Math.round(n / 1_000)}k`;
     return `${Math.round(n)}`;
   };

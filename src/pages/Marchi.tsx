@@ -161,7 +161,7 @@ export default function Marchi() {
       sparkline: brandMonthlyMap.get(marchio) ?? [],
       sparklinePrev: brandMonthlyPrevMap.get(marchio) ?? [],
     }));
-  }, [marchiData?.brands, brandMonthlyMap]);
+  }, [marchiData?.brands, brandMonthlyMap, brandMonthlyPrevMap]);
 
   // Totals for header card
   const totalCurrent = useMemo(() => brands.reduce((s, b) => s + b.fattCurrentYear, 0), [brands]);

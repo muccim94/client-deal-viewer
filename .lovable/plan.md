@@ -1,22 +1,29 @@
 
 
-## Fix: Confronto anno precedente non si aggiorna con il range mesi selezionato
+## Fix: Stesso bug `v_max_month` su `get_marchi_stats`
 
 ### Problema
-Nella RPC `get_provvigioni_chart`, la variabile `v_max_month` viene calcolata come l'ultimo mese con dati nell'anno corrente (es. Marzo = 3). Quando l'utente seleziona un range più ampio (es. Gennaio-Ottobre), la riga:
+La funzione `get_marchi_stats` ha la stessa logica restrittiva:
 ```sql
 IF p_mese_a IS NOT NULL AND p_mese_a < v_max_month THEN
     v_max_month := p_mese_a;
 END IF;
 ```
-riduce `v_max_month` ma non lo aumenta mai oltre il mese massimo con dati. Quindi il totale dell'anno precedente resta sempre limitato a Marzo.
+Quando l'utente seleziona un range più ampio (es. Gen-Ott), il progressivo anno precedente nella tabella marchi resta limitato al mese massimo con dati dell'anno corrente.
 
 ### Soluzione
-Modificare la logica: quando l'utente specifica `p_mese_a`, usare quel valore direttamente come limite superiore per **entrambi** gli anni. Il `v_max_month` (ultimo mese con dati) diventa solo il fallback quando nessun "mese A" è selezionato.
+Una migration SQL che ricrea `get_marchi_stats` con la stessa fix applicata a `get_provvigioni_chart`:
 
-### Modifica: migration SQL per aggiornare `get_provvigioni_chart`
-- Sostituire il blocco IF con: `IF p_mese_a IS NOT NULL THEN v_max_month := p_mese_a; END IF;`
-- Questo fa sì che selezionando Gen-Ott, i totali di entrambi gli anni vengano calcolati su Gen-Ott (dati mancanti = 0)
+```sql
+IF p_mese_a IS NOT NULL THEN
+    v_max_month := p_mese_a;
+END IF;
+```
 
-Una sola modifica, una riga nella RPC.
+Questo aggiorna sia il widget/KPI sia la tabella marchi, poiché entrambi derivano dalla stessa RPC. La colonna `fatt_prev_ytd` (Progressivo anno precedente) nella CTE `brands` usa già `v_max_month` come limite, quindi si aggiornerà automaticamente.
+
+### Impatto
+- **Widget grafico**: i totali di confronto si allineano al range selezionato
+- **Tabella marchi**: la colonna "Progr." riflette lo stesso range di mesi
+- **Nessuna modifica frontend**: la pagina Marchi già passa `p_mese_a` correttamente
 

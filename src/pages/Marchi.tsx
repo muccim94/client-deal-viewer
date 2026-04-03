@@ -25,7 +25,7 @@ import {
 // Marchi premianti from Excel
 const MARCHI_PREMIANTI = ["VIW", "DIS", "IBO", "INS", "BTI", "GEW", "LEG", "PHL", "LDV", "SNR", "FOS", "SIE", "ABB", "HAG", "PHA"];
 
-type SortKey = "marchio" | "fattCurrentYear" | "fattPrevYearYTD" | "var";
+type SortKey = "marchio" | "fattCurrentYear" | "fattPrevYearYTD" | "var" | "varTotal";
 type SortDir = "asc" | "desc";
 
 interface BrandRow {
@@ -34,7 +34,9 @@ interface BrandRow {
   fattPrevYear: number;
   fattPrevYearYTD: number;
   var: number | null;
+  varTotal: number | null;
   sparkline: { mese: number; value: number }[];
+  sparklinePrev: { mese: number; value: number }[];
 }
 
 interface MonthlyTotal {
@@ -111,21 +113,29 @@ export default function Marchi() {
   // Set default "A" month from server data
   const effectiveMeseA = filterMeseA ? Number(filterMeseA) : (marchiData?.max_month ?? new Date().getMonth() + 1);
 
-  // Build brand monthly map for sparklines
-  const brandMonthlyMap = useMemo(() => {
+  // Build brand monthly map for sparklines (current + prev year)
+  const { brandMonthlyMap, brandMonthlyPrevMap } = useMemo(() => {
     const map = new Map<string, { mese: number; value: number }[]>();
-    if (!marchiData?.brand_monthly) return map;
+    const mapPrev = new Map<string, { mese: number; value: number }[]>();
+    if (!marchiData?.brand_monthly) return { brandMonthlyMap: map, brandMonthlyPrevMap: mapPrev };
     for (const bm of marchiData.brand_monthly) {
       const fam = getFamiglia(bm.marchio);
+      // Current year
       if (!map.has(fam)) map.set(fam, []);
       const arr = map.get(fam)!;
       const existing = arr.find(e => e.mese === bm.mese);
       if (existing) existing.value += bm.fatt_current;
       else arr.push({ mese: bm.mese, value: bm.fatt_current });
+      // Prev year
+      if (!mapPrev.has(fam)) mapPrev.set(fam, []);
+      const arrP = mapPrev.get(fam)!;
+      const existingP = arrP.find(e => e.mese === bm.mese);
+      if (existingP) existingP.value += bm.fatt_prev;
+      else arrP.push({ mese: bm.mese, value: bm.fatt_prev });
     }
-    // Sort each by mese
     for (const [, arr] of map) arr.sort((a, b) => a.mese - b.mese);
-    return map;
+    for (const [, arr] of mapPrev) arr.sort((a, b) => a.mese - b.mese);
+    return { brandMonthlyMap: map, brandMonthlyPrevMap: mapPrev };
   }, [marchiData?.brand_monthly]);
 
   // Group brands by family
@@ -147,9 +157,11 @@ export default function Marchi() {
       marchio,
       ...v,
       var: v.fattPrevYearYTD > 0 ? ((v.fattCurrentYear - v.fattPrevYearYTD) / v.fattPrevYearYTD) * 100 : null,
+      varTotal: v.fattPrevYear > 0 ? ((v.fattCurrentYear - v.fattPrevYear) / v.fattPrevYear) * 100 : null,
       sparkline: brandMonthlyMap.get(marchio) ?? [],
+      sparklinePrev: brandMonthlyPrevMap.get(marchio) ?? [],
     }));
-  }, [marchiData?.brands, brandMonthlyMap]);
+  }, [marchiData?.brands, brandMonthlyMap, brandMonthlyPrevMap]);
 
   // Totals for header card
   const totalCurrent = useMemo(() => brands.reduce((s, b) => s + b.fattCurrentYear, 0), [brands]);
@@ -436,14 +448,19 @@ export default function Marchi() {
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px] hidden sm:table-cell" onClick={() => toggleSort("fattPrevYearYTD")}>
                     <span className="flex items-center gap-1">{`Progr. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px]" onClick={() => toggleSort("var")}>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px] hidden sm:table-cell" onClick={() => toggleSort("var")}>
                     <span className="flex items-center gap-1">Var.&nbsp;%<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px]" onClick={() => toggleSort("varTotal")}>
+                    <span className="flex items-center gap-1 justify-end"><ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map(r => {
                   const pctVal = fmtPct(r.var);
+                  const pctTotal = fmtPct(r.varTotal);
+                  const prevSparkColor = r.var != null && r.var >= 0 ? "hsl(142, 71%, 45%)" : "hsl(0, 84%, 60%)";
                   return (
                     <TableRow key={r.marchio} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/marchi/${encodeURIComponent(r.marchio)}`)}>
                       <TableCell className="font-medium py-1.5 px-1.5 sm:py-2 sm:px-2">
@@ -460,11 +477,25 @@ export default function Marchi() {
                           <span className="tabular-nums">{fmt(r.fattCurrentYear)}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums py-1.5 px-1.5 sm:py-2 sm:px-2 hidden sm:table-cell">{fmt(r.fattPrevYearYTD)}</TableCell>
-                      <TableCell className="text-right py-1.5 px-1.5 sm:py-2 sm:px-2">
+                      <TableCell className="text-right py-1.5 px-1.5 sm:py-2 sm:px-2 hidden sm:table-cell">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="hidden sm:inline"><MiniSparkline data={r.sparklinePrev} color={prevSparkColor} /></span>
+                          <span className="tabular-nums">{fmt(r.fattPrevYearYTD)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right py-1.5 px-1.5 sm:py-2 sm:px-2 hidden sm:table-cell">
                         {pctVal != null ? (
-                          <Badge variant={r.var! >= 0 ? "default" : "destructive"} className={r.var! >= 0 ? "bg-green-600 hover:bg-green-700" : ""}>
+                          <span className={cn("tabular-nums font-medium", r.var! >= 0 ? "text-green-500" : "text-red-500")}>
                             {pctVal}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">N/A</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right py-1.5 px-1.5 sm:py-2 sm:px-2">
+                        {pctTotal != null ? (
+                          <Badge variant={r.varTotal! >= 0 ? "default" : "destructive"} className={r.varTotal! >= 0 ? "bg-green-600 hover:bg-green-700" : ""}>
+                            {pctTotal}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-muted-foreground">N/A</Badge>

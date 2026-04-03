@@ -89,6 +89,6 @@ export default function Auth() {
           </p>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

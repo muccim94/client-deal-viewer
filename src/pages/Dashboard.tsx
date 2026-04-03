@@ -148,7 +148,7 @@ export default function Dashboard() {
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
   const fmtCompact = (n: number) => {
-    if (Math.abs(n) >= 1_000_000) return `€${(n / 1_000_000).toFixed(2)}M`;
+    if (Math.abs(n) >= 1_000_000) return `€${Math.round(n / 1_000).toLocaleString("it-IT")}K`;
     if (Math.abs(n) >= 1_000) return `€${(n / 1_000).toFixed(0)}K`;
     return fmt(n);
   };

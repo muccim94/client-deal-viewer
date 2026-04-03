@@ -1,29 +1,44 @@
 
 
-## Fix: Stesso bug `v_max_month` su `get_marchi_stats`
+## Piano: Swipe-right per aprire la sidebar su mobile
 
-### Problema
-La funzione `get_marchi_stats` ha la stessa logica restrittiva:
-```sql
-IF p_mese_a IS NOT NULL AND p_mese_a < v_max_month THEN
-    v_max_month := p_mese_a;
-END IF;
+### Cosa faremo
+Aggiungere un listener touch nel `SidebarProvider` che rileva uno swipe da sinistra verso destra sul bordo sinistro dello schermo e apre la sidebar mobile.
+
+### Modifica: `src/components/ui/sidebar.tsx`
+
+Aggiungere un `useEffect` dentro `SidebarProvider` (dopo il keyboard shortcut effect, ~riga 89) che:
+
+1. Ascolta `touchstart` — registra la posizione X iniziale, solo se il touch parte entro 30px dal bordo sinistro
+2. Ascolta `touchmove` — calcola la distanza orizzontale
+3. Ascolta `touchend` — se lo swipe è >70px verso destra e il menu mobile è chiuso, chiama `setOpenMobile(true)`
+
+Condizione: attivo solo quando `isMobile` è true. Nessun impatto su desktop.
+
+```typescript
+React.useEffect(() => {
+  if (!isMobile) return;
+  let startX = 0;
+  let startY = 0;
+  const onTouchStart = (e: TouchEvent) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  };
+  const onTouchEnd = (e: TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = Math.abs(e.changedTouches[0].clientY - startY);
+    if (startX < 30 && dx > 70 && dy < 100) {
+      setOpenMobile(true);
+    }
+  };
+  document.addEventListener("touchstart", onTouchStart);
+  document.addEventListener("touchend", onTouchEnd);
+  return () => {
+    document.removeEventListener("touchstart", onTouchStart);
+    document.removeEventListener("touchend", onTouchEnd);
+  };
+}, [isMobile, setOpenMobile]);
 ```
-Quando l'utente seleziona un range più ampio (es. Gen-Ott), il progressivo anno precedente nella tabella marchi resta limitato al mese massimo con dati dell'anno corrente.
 
-### Soluzione
-Una migration SQL che ricrea `get_marchi_stats` con la stessa fix applicata a `get_provvigioni_chart`:
-
-```sql
-IF p_mese_a IS NOT NULL THEN
-    v_max_month := p_mese_a;
-END IF;
-```
-
-Questo aggiorna sia il widget/KPI sia la tabella marchi, poiché entrambi derivano dalla stessa RPC. La colonna `fatt_prev_ytd` (Progressivo anno precedente) nella CTE `brands` usa già `v_max_month` come limite, quindi si aggiornerà automaticamente.
-
-### Impatto
-- **Widget grafico**: i totali di confronto si allineano al range selezionato
-- **Tabella marchi**: la colonna "Progr." riflette lo stesso range di mesi
-- **Nessuna modifica frontend**: la pagina Marchi già passa `p_mese_a` correttamente
+Nessun'altra modifica necessaria — la sidebar mobile usa già il componente Sheet che gestisce la chiusura.
 

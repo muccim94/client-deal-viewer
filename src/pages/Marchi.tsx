@@ -387,10 +387,12 @@ export default function Marchi() {
               </div>
             </CardHeader>
             <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0 mt-auto">
-              <span className="text-lg sm:text-2xl font-bold">{fmtCompact(kpi.value)}</span>
-              {'subtitle' in kpi && kpi.subtitle && (
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{kpi.subtitle}</p>
-              )}
+              <div className="flex items-end justify-between">
+                <span className="text-lg sm:text-2xl font-bold">{fmtCompact(kpi.value)}</span>
+                {'subtitle' in kpi && kpi.subtitle && (
+                  <span className="text-[10px] sm:text-xs font-bold text-red-500">{kpi.subtitle}</span>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}

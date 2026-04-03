@@ -25,7 +25,7 @@ import {
 // Marchi premianti from Excel
 const MARCHI_PREMIANTI = ["VIW", "DIS", "IBO", "INS", "BTI", "GEW", "LEG", "PHL", "LDV", "SNR", "FOS", "SIE", "ABB", "HAG", "PHA"];
 
-type SortKey = "marchio" | "fattCurrentYear" | "fattPrevYearYTD" | "var";
+type SortKey = "marchio" | "fattCurrentYear" | "fattPrevYearYTD" | "var" | "varTotal";
 type SortDir = "asc" | "desc";
 
 interface BrandRow {
@@ -34,7 +34,9 @@ interface BrandRow {
   fattPrevYear: number;
   fattPrevYearYTD: number;
   var: number | null;
+  varTotal: number | null;
   sparkline: { mese: number; value: number }[];
+  sparklinePrev: { mese: number; value: number }[];
 }
 
 interface MonthlyTotal {

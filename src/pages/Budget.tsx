@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface BudgetRow {
   mese: number;
@@ -29,9 +30,13 @@ interface BudgetRow {
 const fmt = (v: number) =>
   v.toLocaleString("it-IT", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
+const meseShort = (m: number) =>
+  ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"][m - 1] ?? "";
+
 export default function Budget() {
   const [anno, setAnno] = useState(2026);
   const [agente, setAgente] = useState<string>("all");
+  const isMobile = useIsMobile();
 
   const { data: rows = [], isLoading } = useQuery<BudgetRow[]>({
     queryKey: ["budget", anno, agente],
@@ -58,7 +63,7 @@ export default function Budget() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl font-bold">Budget</h1>
+        <h1 className="text-xl md:text-2xl font-bold">Budget</h1>
         <div className="flex gap-3">
           <Select value={String(anno)} onValueChange={(v) => setAnno(Number(v))}>
             <SelectTrigger className="w-[100px]">
@@ -86,16 +91,16 @@ export default function Budget() {
       {isLoading ? (
         <p className="text-muted-foreground">Caricamento…</p>
       ) : (
-        <div className="rounded-md border text-[1.21rem]">
+        <div className="rounded-md border text-xs md:text-[1.21rem]">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="px-1">Mese</TableHead>
                 <TableHead className="text-right px-1">Budget</TableHead>
-                <TableHead className="text-right px-1">Fatturato</TableHead>
-                <TableHead className="text-right px-1">Delta €</TableHead>
-                <TableHead className="text-right px-1">Delta %</TableHead>
-                <TableHead className="w-[160px] px-1">Progresso</TableHead>
+                <TableHead className="text-right px-1">Fatt.</TableHead>
+                <TableHead className="text-right px-1 hidden md:table-cell">Delta €</TableHead>
+                <TableHead className="text-right px-1">Δ%</TableHead>
+                <TableHead className="w-[80px] md:w-[160px] px-1">Progresso</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -104,10 +109,12 @@ export default function Budget() {
                 const pct = r.budget > 0 ? (r.fatturato / r.budget) * 100 : 0;
                 return (
                   <TableRow key={r.mese}>
-                    <TableCell className="font-medium px-1">{getMeseNome(r.mese)}</TableCell>
+                    <TableCell className="font-medium px-1">
+                      {isMobile ? meseShort(r.mese) : getMeseNome(r.mese)}
+                    </TableCell>
                     <TableCell className="text-right px-1">{fmt(r.budget)}</TableCell>
                     <TableCell className="text-right px-1">{fmt(r.fatturato)}</TableCell>
-                    <TableCell className={`text-right px-1 ${deltaColor(delta)}`}>
+                    <TableCell className={`text-right px-1 hidden md:table-cell ${deltaColor(delta)}`}>
                       {delta >= 0 ? "+" : ""}
                       {fmt(delta)}
                     </TableCell>
@@ -131,7 +138,7 @@ export default function Budget() {
                 <TableCell className="font-bold px-1">Totale</TableCell>
                 <TableCell className="text-right font-bold px-1">{fmt(totals.budget)}</TableCell>
                 <TableCell className="text-right font-bold px-1">{fmt(totals.fatturato)}</TableCell>
-                <TableCell className={`text-right font-bold px-1 ${deltaColor(totals.fatturato - totals.budget)}`}>
+                <TableCell className={`text-right font-bold px-1 hidden md:table-cell ${deltaColor(totals.fatturato - totals.budget)}`}>
                   {totals.fatturato - totals.budget >= 0 ? "+" : ""}
                   {fmt(totals.fatturato - totals.budget)}
                 </TableCell>

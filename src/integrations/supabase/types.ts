@@ -247,10 +247,31 @@ export type Database = {
         }
         Returns: Json
       }
-      get_provvigioni_grouped: {
-        Args: { p_anno?: number; p_azienda?: string; p_mese?: number }
+      get_provvigioni_chart: {
+        Args: {
+          p_agente?: string
+          p_azienda?: string
+          p_mese_a?: number
+          p_mese_da?: number
+        }
         Returns: Json
       }
+      get_provvigioni_grouped:
+        | {
+            Args: { p_anno?: number; p_azienda?: string; p_mese?: number }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_agente?: string
+              p_anno?: number
+              p_azienda?: string
+              p_mese?: number
+              p_mese_a?: number
+              p_mese_da?: number
+            }
+            Returns: Json
+          }
       get_record_count: { Args: never; Returns: number }
       get_user_agents: { Args: { _user_id: string }; Returns: string[] }
       get_visible_agents: { Args: never; Returns: string[] }

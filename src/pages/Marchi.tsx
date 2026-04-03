@@ -448,14 +448,19 @@ export default function Marchi() {
                   <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px] hidden sm:table-cell" onClick={() => toggleSort("fattPrevYearYTD")}>
                     <span className="flex items-center gap-1">{`Progr. ${prevYear}`}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
-                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px]" onClick={() => toggleSort("var")}>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px] hidden sm:table-cell" onClick={() => toggleSort("var")}>
                     <span className="flex items-center gap-1">Var.&nbsp;%<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 px-1.5 sm:px-[10px]" onClick={() => toggleSort("varTotal")}>
+                    <span className="flex items-center gap-1 justify-end"><ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map(r => {
                   const pctVal = fmtPct(r.var);
+                  const pctTotal = fmtPct(r.varTotal);
+                  const prevSparkColor = r.var != null && r.var >= 0 ? "hsl(142, 71%, 45%)" : "hsl(0, 84%, 60%)";
                   return (
                     <TableRow key={r.marchio} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/marchi/${encodeURIComponent(r.marchio)}`)}>
                       <TableCell className="font-medium py-1.5 px-1.5 sm:py-2 sm:px-2">
@@ -472,11 +477,25 @@ export default function Marchi() {
                           <span className="tabular-nums">{fmt(r.fattCurrentYear)}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums py-1.5 px-1.5 sm:py-2 sm:px-2 hidden sm:table-cell">{fmt(r.fattPrevYearYTD)}</TableCell>
-                      <TableCell className="text-right py-1.5 px-1.5 sm:py-2 sm:px-2">
+                      <TableCell className="text-right py-1.5 px-1.5 sm:py-2 sm:px-2 hidden sm:table-cell">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="hidden sm:inline"><MiniSparkline data={r.sparklinePrev} color={prevSparkColor} /></span>
+                          <span className="tabular-nums">{fmt(r.fattPrevYearYTD)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right py-1.5 px-1.5 sm:py-2 sm:px-2 hidden sm:table-cell">
                         {pctVal != null ? (
-                          <Badge variant={r.var! >= 0 ? "default" : "destructive"} className={r.var! >= 0 ? "bg-green-600 hover:bg-green-700" : ""}>
+                          <span className={cn("tabular-nums font-medium", r.var! >= 0 ? "text-green-500" : "text-red-500")}>
                             {pctVal}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">N/A</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right py-1.5 px-1.5 sm:py-2 sm:px-2">
+                        {pctTotal != null ? (
+                          <Badge variant={r.varTotal! >= 0 ? "default" : "destructive"} className={r.varTotal! >= 0 ? "bg-green-600 hover:bg-green-700" : ""}>
+                            {pctTotal}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-muted-foreground">N/A</Badge>

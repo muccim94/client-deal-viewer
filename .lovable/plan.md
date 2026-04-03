@@ -1,42 +1,22 @@
 
 
-## Piano: Widget grafico provvigioni con filtri stile Marchi
+## Fix: Confronto anno precedente non si aggiorna con il range mesi selezionato
 
-### Cosa faremo
+### Problema
+Nella RPC `get_provvigioni_chart`, la variabile `v_max_month` viene calcolata come l'ultimo mese con dati nell'anno corrente (es. Marzo = 3). Quando l'utente seleziona un range più ampio (es. Gennaio-Ottobre), la riga:
+```sql
+IF p_mese_a IS NOT NULL AND p_mese_a < v_max_month THEN
+    v_max_month := p_mese_a;
+END IF;
+```
+riduce `v_max_month` ma non lo aumenta mai oltre il mese massimo con dati. Quindi il totale dell'anno precedente resta sempre limitato a Marzo.
 
-Aggiungere alla pagina Provvigioni un widget identico a quello della pagina Marchi: una card con **Totale Provvigioni**, variazione % anno precedente, e un **AreaChart** che mostra l'andamento mensile (anno corrente vs anno precedente). I filtri verranno sostituiti con lo stesso layout della pagina Marchi: toggle azienda, selettori periodo Da/A, toggle agenti.
+### Soluzione
+Modificare la logica: quando l'utente specifica `p_mese_a`, usare quel valore direttamente come limite superiore per **entrambi** gli anni. Il `v_max_month` (ultimo mese con dati) diventa solo il fallback quando nessun "mese A" è selezionato.
 
-### Modifiche
+### Modifica: migration SQL per aggiornare `get_provvigioni_chart`
+- Sostituire il blocco IF con: `IF p_mese_a IS NOT NULL THEN v_max_month := p_mese_a; END IF;`
+- Questo fa sì che selezionando Gen-Ott, i totali di entrambi gli anni vengano calcolati su Gen-Ott (dati mancanti = 0)
 
-#### 1. Nuova RPC `get_provvigioni_chart`
-Creare una funzione database che restituisce:
-- **totale anno corrente** (nel range mesi selezionato)
-- **totale progressivo anno precedente** (stesso range)
-- **monthly_totals**: array con `mese`, `provv_current`, `provv_prev` per tutti i 12 mesi
-- Filtri: `p_azienda`, `p_mese_da`, `p_mese_a`, `p_agente`
-- Stessa logica di sicurezza (admin vede tutto, agenti solo i propri)
-
-#### 2. Riscrittura filtri in `Provvigioni.tsx`
-Sostituire i 3 Select attuali con il layout identico a Marchi:
-- **Sinistra**: toggle Fogliani / Futurtec
-- **Centro**: selettori "Da" / "A" mese
-- **Destra**: toggle agenti (o Select se >5)
-- Rimuovere il filtro anno (si usa anno corrente come default, anno precedente per confronto)
-
-#### 3. Widget grafico in `Provvigioni.tsx`
-Card con:
-- Titolo "Totale Provvigioni", valore formattato, sottotitolo "vs X prog. {anno-1}"
-- Badge variazione % (verde/rosso)
-- AreaChart con linea verde (anno corrente) e linea tratteggiata (anno precedente)
-- Stessi stili, gradients e tooltip della pagina Marchi
-
-#### 4. Tabella esistente
-Rimane invariata sotto il widget, alimentata dalla RPC `get_provvigioni_grouped` esistente (aggiornata con i nuovi parametri `p_mese_da`/`p_mese_a` al posto di `p_mese`).
-
-### Dettagli tecnici
-
-- La RPC `get_provvigioni_grouped` verrà aggiornata per accettare `p_mese_da` e `p_mese_a` invece di `p_mese`, e un parametro `p_agente`
-- Riuso dei componenti Recharts già importati nel progetto (`AreaChart`, `Area`, `ResponsiveContainer`, etc.)
-- Il `filterAnno` viene rimosso dall'UI — si usa `EXTRACT(YEAR FROM CURRENT_DATE)` lato server
-- Il mese "A" di default viene calcolato come il mese massimo con dati disponibili
+Una sola modifica, una riga nella RPC.
 

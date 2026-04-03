@@ -113,21 +113,29 @@ export default function Marchi() {
   // Set default "A" month from server data
   const effectiveMeseA = filterMeseA ? Number(filterMeseA) : (marchiData?.max_month ?? new Date().getMonth() + 1);
 
-  // Build brand monthly map for sparklines
-  const brandMonthlyMap = useMemo(() => {
+  // Build brand monthly map for sparklines (current + prev year)
+  const { brandMonthlyMap, brandMonthlyPrevMap } = useMemo(() => {
     const map = new Map<string, { mese: number; value: number }[]>();
-    if (!marchiData?.brand_monthly) return map;
+    const mapPrev = new Map<string, { mese: number; value: number }[]>();
+    if (!marchiData?.brand_monthly) return { brandMonthlyMap: map, brandMonthlyPrevMap: mapPrev };
     for (const bm of marchiData.brand_monthly) {
       const fam = getFamiglia(bm.marchio);
+      // Current year
       if (!map.has(fam)) map.set(fam, []);
       const arr = map.get(fam)!;
       const existing = arr.find(e => e.mese === bm.mese);
       if (existing) existing.value += bm.fatt_current;
       else arr.push({ mese: bm.mese, value: bm.fatt_current });
+      // Prev year
+      if (!mapPrev.has(fam)) mapPrev.set(fam, []);
+      const arrP = mapPrev.get(fam)!;
+      const existingP = arrP.find(e => e.mese === bm.mese);
+      if (existingP) existingP.value += bm.fatt_prev;
+      else arrP.push({ mese: bm.mese, value: bm.fatt_prev });
     }
-    // Sort each by mese
     for (const [, arr] of map) arr.sort((a, b) => a.mese - b.mese);
-    return map;
+    for (const [, arr] of mapPrev) arr.sort((a, b) => a.mese - b.mese);
+    return { brandMonthlyMap: map, brandMonthlyPrevMap: mapPrev };
   }, [marchiData?.brand_monthly]);
 
   // Group brands by family
@@ -149,7 +157,9 @@ export default function Marchi() {
       marchio,
       ...v,
       var: v.fattPrevYearYTD > 0 ? ((v.fattCurrentYear - v.fattPrevYearYTD) / v.fattPrevYearYTD) * 100 : null,
+      varTotal: v.fattPrevYear > 0 ? ((v.fattCurrentYear - v.fattPrevYear) / v.fattPrevYear) * 100 : null,
       sparkline: brandMonthlyMap.get(marchio) ?? [],
+      sparklinePrev: brandMonthlyPrevMap.get(marchio) ?? [],
     }));
   }, [marchiData?.brands, brandMonthlyMap]);
 

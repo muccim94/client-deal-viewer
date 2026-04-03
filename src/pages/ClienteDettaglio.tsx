@@ -18,7 +18,7 @@ const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
 
 const fmtCompact = (n: number) => {
-  if (Math.abs(n) >= 1_000_000) return `${Math.round(n / 1_000).toLocaleString("it-IT")}K`;
+  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(3).replace('.', ',')}M`;
   if (Math.abs(n) >= 100) return `${(n / 1_000).toFixed(1).replace('.', ',')}k`;
   return `${Math.round(n)} €`;
 };

@@ -1,44 +1,17 @@
 
 
-## Piano: Swipe-right per aprire la sidebar su mobile
+## Piano: Ottimizzazione mobile pagina Budget
 
-### Cosa faremo
-Aggiungere un listener touch nel `SidebarProvider` che rileva uno swipe da sinistra verso destra sul bordo sinistro dello schermo e apre la sidebar mobile.
+### Problema
+A 390px la tabella ha 6 colonne con testo grande (`text-[1.21rem]`), causando overflow orizzontale o colonne troppo compresse.
 
-### Modifica: `src/components/ui/sidebar.tsx`
+### Modifiche: `src/pages/Budget.tsx`
 
-Aggiungere un `useEffect` dentro `SidebarProvider` (dopo il keyboard shortcut effect, ~riga 89) che:
+1. **Ridurre font-size su mobile**: `text-xs md:text-[1.21rem]` sul container tabella
+2. **Nascondere "Delta €" su mobile**: la colonna è ridondante avendo già "Delta %". Usare `hidden md:table-cell`
+3. **Abbreviare nomi mesi su mobile**: usare abbreviazione 3 lettere (Gen, Feb, Mar...) sotto md
+4. **Ridurre larghezza barra progresso su mobile**: `w-[80px] md:w-[160px]`
+5. **Header e filtri compatti**: titolo più piccolo su mobile (`text-xl md:text-2xl`), select a larghezza piena in riga
 
-1. Ascolta `touchstart` — registra la posizione X iniziale, solo se il touch parte entro 30px dal bordo sinistro
-2. Ascolta `touchmove` — calcola la distanza orizzontale
-3. Ascolta `touchend` — se lo swipe è >70px verso destra e il menu mobile è chiuso, chiama `setOpenMobile(true)`
-
-Condizione: attivo solo quando `isMobile` è true. Nessun impatto su desktop.
-
-```typescript
-React.useEffect(() => {
-  if (!isMobile) return;
-  let startX = 0;
-  let startY = 0;
-  const onTouchStart = (e: TouchEvent) => {
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-  };
-  const onTouchEnd = (e: TouchEvent) => {
-    const dx = e.changedTouches[0].clientX - startX;
-    const dy = Math.abs(e.changedTouches[0].clientY - startY);
-    if (startX < 30 && dx > 70 && dy < 100) {
-      setOpenMobile(true);
-    }
-  };
-  document.addEventListener("touchstart", onTouchStart);
-  document.addEventListener("touchend", onTouchEnd);
-  return () => {
-    document.removeEventListener("touchstart", onTouchStart);
-    document.removeEventListener("touchend", onTouchEnd);
-  };
-}, [isMobile, setOpenMobile]);
-```
-
-Nessun'altra modifica necessaria — la sidebar mobile usa già il componente Sheet che gestisce la chiusura.
+Colonne visibili su mobile: **Mese | Budget | Fatt. | Δ% | Progresso** (5 colonne compatte)
 

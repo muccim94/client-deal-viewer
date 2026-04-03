@@ -376,7 +376,7 @@ export default function Marchi() {
           { label: "Mat. Elettrico", value: marchiData?.kpi?.mat_elettrico ?? 0, icon: Zap, color: "text-blue-500" },
           { label: "Cavo", value: marchiData?.kpi?.cavo ?? 0, icon: Cable, color: "text-orange-500" },
           { label: "Fotovoltaico", value: marchiData?.kpi?.fotovoltaico ?? 0, icon: Sun, color: "text-yellow-500" },
-          { label: "Risorsa Utilizzata", value: marchiData?.kpi?.ricambi ?? 0, icon: Wrench, color: "text-muted-foreground" },
+          { label: "Risorsa Utilizzata", value: marchiData?.kpi?.ricambi ?? 0, icon: Wrench, color: "text-muted-foreground", subtitle: totalCurrent > 0 ? `${((( marchiData?.kpi?.ricambi ?? 0) / totalCurrent) * 100).toFixed(2).replace('.', ',')}% del fatturato` : null },
           { label: "Marchi Top", value: brands.filter(b => MARCHI_PREMIANTI.includes(b.marchio)).reduce((s, b) => s + b.fattCurrentYear, 0), icon: Trophy, color: "text-yellow-500" },
         ].map(kpi => (
           <Card key={kpi.label} className="flex flex-col">
@@ -388,6 +388,9 @@ export default function Marchi() {
             </CardHeader>
             <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0 mt-auto">
               <span className="text-lg sm:text-2xl font-bold">{fmtCompact(kpi.value)}</span>
+              {'subtitle' in kpi && kpi.subtitle && (
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{kpi.subtitle}</p>
+              )}
             </CardContent>
           </Card>
         ))}

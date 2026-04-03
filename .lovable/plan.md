@@ -1,24 +1,17 @@
 
 
-## Fix: Clienti duplicati nella card Top 10
+## Aggiunta percentuale nella card "Risorsa Utilizzata"
 
-### Problema
-La query SQL che genera i Top 10 Clienti raggruppa per `(nome_cliente, codice_cliente)`. Tre clienti hanno lo stesso codice ma nomi leggermente diversi nei dati (es. "ARCHIMEDE PLUS S.N.C. DI" vs "ARCHIMEDE PLUS SRL"), causando righe duplicate.
-
-### Soluzione
-Modificare la CTE `top_clienti_base` nella funzione `get_dashboard_stats` per raggruppare solo per `codice_cliente` e prendere il nome più recente con `MAX(nome_cliente)`.
+### Cosa cambia
+Nella card "Risorsa Utilizzata" della pagina Marchi, sotto l'importo attuale verrà aggiunta una riga che mostra la percentuale rispetto al fatturato totale (es. "0,92% del fatturato").
 
 ### Dettaglio tecnico
 
-Migrazione SQL — aggiornamento della funzione `get_dashboard_stats`:
+**File: `src/pages/Marchi.tsx`**
 
-```sql
--- Nella CTE top_clienti_base, cambiare:
---   GROUP BY s.nome_cliente, s.codice_cliente
--- in:
---   GROUP BY s.codice_cliente
--- e usare MAX(s.nome_cliente) as name
-```
+1. Modificare la struttura dati dei KPI per includere un campo opzionale `subtitle` calcolato come `(ricambi / totalCurrent * 100)`.
+2. Nella card "Risorsa Utilizzata", renderizzare sotto il valore principale una riga di testo piccolo con la percentuale formattata (es. `0,92% del fatturato`).
+3. La percentuale verrà mostrata solo se `totalCurrent > 0` per evitare divisioni per zero.
 
-Nessuna modifica al frontend necessaria.
+Nessuna modifica al backend o ad altri file.
 

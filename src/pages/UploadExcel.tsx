@@ -696,8 +696,11 @@ export default function UploadExcel() {
                 <TableBody>
                   {editorLoading ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground text-sm">
-                        Caricamento...
+                      <TableCell colSpan={9} className="text-center py-12">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+                          <p className="text-sm text-muted-foreground">Ricerca in corso...</p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : editorRows.length === 0 ? (

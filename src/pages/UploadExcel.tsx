@@ -92,6 +92,10 @@ export default function UploadExcel() {
   }, [fetchRecords]);
 
   useEffect(() => {
+    if (isAdmin) refreshRecordCount();
+  }, [isAdmin, refreshRecordCount]);
+
+  useEffect(() => {
     if (isAdmin && recordCount != null && recordCount > 0) {
       loadEditor(filters, editorPage);
     }

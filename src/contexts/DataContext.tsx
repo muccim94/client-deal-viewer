@@ -165,7 +165,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     if (filters.anno) query = query.eq("anno", filters.anno);
     if (filters.mese) query = query.eq("mese", filters.mese);
-    if (filters.cliente) query = query.ilike("nome_cliente", `%${filters.cliente}%`);
+    if (filters.cliente) query = query.or(`nome_cliente.ilike.%${filters.cliente}%,codice_cliente.ilike.%${filters.cliente}%`);
     if (filters.agente) query = query.ilike("agente", `%${filters.agente}%`);
 
     const from = page * PAGE_SIZE;

@@ -1,17 +1,24 @@
 
 
-## Piano: Ottimizzazione mobile pagina Budget
+## Piano: Fix ricerca nella sezione Modifica Storico
 
 ### Problema
-A 390px la tabella ha 6 colonne con testo grande (`text-[1.21rem]`), causando overflow orizzontale o colonne troppo compresse.
+La sezione "Modifica Storico" non carica i dati perché `recordCount` resta `null` al mount della pagina. L'effect che carica i record (riga 94) richiede `recordCount != null && recordCount > 0`, ma `refreshRecordCount()` non viene mai chiamato all'avvio della pagina `/upload`. Di conseguenza, i filtri di ricerca non producono risultati.
 
-### Modifiche: `src/pages/Budget.tsx`
+### Modifica: `src/pages/UploadExcel.tsx`
 
-1. **Ridurre font-size su mobile**: `text-xs md:text-[1.21rem]` sul container tabella
-2. **Nascondere "Delta €" su mobile**: la colonna è ridondante avendo già "Delta %". Usare `hidden md:table-cell`
-3. **Abbreviare nomi mesi su mobile**: usare abbreviazione 3 lettere (Gen, Feb, Mar...) sotto md
-4. **Ridurre larghezza barra progresso su mobile**: `w-[80px] md:w-[160px]`
-5. **Header e filtri compatti**: titolo più piccolo su mobile (`text-xl md:text-2xl`), select a larghezza piena in riga
+Aggiungere un `useEffect` che chiama `refreshRecordCount()` al mount della pagina:
 
-Colonne visibili su mobile: **Mese | Budget | Fatt. | Δ% | Progresso** (5 colonne compatte)
+```tsx
+useEffect(() => {
+  if (isAdmin) {
+    refreshRecordCount();
+  }
+}, [isAdmin, refreshRecordCount]);
+```
+
+Questo va inserito prima dell'effect esistente (prima di riga 94). Una volta che `recordCount` viene caricato, l'effect successivo caricherà i dati e i filtri funzioneranno correttamente.
+
+### Nessun'altra modifica necessaria
+La logica di ricerca `.or(nome_cliente.ilike..., codice_cliente.ilike...)` nel `DataContext.tsx` è già corretta.
 

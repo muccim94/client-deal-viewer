@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Incentivazioni from "@/components/cliente/Incentivazioni";
+import ClienteReferenti from "@/components/cliente/ClienteReferenti";
+import ClienteReport from "@/components/cliente/ClienteReport";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
@@ -280,6 +282,12 @@ export default function ClienteDettaglio() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Referenti e Report */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        <ClienteReferenti codiceCliente={codice!} />
+        <ClienteReport codiceCliente={codice!} />
       </div>
 
       {/* Tabelle mensili */}

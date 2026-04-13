@@ -22,7 +22,7 @@ const MarchioDettaglio = lazy(() => import("@/pages/MarchioDettaglio"));
 const Provvigioni = lazy(() => import("@/pages/Provvigioni"));
 const Budget = lazy(() => import("@/pages/Budget"));
 const GestioneUtenti = lazy(() => import("@/pages/GestioneUtenti"));
-const Auth = lazy(() => import("@/pages/Auth"));
+import Auth from "@/pages/Auth";
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const PageLoader = () => (

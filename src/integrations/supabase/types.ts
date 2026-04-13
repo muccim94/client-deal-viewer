@@ -83,6 +83,72 @@ export type Database = {
         }
         Relationships: []
       }
+      cliente_referenti: {
+        Row: {
+          codice_cliente: string
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          nome: string
+          ruolo: string | null
+          telefono: string | null
+        }
+        Insert: {
+          codice_cliente: string
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          nome: string
+          ruolo?: string | null
+          telefono?: string | null
+        }
+        Update: {
+          codice_cliente?: string
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          ruolo?: string | null
+          telefono?: string | null
+        }
+        Relationships: []
+      }
+      cliente_report: {
+        Row: {
+          codice_cliente: string
+          created_at: string
+          created_by: string
+          data_report: string
+          id: string
+          note: string | null
+          oggetto: string | null
+          tipo: string
+        }
+        Insert: {
+          codice_cliente: string
+          created_at?: string
+          created_by: string
+          data_report: string
+          id?: string
+          note?: string | null
+          oggetto?: string | null
+          tipo: string
+        }
+        Update: {
+          codice_cliente?: string
+          created_at?: string
+          created_by?: string
+          data_report?: string
+          id?: string
+          note?: string | null
+          oggetto?: string | null
+          tipo?: string
+        }
+        Relationships: []
+      }
       clienti_anagrafica: {
         Row: {
           email: string | null

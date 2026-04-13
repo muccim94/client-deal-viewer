@@ -284,6 +284,12 @@ export default function ClienteDettaglio() {
         </Card>
       </div>
 
+      {/* Referenti e Report */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        <ClienteReferenti codiceCliente={codice!} />
+        <ClienteReport codiceCliente={codice!} />
+      </div>
+
       {/* Tabelle mensili */}
       {aziende.map(({ name, rows }) => {
         const totCorr = rows.reduce((s, r) => s + r.corrente, 0);

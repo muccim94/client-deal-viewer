@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Incentivazioni from "@/components/cliente/Incentivazioni";
+import ClienteReferenti from "@/components/cliente/ClienteReferenti";
+import ClienteReport from "@/components/cliente/ClienteReport";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);

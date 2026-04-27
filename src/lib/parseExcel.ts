@@ -40,6 +40,10 @@ function isRiepilogoFormat(row: Record<string, unknown>): boolean {
   return "Linea" in row && "Agente (Anagrafico)" in row;
 }
 
+function isBackupFormat(row: Record<string, unknown>): boolean {
+  return "Codice Cliente" in row && "Nome Cliente" in row && "Marchio" in row;
+}
+
 function parseFatturato(value: unknown): number {
   if (typeof value === "number") return value;
   const str = String(value).replace(/€/g, "").replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
@@ -258,6 +262,69 @@ function extractMeseFromFilename(name: string): number | undefined {
   return undefined;
 }
 
+function parseAsBackup(json: Record<string, unknown>[]): SalesRecord[] {
+  const errors: string[] = [];
+  const records: SalesRecord[] = [];
+
+  for (let i = 0; i < json.length; i++) {
+    const row = json[i];
+
+    const aziendaRaw = String(row["Azienda"] ?? "").trim();
+    const azienda = (AZIENDA_REVERSE[aziendaRaw.toLowerCase()] ?? aziendaRaw).toUpperCase().substring(0, 2);
+    const anno = Number(row["Anno"] ?? 0);
+    const mese = Number(row["Mese"] ?? 0);
+
+    const codiceCliente = String(row["Codice Cliente"] ?? "").trim();
+    const nomeCliente = String(row["Nome Cliente"] ?? "").trim();
+    const agente = String(row["Agente"] ?? "").trim();
+    const marchio = String(row["Marchio"] ?? "").trim();
+    const articolo = String(row["Articolo"] ?? "").trim();
+    const imponibile = parseFatturato(row["Imponibile"]);
+    const provvigione = parseFatturato(row["Provvigione"]);
+    const fatturaRiga = `BKP_${azienda}_${anno}_${mese}_${codiceCliente}_${articolo || marchio}`;
+
+    const parsed = {
+      azienda, anno, mese, codiceCliente, nomeCliente, agente, marchio,
+      articolo: articolo || marchio, imponibile, provvigione, fatturaRiga,
+    };
+
+    const result = salesRowSchema.safeParse(parsed);
+    if (!result.success) {
+      const issues = result.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; ");
+      errors.push(`Riga ${i + 2}: ${issues}`);
+      if (errors.length >= 10) {
+        throw new Error(`Troppi errori di validazione:\n${errors.join("\n")}`);
+      }
+      continue;
+    }
+
+    const validated = result.data;
+    records.push({
+      azienda: validated.azienda,
+      aziendaNome: getAziendaNome(validated.azienda),
+      anno: validated.anno,
+      mese: validated.mese,
+      codiceCliente: validated.codiceCliente,
+      nomeCliente: validated.nomeCliente,
+      agente: validated.agente,
+      marchio: validated.marchio,
+      articolo: validated.articolo,
+      imponibile: validated.imponibile,
+      provvigione: validated.provvigione,
+      fatturaRiga: validated.fatturaRiga,
+    });
+  }
+
+  if (errors.length > 0 && records.length === 0) {
+    throw new Error(`Nessun record valido trovato:\n${errors.join("\n")}`);
+  }
+  if (errors.length > 0) {
+    console.warn(`${errors.length} righe ignorate per errori di validazione`);
+  }
+
+  return records;
+}
+
 export function parseExcelFile(file: File): Promise<SalesRecord[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -272,7 +339,9 @@ export function parseExcelFile(file: File): Promise<SalesRecord[]> {
           throw new Error("Il file Excel è vuoto o non contiene dati validi");
         }
 
-        if (isRiepilogoFormat(json[0])) {
+        if (isBackupFormat(json[0])) {
+          resolve(parseAsBackup(json));
+        } else if (isRiepilogoFormat(json[0])) {
           const filenameMese = extractMeseFromFilename(file.name);
           resolve(parseAsRiepilogo(json, filenameMese));
         } else {

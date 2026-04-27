@@ -40,6 +40,10 @@ function isRiepilogoFormat(row: Record<string, unknown>): boolean {
   return "Linea" in row && "Agente (Anagrafico)" in row;
 }
 
+function isBackupFormat(row: Record<string, unknown>): boolean {
+  return "Codice Cliente" in row && "Nome Cliente" in row && "Marchio" in row;
+}
+
 function parseFatturato(value: unknown): number {
   if (typeof value === "number") return value;
   const str = String(value).replace(/€/g, "").replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
